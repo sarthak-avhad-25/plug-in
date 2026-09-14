@@ -33,12 +33,12 @@ type Song = {
 const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite }: { song: Song, index: number, onPlay: (e: React.MouseEvent) => void, isFavorite: boolean, onToggleFavorite: (e: React.MouseEvent) => void }) => (
   <div 
     onClick={(e) => onPlay(e)}
-    className="p-3 md:p-4 hover:bg-white/10 rounded-2xl transition-all duration-500 transform hover:scale-110 hover:shadow-2xl cursor-pointer flex flex-col md:flex-row md:items-center gap-4 group"
+    className="p-2 md:p-4 hover:bg-white/10 rounded-xl md:rounded-2xl transition-all duration-500 transform hover:scale-[1.02] md:hover:scale-110 hover:shadow-2xl cursor-pointer flex flex-row items-center gap-3 md:gap-4 group"
   >
     <div className="w-8 shrink-0 text-xl font-black opacity-40 group-hover:opacity-100 group-hover:text-white transition-colors">
       #{index + 1}
     </div>
-    <div className="w-16 h-16 rounded-xl border border-white/20 group-hover:border-white/50 shrink-0 relative overflow-hidden bg-black shadow-lg">
+    <div className="w-12 h-12 md:w-16 md:h-16 rounded-lg md:rounded-xl border border-white/20 group-hover:border-white/50 shrink-0 relative overflow-hidden bg-black shadow-lg">
       <img src={song.image} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" alt={song.title} />
       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-[#FF3366]/80 transition-opacity">
         <Play className="w-6 h-6 text-white fill-white ml-1" />
