@@ -243,6 +243,7 @@ useEffect(() => {
   const playerRef = useRef<YouTubePlayer | null>(null);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
+  const silentAudioRef = useRef<HTMLAudioElement>(null);
 
   const lastScrolledIndex = useRef(-1);
   const isUserScrolling = useRef(false);
@@ -353,15 +354,26 @@ useEffect(() => {
       progressInterval.current = setInterval(() => {
         if (playerRef.current) setProgress(playerRef.current.getCurrentTime());
       }, 150);
+      // Start silent audio to keep tab alive in background
+      if (silentAudioRef.current) {
+        silentAudioRef.current.play().catch(() => {});
+      }
     } else if (event.data === 2) {
       setIsPlaying(false);
       if (progressInterval.current) clearInterval(progressInterval.current);
+      // Pause silent audio when user pauses playback
+      if (silentAudioRef.current) {
+        silentAudioRef.current.pause();
+      }
     } else if (event.data === 0) {
       setIsPlaying(false);
       if (progressInterval.current) clearInterval(progressInterval.current);
       playNextSong();
     }
   };
+
+
+
 
   const togglePlay = () => {
     if (!playerRef.current) return;
@@ -763,6 +775,8 @@ useEffect(() => {
           />
         )}
       </div>
+      {/* Silent audio to keep playback alive */}
+      <audio ref={silentAudioRef} src="data:audio/mp3;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" loop playsInline style={{display:"none"}} />
 
       {/* LEFT COLUMN - SEARCH & UI */}
       <div id="left-column" className="w-full md:w-[50%] lg:w-[40%] flex flex-col border-t-4 md:border-t-0 md:border-l-4 border-[#024230] relative z-20 bg-[#111] text-white overflow-visible drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
