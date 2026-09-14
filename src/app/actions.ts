@@ -12,6 +12,36 @@ async function init() {
   }
 }
 
+export async function getItunesCoverArt(title: string, artist: string): Promise<string | null> {
+  try {
+    const cleanTitle = title.replace(/\([^)]*\)|\[[^\]]*\]/g, '').trim();
+    const cleanArtist = typeof artist === 'string' ? artist.replace(/\([^)]*\)|\[[^\]]*\]/g, '').trim() : '';
+    const query = encodeURIComponent(`${cleanTitle} ${cleanArtist}`);
+    const res = await fetch(`https://itunes.apple.com/search?term=${query}&entity=song&limit=1`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.results && data.results.length > 0) {
+      const art = data.results[0].artworkUrl100;
+      if (art) {
+        return art.replace('100x100bb', '1000x1000bb');
+      }
+    }
+  } catch (error) {
+    console.error("iTunes search error:", error);
+  }
+  return null;
+}
+
+async function enrichSongsWithItunes(videos: any[]) {
+  return await Promise.all(videos.map(async (v) => {
+    const art = await getItunesCoverArt(v.title, v.artist);
+    if (art) {
+      v.image = art;
+    }
+    return v;
+  }));
+}
+
 export async function searchYouTube(query: string, searchType: "artist" | "song" | "any" = "any") {
   try {
     await init();
@@ -36,7 +66,7 @@ export async function searchYouTube(query: string, searchType: "artist" | "song"
       videos = videos.filter((v) => v.title.toLowerCase().includes(query.toLowerCase()));
     }
 
-    return videos.slice(0, 10);
+    return await enrichSongsWithItunes(videos.slice(0, 10));
   } catch (error) {
     console.error("YouTube search error:", error);
     return [];
@@ -134,7 +164,7 @@ export async function getTrendingWorldwide() {
         seconds: v.duration || 0,
       };
     });
-    return videos.slice(0, 10);
+    return await enrichSongsWithItunes(videos.slice(0, 10));
   } catch (error) {
     console.error("Trending Worldwide error:", error);
     return [];
@@ -157,7 +187,7 @@ export async function getTrendingIndia() {
         seconds: v.duration || 0,
       };
     });
-    return videos.slice(0, 10);
+    return await enrichSongsWithItunes(videos.slice(0, 10));
   } catch (error) {
     console.error("Trending India error:", error);
     return [];
@@ -186,7 +216,7 @@ export async function getRelatedSongs(videoId: string) {
         seconds: seconds,
       };
     });
-    return videos;
+    return await enrichSongsWithItunes(videos);
   } catch (error) {
     console.error("Related songs error:", error);
     return [];

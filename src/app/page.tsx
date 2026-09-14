@@ -23,10 +23,10 @@ type Song = {
 };
 
 
-const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite }: { song: Song, index: number, onPlay: () => void, isFavorite: boolean, onToggleFavorite: (e: React.MouseEvent) => void }) => (
+const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite }: { song: Song, index: number, onPlay: (e: React.MouseEvent) => void, isFavorite: boolean, onToggleFavorite: (e: React.MouseEvent) => void }) => (
   <div 
-    onClick={onPlay}
-    className="p-3 md:p-4 hover:bg-white/10 rounded-2xl transition-all duration-300 cursor-pointer flex flex-col md:flex-row md:items-center gap-4 group"
+    onClick={(e) => onPlay(e)}
+    className="p-3 md:p-4 hover:bg-white/10 rounded-2xl transition-all duration-500 transform hover:scale-110 hover:shadow-2xl cursor-pointer flex flex-col md:flex-row md:items-center gap-4 group"
   >
     <div className="w-8 shrink-0 text-xl font-black opacity-40 group-hover:opacity-100 group-hover:text-white transition-colors">
       #{index + 1}
@@ -38,7 +38,7 @@ const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite }: { song: 
       </div>
     </div>
     <div className="flex flex-col flex-1 overflow-hidden">
-      <span className="text-xl md:text-2xl font-black uppercase tracking-tighter truncate leading-none mb-1">
+      <span className="text-sm md:text-base font-black uppercase tracking-tighter truncate leading-none mb-1 transform transition-all duration-500 group-hover:scale-105 group-hover:text-white">
         {song.title}
       </span>
       <span className="text-xs font-bold tracking-widest uppercase opacity-70 truncate">
@@ -78,12 +78,16 @@ export default function FransHalsMusicApp() {
   const [playlists, setPlaylists] = useState<Playlist[]>([ { id: 'default', name: 'My Playlist', songs: [] } ]);
   const [activePlaylistId, setActivePlaylistId] = useState<string>('default');
   const [isEditingPlaylist, setIsEditingPlaylist] = useState(false);
+  const [isInactive, setIsInactive] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  
+  const [isLightBg, setIsLightBg] = useState(false);
   
   const savePlaylists = (newPlaylists: Playlist[]) => {
     setPlaylists(newPlaylists);
     localStorage.setItem("frans_hals_playlists", JSON.stringify(newPlaylists));
   };
+
 
   useEffect(() => {
     getTrendingWorldwide().then(setTrendingWorldwide);
@@ -96,6 +100,30 @@ export default function FransHalsMusicApp() {
       } catch (e) {}
     }
   }, []);
+
+// Inactivity detection: hide search sections after 15 seconds of inactivity
+useEffect(() => {
+  let timeout: NodeJS.Timeout;
+  const resetTimer = () => {
+    setIsInactive(false);
+    clearTimeout(timeout);
+    timeout = setTimeout(() => setIsInactive(true), 5000);
+  };
+  // initialise timer
+  resetTimer();
+  window.addEventListener('mousemove', resetTimer);
+  window.addEventListener('keydown', resetTimer);
+  window.addEventListener('scroll', resetTimer);
+  window.addEventListener('touchstart', resetTimer);
+  return () => {
+    clearTimeout(timeout);
+    window.removeEventListener('mousemove', resetTimer);
+    window.removeEventListener('keydown', resetTimer);
+    window.removeEventListener('scroll', resetTimer);
+    window.removeEventListener('touchstart', resetTimer);
+  };
+}, []);
+
 
   const togglePlaylistSong = (song: Song, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -237,6 +265,44 @@ export default function FransHalsMusicApp() {
   const [playbackHistory, setPlaybackHistory] = useState<Song[]>([]);
   const [relatedSongs, setRelatedSongs] = useState<Song[]>([]);
   const [artistBg, setArtistBg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!currentSong) {
+      setIsLightBg(false);
+      return;
+    }
+    const imgUrl = artistBg || currentSong.image;
+    if (!imgUrl) return;
+
+    const img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        canvas.width = 50;
+        canvas.height = 50;
+        ctx.drawImage(img, 0, 0, 50, 50);
+        const data = ctx.getImageData(0, 0, 50, 50).data;
+        let r = 0, g = 0, b = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          r += data[i];
+          g += data[i+1];
+          b += data[i+2];
+        }
+        const pixels = data.length / 4;
+        r /= pixels;
+        g /= pixels;
+        b /= pixels;
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        setIsLightBg(brightness > 160);
+      } catch (e) {
+        setIsLightBg(false);
+      }
+    };
+    img.src = imgUrl;
+  }, [currentSong, artistBg]);
   const [isLyricsExpanded, setIsLyricsExpanded] = useState(false);
   const [hasHeadphones, setHasHeadphones] = useState(false);
 
@@ -291,7 +357,15 @@ export default function FransHalsMusicApp() {
   }, []);
   const [playbackContext, setPlaybackContext] = useState<{ type: "radio" | "playlist", playlistId?: string, playlistSongs?: Song[] }>({ type: "radio" });
 
-  const playSong = async (song: Song, addToHistory: boolean = true, context: "radio" | "playlist" = "radio", overridePlaylistSongs?: Song[]) => {
+  const [clickOrigin, setClickOrigin] = useState<{x: number, y: number} | null>(null);
+
+  const playSong = async (song: Song, addToHistory: boolean = true, context: "radio" | "playlist" = "radio", overridePlaylistSongs?: Song[], e?: React.MouseEvent) => {
+    if (e) {
+      setClickOrigin({ x: e.clientX, y: e.clientY });
+    } else {
+      setClickOrigin(null);
+    }
+
     if (context === "playlist" && overridePlaylistSongs) {
       setPlaybackContext({ type: "playlist", playlistSongs: overridePlaylistSongs });
     } else if (context === "playlist" && showPlaylist) {
@@ -363,21 +437,29 @@ export default function FransHalsMusicApp() {
       </div>
 
       {/* LEFT COLUMN - SEARCH & UI */}
-      <div className="w-full md:w-[50%] lg:w-[40%] flex flex-col border-t-4 md:border-t-0 md:border-l-4 border-[#024230] relative z-20 bg-[#111] text-white overflow-hidden drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+      <div id="left-column" className="w-full md:w-[50%] lg:w-[40%] flex flex-col border-t-4 md:border-t-0 md:border-l-4 border-[#024230] relative z-20 bg-[#111] text-white overflow-visible drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+  <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-pink-500 to-indigo-500 opacity-30 pointer-events-none bg-[length:200%_200%] animate-[gradientMove_15s_linear_infinite]" />
+  <style jsx>{`
+    @keyframes gradientMove {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+  `}</style>
         {(!currentSong && !hasSearched) ? (
           <video 
-            src="/mainbg.mp4" 
+            src="/homepagebg.mp4" 
             autoPlay 
             loop 
             muted 
             playsInline 
-            className="absolute inset-0 w-full h-full object-cover z-0 opacity-100 mix-blend-multiply brightness-75" 
+            className="absolute -top-36 left-0 w-full h-full object-contain z-0 opacity-100" 
           />
         ) : currentSong ? (
           <div className="absolute inset-0 w-full h-full z-0">
             <img 
               src={artistBg || currentSong.image} 
-              className="absolute inset-0 w-full h-full object-cover opacity-60" 
+              className="absolute inset-0 w-full h-full object-cover opacity-100" 
               alt="Artist Background"
             />
           </div>
@@ -387,59 +469,59 @@ export default function FransHalsMusicApp() {
           <div className="flex justify-between items-end border-b-4 border-white/30 pb-4">
             <h1 
               onClick={() => { setHasSearched(false); setShowPlaylist(false); setArtistQuery(""); setSongQuery(""); setSearchResults([]); }}
-              className="text-2xl font-black uppercase tracking-[0.2em] leading-none cursor-pointer hover:text-[#FF3366] transition-colors"
+              className={`text-2xl font-black uppercase tracking-[0.2em] leading-none cursor-pointer transition-colors ${isLightBg ? 'text-black drop-shadow-md hover:text-[#FF3366]' : 'text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] hover:text-[#FF3366]'}`}
             >
               LISTEN WITH SARTHAK
             </h1>
           </div>
         </header>
 
-<div className="flex flex-col justify-start gap-2 mt-2 mb-4">
-          <div className="flex flex-col gap-2 w-full">
+        <div 
+          className={`flex flex-col justify-start gap-2 mt-2 overflow-hidden transition-all duration-[1000ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${isInactive ? 'max-h-0 opacity-0 mb-0 pointer-events-none' : 'max-h-[800px] opacity-100 mb-4'}`}
+        >
+              <div className="flex flex-col gap-2 w-full">
             
             {/* Artist Box */}
-            <form 
-              onSubmit={(e) => { 
-                e.preventDefault(); 
-                if(artistQuery.trim()) { setArtistSuggestions([]); executeFullSearch(artistQuery, "artist"); }
-              }} 
-              className="relative w-full group"
-            >
-              <div className="border-2 border-white/40 bg-white/10 backdrop-blur-md shadow-[2px_2px_0_0_rgba(255,255,255,0.3)] group-focus-within:translate-y-px group-focus-within:translate-x-px group-focus-within:shadow-[0px_0px_0_0_#024230] transition-all duration-200">
-                <div className="bg-white/20 text-white px-2 py-0.5 inline-block text-[10px] font-black uppercase tracking-widest border-r-2 border-b-2 border-white/40 backdrop-blur-xl">
-                  Artist
-                </div>
-                <input
-                  type="text"
-                  placeholder="Who are you looking for?"
-                  value={artistQuery}
-                  onChange={(e) => setArtistQuery(e.target.value)}
-                  className="w-full bg-transparent text-base font-bold px-3 py-1 outline-none placeholder:text-white/50 text-white"
-                />
-              </div>
-
-              <AnimatePresence>
-                {artistSuggestions.length > 0 && (
-                  <motion.ul 
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="absolute top-full left-0 w-full mt-4 bg-black/60 backdrop-blur-xl border-2 border-white/30 shadow-[8px_8px_0_0_rgba(255,255,255,0.2)] z-50 flex flex-col divide-y-2 divide-white/20"
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (artistQuery.trim()) { setArtistSuggestions([]); executeFullSearch(artistQuery, "artist"); }
+          }}
+          className="relative w-full group"
+        >
+          <div className="border-2 border-white/40 bg-white/10 backdrop-blur-md shadow-[2px_2px_0_0_rgba(255,255,255,0.3)] group-focus-within:translate-y-px group-focus-within:translate-x-px group-focus-within:shadow-[0px_0px_0_0_#024230] transition-all duration-200">
+            <div className="bg-white/20 text-white px-2 py-0.5 inline-block text-[10px] font-black uppercase tracking-widest border-r-2 border-b-2 border-white/40 backdrop-blur-xl">Artist</div>
+            <input
+              type="text"
+              placeholder="Who are you looking for?"
+              value={artistQuery}
+              onChange={(e) => setArtistQuery(e.target.value)}
+              className="w-full bg-transparent text-base font-bold px-3 py-1 outline-none placeholder:text-white/50 text-white"
+            />
+          </div>
+          <AnimatePresence>
+            {artistSuggestions.length > 0 && (
+              <motion.ul
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="absolute top-full left-0 w-full mt-4 bg-black/60 backdrop-blur-xl border-2 border-white/30 shadow-[8px_8px_0_0_rgba(255,255,255,0.2)] z-50 flex flex-col divide-y-2 divide-white/20"
+              >
+                {artistSuggestions.map((sug, i) => (
+                  <li
+                    key={i}
+                    onClick={() => { setArtistQuery(sug); setArtistSuggestions([]); executeFullSearch(sug, "artist"); }}
+                    className="px-6 py-4 cursor-pointer text-xl font-bold uppercase tracking-tight text-white hover:bg-white hover:text-black transition-colors flex justify-between items-center group/item"
                   >
-                    {artistSuggestions.map((sug, i) => (
-                      <li 
-                        key={i} 
-                        onClick={() => { setArtistQuery(sug); setArtistSuggestions([]); executeFullSearch(sug, "artist"); }}
-                        className="px-6 py-4 cursor-pointer text-xl font-bold uppercase tracking-tight text-white hover:bg-white hover:text-black transition-colors flex justify-between items-center group/item"
-                      >
-                        {sug}
-                        <ArrowRight className="w-6 h-6 opacity-0 group-hover/item:opacity-100 transition-opacity" />
-                      </li>
-                    ))}
-                  </motion.ul>
-                )}
-              </AnimatePresence>
-            </form>
+                    {sug}
+                    <ArrowRight className="w-6 h-6 opacity-0 group-hover/item:opacity-100 transition-opacity" />
+                  </li>
+                ))}
+              </motion.ul>
+            )}
+          </AnimatePresence>
+        </form>
+
 
             {/* Song Box */}
             <form 
@@ -484,19 +566,48 @@ export default function FransHalsMusicApp() {
                 )}
               </AnimatePresence>
             </form>
-          </div>
-          
-                  </div>
+
+              </div>
+        </div>
 
 <AnimatePresence>
           {currentSong && (
             <motion.div
-              initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-              animate={{ opacity: 1, height: "auto", marginBottom: 48 }}
-              exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-              className="w-full flex flex-col gap-4 overflow-hidden"
+              key={currentSong.id}
+              custom={clickOrigin}
+              initial={(origin) => {
+                if (!origin || typeof document === 'undefined') return { opacity: 0, height: 0, marginBottom: 0, scale: 0.8 };
+                const leftCol = document.getElementById('left-column');
+                let dx = 0;
+                let dy = 0;
+                if (leftCol) {
+                  const rect = leftCol.getBoundingClientRect();
+                  // origin is e.clientX, e.clientY
+                  // We want the relative offset from the center of the Now Playing box.
+                  // The Now Playing box will be roughly near the top of the left column.
+                  // We can approximate its center at rect.left + rect.width/2, rect.top + 150
+                  const boxCenterX = rect.left + rect.width / 2;
+                  const boxCenterY = rect.top + 150;
+                  dx = origin.x - boxCenterX;
+                  dy = origin.y - boxCenterY;
+                }
+                return { 
+                  opacity: 0, 
+                  height: 0, 
+                  marginBottom: 0, 
+                  x: dx, 
+                  y: dy, 
+                  scale: 0.05,
+                  transformOrigin: "center",
+                  filter: "blur(10px)"
+                };
+              }}
+              animate={{ opacity: 1, height: "auto", marginBottom: 48, x: 0, y: 0, scale: 1, filter: "blur(0px)" }}
+              exit={{ opacity: 0, height: 0, marginBottom: 0, scale: 0.5, x: 0, y: 0, filter: "blur(10px)" }}
+              transition={{ type: "spring", damping: 15, stiffness: 120, mass: 0.6 }}
+              className="w-full flex flex-col gap-4 overflow-visible origin-center relative z-50"
             >
-              <div className="border border-white/20 bg-black/5 backdrop-blur-md p-4 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] flex flex-col gap-4 hover:scale-[1.02] hover:-translate-y-2 hover:-translate-x-2 hover:shadow-[0_16px_48px_0_rgba(0,0,0,0.6)] transition-all duration-300 relative text-white rounded-2xl">
+              <div className={`border border-white/20 ${isLightBg ? 'bg-black/90' : 'bg-black/45'} backdrop-blur-md p-4 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] flex flex-col gap-4 hover:scale-[1.02] hover:-translate-y-2 hover:-translate-x-2 hover:shadow-[0_16px_48px_0_rgba(0,0,0,0.6)] transition-all duration-300 relative text-white rounded-2xl`}>
                  <div className="absolute top-3 right-3 bg-[#FF3366]/90 backdrop-blur-md text-white border border-white/30 px-3 py-1 rounded-full text-[9px] font-bold tracking-widest uppercase shadow-lg z-20">
                    Now Playing
                  </div>
@@ -527,7 +638,7 @@ export default function FransHalsMusicApp() {
                            </div>
                          )}
                        </div>
-                       <span className="text-xs font-bold tracking-widest uppercase opacity-70 truncate text-gray-400">{currentSong.artist}</span>
+                       <span className="text-xs font-bold tracking-widest uppercase opacity-90 truncate text-white">{currentSong.artist}</span>
                     </div>
                  </div>
                  
@@ -591,13 +702,16 @@ export default function FransHalsMusicApp() {
                         )}
                       </AnimatePresence>
 
-                      <button 
-                        onClick={() => setIsLyricsExpanded(!isLyricsExpanded)}
-                        className="absolute right-0 p-2 text-white/40 hover:text-white transition-colors"
-                        title="Toggle Lyrics Width"
-                      >
-                        {isLyricsExpanded ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
-                      </button>
+                      <div className="flex items-center justify-between px-4 py-2 border-t-2 border-[#333]">
+  <h2 className="text-lg font-bold text-white">Lyrics</h2>
+  <button
+    onClick={() => setIsLyricsExpanded(!isLyricsExpanded)}
+    className="p-1 text-white hover:text-[#FF3366] transition-colors"
+    title="Toggle Lyrics Height"
+  >
+    {isLyricsExpanded ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+  </button>
+</div>
                     </div>
                  </div>
 
@@ -608,8 +722,8 @@ export default function FransHalsMusicApp() {
                    onWheel={handleUserInteraction}
                    onTouchMove={handleUserInteraction}
                    onMouseDown={handleUserInteraction}
-                   className="mt-4 border-t-2 border-[#333] pt-4 overflow-y-auto overflow-x-hidden relative bg-transparent scrollbar-hide" 
-                   style={{ height: "180px" }}
+                   className="mt-4 border-t-2 border-[#333] pt-4 overflow-y-auto overflow-x-hidden relative bg-transparent scrollbar-hide transition-all duration-500" 
+                   style={{ height: isLyricsExpanded ? '70vh' : '180px' }}
                  >
                     {lyricsLoading ? (
                        <div className="w-full h-full flex flex-col items-center justify-center opacity-50">
@@ -646,7 +760,7 @@ export default function FransHalsMusicApp() {
                                   letterSpacing: isActive ? '0.05em' : '-0.05em'
                                 }}
                                 transition={{ type: "spring", stiffness: 400, damping: 25, mass: 0.8 }}
-                                className={`cursor-pointer font-black uppercase origin-left transition-colors hover:opacity-100 flex flex-wrap ${isLyricsExpanded ? "text-3xl md:text-5xl mb-6" : "text-xl md:text-3xl mb-4"}`}
+                                className="cursor-pointer font-black uppercase origin-left transition-colors hover:opacity-100 flex flex-wrap text-xl md:text-3xl mb-4"
                               >
                                 {line.words ? line.words.map((w, wIdx) => {
                                   const isWordActive = isActive && progress >= w.time;
@@ -715,7 +829,9 @@ export default function FransHalsMusicApp() {
 
 
         {/* Content Area */}
-        <div className="relative z-10 flex-1 p-6 md:p-12 overflow-y-auto">
+        <div 
+          className={`relative z-10 flex-1 p-6 md:p-12 overflow-y-auto will-change-transform transition-all duration-[1000ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${isInactive ? '-translate-y-16 scale-[1.02]' : 'translate-y-0 scale-100'}`}
+        >
           {showPlaylist ? (() => {
             const activePlaylist = playlists.find(p => p.id === activePlaylistId);
             if (!activePlaylist) return null;
@@ -752,7 +868,7 @@ export default function FransHalsMusicApp() {
               {activePlaylist.songs.length === 0 ? (
                 <p className="text-2xl font-bold uppercase opacity-50">This playlist is empty. Add songs by clicking the heart icon!</p>
               ) : (
-                <div className="flex flex-col bg-black/30 backdrop-blur-xl border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] overflow-hidden mb-6">
+                <div className="flex flex-col bg-black/50 backdrop-blur-xl border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] overflow-hidden mb-6">
                   <div className="flex flex-col divide-y divide-white/10 p-2">
                     {activePlaylist.songs.map((song, index) => (
                       <div 
@@ -801,8 +917,15 @@ export default function FransHalsMusicApp() {
               
               {/* Worldwide Section */}
               <div className="flex flex-col gap-8">
-                <div className="flex items-center justify-between border-b-4 border-[#F4EFEA] pb-4">
-                  <h3 className="text-3xl font-black uppercase tracking-tighter text-[#FF3366]">Trending Worldwide</h3>
+                <div className="flex items-center justify-between border-b-4 border-[#F4EFEA] pb-4 overflow-hidden">
+                  <motion.h3 
+                    initial={{ opacity: 0, x: -30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
+                    className="text-3xl font-black uppercase tracking-tighter text-white drop-shadow-xl"
+                  >
+                    Trending Worldwide
+                  </motion.h3>
                 </div>
                 
                 {trendingWorldwide.length === 0 ? (
@@ -810,7 +933,7 @@ export default function FransHalsMusicApp() {
                     <Loader2 className="w-12 h-12 animate-spin opacity-50" />
                   </div>
                 ) : (
-                  <div className="flex flex-col bg-black/30 backdrop-blur-xl border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] overflow-hidden mb-6">
+                  <div className="flex flex-col bg-black/50 backdrop-blur-xl border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] overflow-hidden mb-6">
                     <div className="flex flex-col divide-y divide-white/10 p-2">
                       {trendingWorldwide.map((song, index) => (
                       <SongBox 
@@ -829,8 +952,15 @@ export default function FransHalsMusicApp() {
 
               {/* India Section */}
               <div className="flex flex-col gap-8">
-                <div className="flex items-center justify-between border-b-4 border-[#F4EFEA] pb-4">
-                  <h3 className="text-3xl font-black uppercase tracking-tighter text-[#FF3366]">Trending in India</h3>
+                <div className="flex items-center justify-between border-b-4 border-[#F4EFEA] pb-4 overflow-hidden">
+                  <motion.h3 
+                    initial={{ opacity: 0, x: -30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.7, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                    className="text-3xl font-black uppercase tracking-tighter text-white drop-shadow-xl"
+                  >
+                    Trending in India
+                  </motion.h3>
                 </div>
                 
                 {trendingIndia.length === 0 ? (
@@ -838,7 +968,7 @@ export default function FransHalsMusicApp() {
                     <Loader2 className="w-12 h-12 animate-spin opacity-50" />
                   </div>
                 ) : (
-                  <div className="flex flex-col bg-black/30 backdrop-blur-xl border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] overflow-hidden mb-6">
+                  <div className="flex flex-col bg-black/50 backdrop-blur-xl border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] overflow-hidden mb-6">
                     <div className="flex flex-col divide-y divide-white/10 p-2">
                       {trendingIndia.map((song, index) => (
                       <SongBox 
@@ -868,14 +998,14 @@ export default function FransHalsMusicApp() {
               )}
 
               {!isSearching && searchResults.length > 0 && (
-                <div className="flex flex-col bg-black/30 backdrop-blur-xl border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] overflow-hidden mb-6">
+                <div className="flex flex-col bg-black/50 backdrop-blur-xl border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] overflow-hidden mb-6">
                   <div className="flex flex-col divide-y divide-white/10 p-2">
                     {searchResults.map((song, index) => (
                       <SongBox 
                         key={song.id} 
                         song={song} 
                         index={index} 
-                        onPlay={() => playSong(song)} 
+                        onPlay={(e) => playSong(song, true, "radio", undefined, e)}
                         isFavorite={!!playlists.find(p => p.id === activePlaylistId)?.songs.find(s => s.id === song.id)} 
                         onToggleFavorite={(e) => togglePlaylistSong(song, e)} 
                       />
