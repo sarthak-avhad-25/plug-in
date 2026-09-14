@@ -684,7 +684,7 @@ useEffect(() => {
   }
 
   return (
-    <div className="min-h-screen w-full flex flex-col-reverse md:flex-row-reverse bg-[#F4EFEA] text-[#024230] font-sans selection:bg-[#FF3366] selection:text-[#F4EFEA]">
+    <div className="min-h-screen w-full flex flex-col md:flex-row-reverse bg-[#F4EFEA] text-[#024230] font-sans selection:bg-[#FF3366] selection:text-[#F4EFEA]">
       {playlistMenu && (
         <>
           <div className="fixed inset-0 z-[100]" onClick={() => setPlaylistMenu(null)} />
