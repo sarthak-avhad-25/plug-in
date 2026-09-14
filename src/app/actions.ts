@@ -42,6 +42,29 @@ async function enrichSongsWithItunes(videos: any[]) {
   }));
 }
 
+export async function getArtistBackground(artistName: string): Promise<string | null> {
+  try {
+    await init();
+    const artists = await ytm.searchArtists(artistName);
+    if (artists && artists.length > 0) {
+      const artist = await ytm.getArtist(artists[0].artistId);
+      if (artist && artist.banners && artist.banners.length > 0) {
+        let url = artist.banners[artist.banners.length - 1].url;
+        // Upscale if needed, though they are usually 1920+ wide
+        if (url.includes('w212-h106')) {
+           url = url.replace(/w\d+-h\d+/, 'w1920-h1080');
+        } else if (url.match(/w\d+-h\d+/)) {
+           url = url.replace(/w\d+-h\d+/, 'w1920-h1080');
+        }
+        return url;
+      }
+    }
+  } catch (error) {
+    console.error("Artist background fetch error:", error);
+  }
+  return null;
+}
+
 export async function searchYouTube(query: string, searchType: "artist" | "song" | "any" = "any") {
   try {
     await init();
@@ -54,7 +77,7 @@ export async function searchYouTube(query: string, searchType: "artist" | "song"
         id: v.videoId,
         title: v.name,
         artist: v.artist?.name || "Unknown Artist",
-        image: v.thumbnails && v.thumbnails.length > 0 ? v.thumbnails[v.thumbnails.length - 1].url.replace(/w\d+-h\d+/, 'w1080-h1080') : "",
+        image: v.thumbnails && v.thumbnails.length > 0 ? v.thumbnails[v.thumbnails.length - 1].url.replace(/w\d+-h\d+/, 'w544-h544') : "",
         duration: `${mins}:${secs}`,
         seconds: v.duration || 0,
       };
@@ -93,7 +116,9 @@ export type SyncedLyric = {
 
 export async function getSyncedLyrics(title: string, artist: string): Promise<SyncedLyric[]> {
   try {
-    const url = `https://lrclib.net/api/search?track_name=${encodeURIComponent(title)}&artist_name=${encodeURIComponent(artist)}`;
+    const cleanTitle = title.replace(/\([^)]*\)|\[[^\]]*\]/g, '').trim();
+    const cleanArtist = typeof artist === 'string' ? artist.replace(/\([^)]*\)|\[[^\]]*\]/g, '').trim() : '';
+    const url = `https://lrclib.net/api/search?track_name=${encodeURIComponent(cleanTitle)}&artist_name=${encodeURIComponent(cleanArtist)}`;
     const res = await fetch(url);
     const data = await res.json();
     
@@ -159,7 +184,7 @@ export async function getTrendingWorldwide() {
         id: v.videoId,
         title: v.name,
         artist: v.artist?.name || "Unknown Artist",
-        image: v.thumbnails && v.thumbnails.length > 0 ? v.thumbnails[v.thumbnails.length - 1].url.replace(/w\d+-h\d+/, 'w1080-h1080') : "",
+        image: v.thumbnails && v.thumbnails.length > 0 ? v.thumbnails[v.thumbnails.length - 1].url.replace(/w\d+-h\d+/, 'w544-h544') : "",
         duration: `${mins}:${secs}`,
         seconds: v.duration || 0,
       };
@@ -182,7 +207,7 @@ export async function getTrendingIndia() {
         id: v.videoId,
         title: v.name,
         artist: v.artist?.name || "Unknown Artist",
-        image: v.thumbnails && v.thumbnails.length > 0 ? v.thumbnails[v.thumbnails.length - 1].url.replace(/w\d+-h\d+/, 'w1080-h1080') : "",
+        image: v.thumbnails && v.thumbnails.length > 0 ? v.thumbnails[v.thumbnails.length - 1].url.replace(/w\d+-h\d+/, 'w544-h544') : "",
         duration: `${mins}:${secs}`,
         seconds: v.duration || 0,
       };
@@ -211,7 +236,7 @@ export async function getRelatedSongs(videoId: string) {
         id: v.videoId,
         title: v.title,
         artist: v.artists || "Unknown Artist",
-        image: (v.thumbnail || "").replace(/w\d+-h\d+/, 'w1080-h1080'),
+        image: (v.thumbnail || "").replace(/w\d+-h\d+/, 'w544-h544'),
         duration: v.duration,
         seconds: seconds,
       };
@@ -223,17 +248,4 @@ export async function getRelatedSongs(videoId: string) {
   }
 }
 
-export async function getArtistBackground(artist: string) {
-  try {
-    const res = await fetch(`https://www.theaudiodb.com/api/v1/json/2/search.php?s=${encodeURIComponent(artist)}`);
-    const data = await res.json();
-    if (data && data.artists && data.artists.length > 0) {
-      const a = data.artists[0];
-      return a.strArtistFanart || a.strArtistFanart2 || a.strArtistThumb || a.strArtistWideThumb || null;
-    }
-  } catch (error) {
-    console.error("AudioDB error:", error);
-  }
-  return null;
-}
 

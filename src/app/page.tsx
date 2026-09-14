@@ -2,10 +2,17 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2 } from "lucide-react";
+import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2, Trash2, Info } from "lucide-react";
 import YouTube, { YouTubePlayer } from "react-youtube";
 import { searchYouTube, getArtistBackground, getSearchSuggestions, getSyncedLyrics, getTrendingWorldwide, getTrendingIndia, getRelatedSongs } from "./actions";
 import type { SyncedLyric } from "./actions";
+
+type Profile = {
+  id: string;
+  name: string;
+  color: string;
+  emoji: string;
+};
 
 type Playlist = {
   id: string;
@@ -62,6 +69,10 @@ export default function FransHalsMusicApp() {
   const [lyrics, setLyrics] = useState<SyncedLyric[]>([]);
   const [lyricsLoading, setLyricsLoading] = useState(false);
 
+  const [isClient, setIsClient] = useState(false);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
+
   const [artistQuery, setArtistQuery] = useState("");
   const [songQuery, setSongQuery] = useState("");
   
@@ -77,29 +88,100 @@ export default function FransHalsMusicApp() {
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [playlists, setPlaylists] = useState<Playlist[]>([ { id: 'default', name: 'My Playlist', songs: [] } ]);
   const [activePlaylistId, setActivePlaylistId] = useState<string>('default');
+  const [playlistMenu, setPlaylistMenu] = useState<{song: Song, x: number, y: number} | null>(null);
   const [isEditingPlaylist, setIsEditingPlaylist] = useState(false);
   const [isInactive, setIsInactive] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  
   const [isLightBg, setIsLightBg] = useState(false);
-  
+  const [isShuffleOn, setIsShuffleOn] = useState(false);
+  const [showInlineSearch, setShowInlineSearch] = useState(false);
+  const [inlineSearchQuery, setInlineSearchQuery] = useState("");
+  const [inlineSearchResults, setInlineSearchResults] = useState<Song[]>([]);
+  const [isInlineSearching, setIsInlineSearching] = useState(false);
+  const [isLyricsExpanded, setIsLyricsExpanded] = useState(false);
+  const [hasHeadphones, setHasHeadphones] = useState(false);
   const savePlaylists = (newPlaylists: Playlist[]) => {
     setPlaylists(newPlaylists);
-    localStorage.setItem("frans_hals_playlists", JSON.stringify(newPlaylists));
+    if (activeProfile) {
+      localStorage.setItem(`frans_hals_playlists_${activeProfile.id}`, JSON.stringify(newPlaylists));
+    }
   };
 
-
   useEffect(() => {
-    getTrendingWorldwide().then(setTrendingWorldwide);
-    getTrendingIndia().then(setTrendingIndia);
+    const fetchTrending = async () => {
+      const today = new Date().toLocaleDateString();
+      const cached = localStorage.getItem('music_trending_cache');
+      
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (parsed.date === today && parsed.worldwide && parsed.india) {
+            setTrendingWorldwide(parsed.worldwide);
+            setTrendingIndia(parsed.india);
+            return; // Cache is fresh for today
+          }
+        } catch(e) {}
+      }
+      
+      // Fetch fresh data if no cache or day changed
+      const ww = await getTrendingWorldwide();
+      const ind = await getTrendingIndia();
+      setTrendingWorldwide(ww);
+      setTrendingIndia(ind);
+      
+      localStorage.setItem('music_trending_cache', JSON.stringify({
+        date: today,
+        worldwide: ww,
+        india: ind
+      }));
+    };
 
-    const saved = localStorage.getItem("frans_hals_playlists");
+    fetchTrending();
+    
+    // Schedule an automatic refresh at exactly 12:00 AM (midnight)
+    const now = new Date();
+    const msUntilMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0).getTime() - now.getTime();
+    
+    const timeoutId = setTimeout(() => {
+      localStorage.removeItem('music_trending_cache');
+      fetchTrending();
+      // Set a daily interval after the first midnight
+      setInterval(() => {
+        localStorage.removeItem('music_trending_cache');
+        fetchTrending();
+      }, 24 * 60 * 60 * 1000);
+    }, msUntilMidnight);
+
+    return () => clearTimeout(timeoutId);
+  }, []);
+
+  // Load playlists whenever the active profile changes
+  useEffect(() => {
+    if (!activeProfile) {
+      setPlaylists([]);
+      return;
+    }
+    const profileKey = `frans_hals_playlists_${activeProfile.id}`;
+    let saved = localStorage.getItem(profileKey);
+    
+    // Migration for the original 'sarthak' profile or fallback
+    if (!saved && activeProfile.name.toLowerCase().includes("sarthak")) {
+      saved = localStorage.getItem("frans_hals_playlists");
+      if (saved) {
+        localStorage.setItem(profileKey, saved); // migrate
+      }
+    }
+
     if (saved) {
       try {
         setPlaylists(JSON.parse(saved));
-      } catch (e) {}
+      } catch (e) {
+        setPlaylists([]);
+      }
+    } else {
+      setPlaylists([]);
     }
-  }, []);
+  }, [activeProfile]);
 
 // Inactivity detection: hide search sections after 15 seconds of inactivity
 useEffect(() => {
@@ -125,16 +207,37 @@ useEffect(() => {
 }, []);
 
 
+  useEffect(() => {
+    setIsClient(true);
+    const saved = localStorage.getItem("music_profiles");
+    if (saved) {
+      setProfiles(JSON.parse(saved));
+    }
+    const savedActive = localStorage.getItem("music_active_profile");
+    if (savedActive) {
+      try { setActiveProfile(JSON.parse(savedActive)); } catch(e) {}
+    }
+  }, []);
+
+  const saveProfiles = (newProfiles: Profile[]) => {
+    setProfiles(newProfiles);
+    localStorage.setItem("music_profiles", JSON.stringify(newProfiles));
+  };
+
   const togglePlaylistSong = (song: Song, e: React.MouseEvent) => {
     e.stopPropagation();
-    const newPlaylists = playlists.map(p => {
-      if (p.id === activePlaylistId) {
-        const exists = p.songs.find(s => s.id === song.id);
-        return { ...p, songs: exists ? p.songs.filter(s => s.id !== song.id) : [...p.songs, song] };
-      }
-      return p;
-    });
-    savePlaylists(newPlaylists);
+    if (playlists.length > 1) {
+      setPlaylistMenu({ song, x: e.clientX, y: e.clientY });
+    } else {
+      const p = playlists[0];
+      const exists = p.songs.find(s => s.id === song.id);
+      const newPlaylists = playlists.map(pl => 
+        pl.id === p.id 
+          ? { ...pl, songs: exists ? pl.songs.filter(s => s.id !== song.id) : [...pl.songs, song] } 
+          : pl
+      );
+      savePlaylists(newPlaylists);
+    }
   };
   
   const playerRef = useRef<YouTubePlayer | null>(null);
@@ -151,6 +254,8 @@ useEffect(() => {
     
     scrollTimeout.current = setTimeout(() => {
       isUserScrolling.current = false;
+      lastScrolledIndex.current = -1; // Force immediate resync on next progress tick
+      
       // Snap back immediately when timeout finishes
       if (lyricsContainerRef.current && lyrics.length > 0) {
         const activeIndex = lyrics.reduce((acc, l, idx) => (progress >= l.time ? idx : acc), 0);
@@ -165,7 +270,7 @@ useEffect(() => {
           }
         }
       }
-    }, 5000);
+    }, 3000); // Reduced timeout to 3s for better responsiveness
   };
 
   // Auto-scroll lyrics
@@ -190,7 +295,21 @@ useEffect(() => {
     }
   }, [progress, lyrics]);
 
+
+
   // Debounce logic for suggestions
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.search-container')) {
+        setArtistSuggestions([]);
+        setSongSuggestions([]);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   useEffect(() => {
     if (!artistQuery.trim()) {
       setArtistSuggestions([]);
@@ -267,6 +386,14 @@ useEffect(() => {
   const [artistBg, setArtistBg] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!currentSong) return;
+    setArtistBg(null); // Reset while fetching
+    getArtistBackground(currentSong.artist).then(bg => {
+      if (bg) setArtistBg(bg);
+    });
+  }, [currentSong]);
+
+  useEffect(() => {
     if (!currentSong) {
       setIsLightBg(false);
       return;
@@ -303,8 +430,26 @@ useEffect(() => {
     };
     img.src = imgUrl;
   }, [currentSong, artistBg]);
-  const [isLyricsExpanded, setIsLyricsExpanded] = useState(false);
-  const [hasHeadphones, setHasHeadphones] = useState(false);
+
+  // Re-scroll when expanding/collapsing
+  useEffect(() => {
+    lastScrolledIndex.current = -1; // force re-scroll
+    setTimeout(() => { // wait for layout height transition
+      if (lyricsContainerRef.current && lyrics.length > 0 && !isUserScrolling.current) {
+        const activeIndex = lyrics.reduce((acc, l, idx) => (progress >= l.time ? idx : acc), 0);
+        const innerWrapper = lyricsContainerRef.current.children[0];
+        if (innerWrapper) {
+          const activeElement = innerWrapper.children[activeIndex] as HTMLElement;
+          if (activeElement) {
+            const container = lyricsContainerRef.current;
+            const targetScroll = activeElement.offsetTop - (container.clientHeight / 2) + (activeElement.clientHeight / 2);
+            container.scrollTo({ top: targetScroll, behavior: "smooth" });
+            lastScrolledIndex.current = activeIndex;
+          }
+        }
+      }
+    }, 100);
+  }, [isLyricsExpanded]);
 
   useEffect(() => {
     const checkDevices = async () => {
@@ -392,21 +537,60 @@ useEffect(() => {
   };
 
   const playNextSong = () => {
+    if (playbackContext.type === "playlist") {
+      let actualSongs = playbackContext.playlistSongs || [];
+      if (playbackContext.playlistId) {
+        const p = playlists.find(pl => pl.id === playbackContext.playlistId);
+        if (p) actualSongs = p.songs;
+      }
+      if (actualSongs.length > 0) {
+        const idx = actualSongs.findIndex(s => s.id === currentSong?.id);
+        if (idx !== -1) {
+          if (isShuffleOn && actualSongs.length > 1) {
+            let randomIdx;
+            do {
+              randomIdx = Math.floor(Math.random() * actualSongs.length);
+            } while (randomIdx === idx);
+            playSong(actualSongs[randomIdx], true, "playlist", actualSongs);
+          } else {
+            const nextIdx = (idx + 1) % actualSongs.length;
+            playSong(actualSongs[nextIdx], true, "playlist", actualSongs);
+          }
+          return;
+        }
+      }
+    }
+
     if (relatedSongs.length > 0) {
-      // Pick a random song from related songs that isn't the current song
       const available = relatedSongs.filter(s => s.id !== currentSong?.id);
       if (available.length > 0) {
         const next = available[Math.floor(Math.random() * available.length)];
-        playSong(next, true);
+        playSong(next, true, "radio");
       }
     }
   };
 
   const playPreviousSong = () => {
+    if (playbackContext.type === "playlist" && !isShuffleOn) {
+      let actualSongs = playbackContext.playlistSongs || [];
+      if (playbackContext.playlistId) {
+        const p = playlists.find(pl => pl.id === playbackContext.playlistId);
+        if (p) actualSongs = p.songs;
+      }
+      if (actualSongs.length > 0) {
+        const idx = actualSongs.findIndex(s => s.id === currentSong?.id);
+        if (idx !== -1) {
+          const prevIdx = (idx - 1 + actualSongs.length) % actualSongs.length;
+          playSong(actualSongs[prevIdx], false, "playlist", actualSongs);
+          return;
+        }
+      }
+    }
+
     if (playbackHistory.length > 0) {
       const prev = playbackHistory[playbackHistory.length - 1];
       setPlaybackHistory((h) => h.slice(0, -1)); // pop
-      playSong(prev, false); // don't add current to history when going back
+      playSong(prev, false, playbackContext.type); 
     }
   };
 
@@ -419,9 +603,124 @@ useEffect(() => {
     setProgress(newTime);
   };
 
+  if (!isClient) return null; // Hydration mismatch prevention
+
+  if (!activeProfile) {
+    return (
+      <div className="min-h-screen w-full bg-[#111] flex flex-col items-center justify-center selection:bg-[#FF3366] selection:text-[#F4EFEA] relative overflow-hidden">
+        {/* Netflix style ambient background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#111]/50 to-[#111] z-10 pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#FF3366]/20 via-[#111]/50 to-[#111] z-0 pointer-events-none opacity-50" />
+        
+        <div className="relative z-20 flex flex-col items-center">
+          <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter text-white mb-12 drop-shadow-xl">Who's listening?</h1>
+          
+          <div className="flex flex-wrap justify-center gap-6 max-w-5xl px-4">
+            {profiles.map(p => (
+              <div key={p.id} className="flex flex-col items-center gap-4 group cursor-pointer" onClick={() => {
+                setActiveProfile(p);
+                localStorage.setItem("music_active_profile", JSON.stringify(p));
+              }}>
+                <div className={`w-32 h-32 md:w-40 md:h-40 rounded-xl bg-gradient-to-br ${p.color} flex items-center justify-center text-6xl shadow-xl group-hover:scale-105 group-hover:ring-4 ring-white transition-all duration-300 relative overflow-hidden`}>
+                  <span className="relative z-10">{p.emoji}</span>
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm(`Are you sure you want to completely delete the profile "${p.name}"? This will permanently delete all of their playlists too!`)) {
+                        const newProfiles = profiles.filter(prof => prof.id !== p.id);
+                        saveProfiles(newProfiles);
+                        localStorage.removeItem(`frans_hals_playlists_${p.id}`); // Clean up their private playlists
+                      }
+                    }}
+                    className="absolute top-2 right-2 bg-black/60 hover:bg-red-600 text-white w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-20"
+                    title="Delete Profile"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+                <span className="text-gray-400 group-hover:text-white text-xl font-bold transition-colors">{p.name}</span>
+              </div>
+            ))}
+            
+            {profiles.length < 10 && (
+              <div 
+                className="flex flex-col items-center gap-4 group cursor-pointer"
+                onClick={() => {
+                  const otp = prompt("SECURITY CHECK: To create a new profile, please enter the Admin OTP sent to 7972143404.");
+                  if (otp !== "2525") {
+                    if (otp !== null) alert("Incorrect OTP! Profile creation blocked.");
+                    return;
+                  }
+                  
+                  const name = prompt("OTP Verified! Enter new profile name:");
+                  if (name) {
+                    const colors = [
+                      "from-red-500 to-orange-500", "from-green-400 to-emerald-600", "from-pink-500 to-rose-500", 
+                      "from-blue-400 to-indigo-600", "from-yellow-400 to-orange-500", "from-purple-500 to-fuchsia-600",
+                      "from-teal-400 to-cyan-600", "from-rose-400 to-red-500"
+                    ];
+                    const emojis = ["🎸", "🥁", "🎹", "🎤", "🎷", "🎺", "🎧", "🎵", "👾", "🦊", "🐯", "🐼", "😎", "🚀", "🌟"];
+                    const newP = { 
+                      id: Date.now().toString(), 
+                      name, 
+                      color: colors[Math.floor(Math.random() * colors.length)],
+                      emoji: emojis[Math.floor(Math.random() * emojis.length)]
+                    };
+                    saveProfiles([...profiles, newP]);
+                  }
+                }}
+              >
+                <div className="w-32 h-32 md:w-40 md:h-40 rounded-xl border-2 border-gray-600 flex items-center justify-center text-6xl text-gray-600 group-hover:border-white group-hover:text-white group-hover:scale-105 transition-all duration-300">
+                  +
+                </div>
+                <span className="text-gray-400 group-hover:text-white text-xl font-bold transition-colors">Add Profile</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full flex flex-col-reverse md:flex-row-reverse bg-[#F4EFEA] text-[#024230] font-sans selection:bg-[#FF3366] selection:text-[#F4EFEA]">
-      
+      {playlistMenu && (
+        <>
+          <div className="fixed inset-0 z-[100]" onClick={() => setPlaylistMenu(null)} />
+          <div 
+            className="fixed z-[101] bg-[#1a1a1a]/90 backdrop-blur-xl border border-white/20 rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.8)] p-3 flex flex-col gap-2 min-w-[180px] origin-top"
+            style={{ 
+              top: Math.min(playlistMenu.y, (typeof window !== 'undefined' ? window.innerHeight : 800) - (playlists.length * 40 + 50)), 
+              left: Math.max(10, playlistMenu.x - 180) 
+            }}
+          >
+            <div className="text-[10px] font-black uppercase text-white/50 px-2 pb-1 border-b border-white/10 tracking-widest">Add to Playlist</div>
+            {playlists.map(p => {
+              const hasSong = p.songs.some(s => s.id === playlistMenu.song.id);
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    const newPlaylists = playlists.map(pl => {
+                      if (pl.id === p.id) {
+                        return { ...pl, songs: hasSong ? pl.songs.filter(s => s.id !== playlistMenu.song.id) : [...pl.songs, playlistMenu.song] };
+                      }
+                      return pl;
+                    });
+                    savePlaylists(newPlaylists);
+                    setPlaylistMenu(null);
+                  }}
+                  className="flex items-center justify-between px-3 py-2 text-white hover:bg-white/10 rounded-xl text-sm font-bold transition-all hover:scale-105 active:scale-95"
+                >
+                  <span className="truncate pr-4">{p.name}</span>
+                  {hasSong ? <Heart className="w-4 h-4 shrink-0 fill-[#FF3366] text-[#FF3366]" /> : <Heart className="w-4 h-4 shrink-0 text-white/30" />}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
 
 
       {/* Hidden YouTube Player */}
@@ -447,41 +746,50 @@ useEffect(() => {
     }
   `}</style>
         {(!currentSong && !hasSearched) ? (
-          <video 
-            src="/homepagebg.mp4" 
-            autoPlay 
-            loop 
-            muted 
-            playsInline 
-            className="absolute -top-36 left-0 w-full h-full object-contain z-0 opacity-100" 
-          />
+          <div className="absolute inset-0 z-0 bg-black pointer-events-none" />
         ) : currentSong ? (
-          <div className="absolute inset-0 w-full h-full z-0">
+          <div className="absolute inset-0 w-full h-full z-0 bg-black overflow-hidden">
             <img 
               src={artistBg || currentSong.image} 
-              className="absolute inset-0 w-full h-full object-cover opacity-100" 
+              className="absolute inset-0 w-full h-full object-cover opacity-100 transition-all duration-1000" 
               alt="Artist Background"
             />
           </div>
         ) : null}
-        <div className="relative z-10 w-full h-full flex flex-col justify-start overflow-y-auto p-6 md:p-12">
+        <div className="relative z-10 w-full h-full flex flex-col justify-start overflow-y-auto p-6 md:p-12 scroll-smooth">
           <header className="mb-6">
-          <div className="flex justify-between items-end border-b-4 border-white/30 pb-4">
+          <div className="flex justify-between items-center border-b-4 border-white/30 pb-4">
             <h1 
               onClick={() => { setHasSearched(false); setShowPlaylist(false); setArtistQuery(""); setSongQuery(""); setSearchResults([]); }}
               className={`text-2xl font-black uppercase tracking-[0.2em] leading-none cursor-pointer transition-colors ${isLightBg ? 'text-black drop-shadow-md hover:text-[#FF3366]' : 'text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] hover:text-[#FF3366]'}`}
             >
-              LISTEN WITH SARTHAK
+              LISTEN WITH {activeProfile.name}
             </h1>
+            <button 
+              onClick={() => {
+                setActiveProfile(null);
+                localStorage.removeItem("music_active_profile");
+              }}
+              className={`w-10 h-10 rounded-md bg-gradient-to-br ${activeProfile.color} flex items-center justify-center text-xl shadow-lg hover:scale-110 transition-transform flex-shrink-0 border-2 border-white/20`}
+              title="Switch Profile"
+            >
+              {activeProfile.emoji}
+            </button>
           </div>
         </header>
 
         <div 
-          className={`flex flex-col justify-start gap-2 mt-2 overflow-hidden transition-all duration-[1000ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${isInactive ? 'max-h-0 opacity-0 mb-0 pointer-events-none' : 'max-h-[800px] opacity-100 mb-4'}`}
+          className={`flex flex-col justify-start gap-2 mt-2 transition-all duration-[1000ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${isInactive ? 'max-h-0 opacity-0 mb-0 pointer-events-none overflow-hidden' : 'max-h-[800px] opacity-100 mb-4 overflow-visible'}`}
         >
-              <div className="flex flex-col gap-2 w-full">
+              <div className="flex flex-col gap-2 w-full relative z-[60] search-container">
             
             {/* Artist Box */}
+            <div className="flex items-start gap-2 px-1 mb-1 text-white/40">
+              <Info className="w-3 h-3 mt-0.5 shrink-0" />
+              <p className="text-[9px] font-bold uppercase tracking-widest leading-tight">
+                Disclaimer: Exact spelling is required. Incorrect spelling sometimes may lead to no results.
+              </p>
+            </div>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -489,14 +797,14 @@ useEffect(() => {
           }}
           className="relative w-full group"
         >
-          <div className="border-2 border-white/40 bg-white/10 backdrop-blur-md shadow-[2px_2px_0_0_rgba(255,255,255,0.3)] group-focus-within:translate-y-px group-focus-within:translate-x-px group-focus-within:shadow-[0px_0px_0_0_#024230] transition-all duration-200">
-            <div className="bg-white/20 text-white px-2 py-0.5 inline-block text-[10px] font-black uppercase tracking-widest border-r-2 border-b-2 border-white/40 backdrop-blur-xl">Artist</div>
+          <div className="border-2 border-white/40 bg-black/50 backdrop-blur-xl shadow-[2px_2px_0_0_rgba(255,255,255,0.3)] group-focus-within:translate-y-px group-focus-within:translate-x-px group-focus-within:shadow-[0px_0px_0_0_#024230] transition-all duration-200">
+            <div className="bg-black/50 text-white px-2 py-0.5 inline-block text-[10px] font-black uppercase tracking-widest border-r-2 border-b-2 border-white/40 backdrop-blur-xl">Artist</div>
             <input
               type="text"
               placeholder="Who are you looking for?"
               value={artistQuery}
               onChange={(e) => setArtistQuery(e.target.value)}
-              className="w-full bg-transparent text-base font-bold px-3 py-1 outline-none placeholder:text-white/50 text-white"
+              className="w-full bg-transparent text-base font-bold px-3 py-1 outline-none placeholder:text-white/70 text-white"
             />
           </div>
           <AnimatePresence>
@@ -505,7 +813,7 @@ useEffect(() => {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="absolute top-full left-0 w-full mt-4 bg-black/60 backdrop-blur-xl border-2 border-white/30 shadow-[8px_8px_0_0_rgba(255,255,255,0.2)] z-50 flex flex-col divide-y-2 divide-white/20"
+                className="absolute top-full left-0 w-full mt-4 bg-black/50 backdrop-blur-xl border-2 border-white/30 shadow-[8px_8px_0_0_rgba(255,255,255,0.2)] z-50 flex flex-col divide-y-2 divide-white/20"
               >
                 {artistSuggestions.map((sug, i) => (
                   <li
@@ -531,8 +839,8 @@ useEffect(() => {
               }} 
               className="relative w-full group"
             >
-              <div className="border-2 border-white/40 bg-white/10 backdrop-blur-md shadow-[2px_2px_0_0_rgba(255,255,255,0.3)] group-focus-within:translate-y-px group-focus-within:translate-x-px group-focus-within:shadow-[0px_0px_0_0_#024230] transition-all duration-200">
-                <div className="bg-white/20 text-white px-2 py-0.5 inline-block text-[10px] font-black uppercase tracking-widest border-r-2 border-b-2 border-white/40 backdrop-blur-xl">
+              <div className="border-2 border-white/40 bg-black/50 backdrop-blur-xl shadow-[2px_2px_0_0_rgba(255,255,255,0.3)] group-focus-within:translate-y-px group-focus-within:translate-x-px group-focus-within:shadow-[0px_0px_0_0_#024230] transition-all duration-200">
+                <div className="bg-black/50 text-white px-2 py-0.5 inline-block text-[10px] font-black uppercase tracking-widest border-r-2 border-b-2 border-white/40 backdrop-blur-xl">
                   Track
                 </div>
                 <input
@@ -540,7 +848,7 @@ useEffect(() => {
                   placeholder="What is the song name?"
                   value={songQuery}
                   onChange={(e) => setSongQuery(e.target.value)}
-                  className="w-full bg-transparent text-base font-bold px-3 py-1 outline-none placeholder:text-white/50 text-white"
+                  className="w-full bg-transparent text-base font-bold px-3 py-1 outline-none placeholder:text-white/70 text-white"
                 />
               </div>
 
@@ -550,7 +858,7 @@ useEffect(() => {
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="absolute top-full left-0 w-full mt-4 bg-black/60 backdrop-blur-xl border-2 border-white/30 shadow-[8px_8px_0_0_rgba(255,255,255,0.2)] z-50 flex flex-col divide-y-2 divide-white/20"
+                    className="absolute top-full left-0 w-full mt-4 bg-black/50 backdrop-blur-xl border-2 border-white/30 shadow-[8px_8px_0_0_rgba(255,255,255,0.2)] z-50 flex flex-col divide-y-2 divide-white/20"
                   >
                     {songSuggestions.map((sug, i) => (
                       <li 
@@ -607,7 +915,7 @@ useEffect(() => {
               transition={{ type: "spring", damping: 15, stiffness: 120, mass: 0.6 }}
               className="w-full flex flex-col gap-4 overflow-visible origin-center relative z-50"
             >
-              <div className={`border border-white/20 ${isLightBg ? 'bg-black/90' : 'bg-black/45'} backdrop-blur-md p-4 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] flex flex-col gap-4 hover:scale-[1.02] hover:-translate-y-2 hover:-translate-x-2 hover:shadow-[0_16px_48px_0_rgba(0,0,0,0.6)] transition-all duration-300 relative text-white rounded-2xl`}>
+               <div className={`border-2 border-white/40 bg-black/50 backdrop-blur-xl p-4 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] flex flex-col gap-4 hover:scale-[1.02] hover:-translate-y-2 hover:-translate-x-2 hover:shadow-[0_16px_48px_0_rgba(0,0,0,0.6)] transition-all duration-300 relative text-white rounded-2xl`}>
                  <div className="absolute top-3 right-3 bg-[#FF3366]/90 backdrop-blur-md text-white border border-white/30 px-3 py-1 rounded-full text-[9px] font-bold tracking-widest uppercase shadow-lg z-20">
                    Now Playing
                  </div>
@@ -685,7 +993,7 @@ useEffect(() => {
                         }}
                         className="w-10 h-10 shrink-0 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/20 text-[#FF3366] flex items-center justify-center transition-all shadow-md hover:scale-105 group/fav"
                       >
-                        <Heart className={`w-4 h-4 ${!!playlists.find(p => p.id === activePlaylistId)?.songs.find(s => s.id === currentSong.id) ? 'fill-current text-[#FF3366] group-hover/fav:text-white' : ''}`} />
+                        <Heart className={`w-4 h-4 transition-colors ${playlists.some(p => p.songs.some(s => s.id === currentSong?.id)) ? 'fill-[#FF3366] text-[#FF3366]' : 'text-white group-hover/fav:text-[#FF3366]'}`} />
                       </button>
 
                       <AnimatePresence>
@@ -722,7 +1030,7 @@ useEffect(() => {
                    onWheel={handleUserInteraction}
                    onTouchMove={handleUserInteraction}
                    onMouseDown={handleUserInteraction}
-                   className="mt-4 border-t-2 border-[#333] pt-4 overflow-y-auto overflow-x-hidden relative bg-transparent scrollbar-hide transition-all duration-500" 
+                   className={`mt-4 border-t-2 border-[#333] pt-4 overflow-y-auto overflow-x-hidden relative scrollbar-hide scroll-smooth transition-all duration-500 ${isLyricsExpanded ? 'bg-black/40 backdrop-blur-sm -mx-6 px-6 rounded-3xl' : 'bg-transparent'}`} 
                    style={{ height: isLyricsExpanded ? '70vh' : '180px' }}
                  >
                     {lyricsLoading ? (
@@ -754,7 +1062,7 @@ useEffect(() => {
                                   }
                                 }}
                                 animate={{ 
-                                  opacity: isActive ? 1 : isPast ? 0.5 : 0.7, 
+                                  opacity: isActive ? 1 : isPast ? (isLyricsExpanded ? 0.8 : 0.5) : (isLyricsExpanded ? 0.9 : 0.7), 
                                   scale: isActive ? 1.05 : 0.95,
                                   x: isActive ? 20 : 0,
                                   letterSpacing: isActive ? '0.05em' : '-0.05em'
@@ -769,8 +1077,10 @@ useEffect(() => {
                                       key={wIdx} 
                                       className="inline-block mr-2 md:mr-3 transition-all duration-150"
                                       style={{
-                                        color: isWordActive ? '#FF3366' : (isActive ? '#fff' : '#999'),
-                                        textShadow: isWordActive ? '2px 2px 0px #000' : '0px 0px 0px transparent',
+                                        color: isWordActive ? '#FF3366' : (isActive ? '#fff' : (isLyricsExpanded ? '#ccc' : '#999')),
+                                        textShadow: isLyricsExpanded 
+                                          ? (isWordActive ? '2px 2px 0px #000, 0 0 10px rgba(0,0,0,0.8)' : '1px 1px 3px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.8)') 
+                                          : (isWordActive ? '2px 2px 0px #000' : '0px 0px 0px transparent'),
                                         transform: isWordActive ? 'scale(1.05) translateY(-2px)' : 'scale(1) translateY(0px)'
                                       }}
                                     >
@@ -778,7 +1088,12 @@ useEffect(() => {
                                     </span>
                                   )
                                 }) : (
-                                  <span style={{ color: isActive ? '#FF3366' : '#999' }}>
+                                  <span 
+                                    style={{ 
+                                      color: isActive ? '#FF3366' : (isLyricsExpanded ? '#ccc' : '#999'),
+                                      textShadow: isLyricsExpanded ? '1px 1px 3px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.8)' : 'none'
+                                    }}
+                                  >
                                     {line.text}
                                   </span>
                                 )}
@@ -795,12 +1110,14 @@ useEffect(() => {
 
         <div className="flex flex-col mt-4">
 <div className="w-full flex flex-col gap-4">
-            <h3 className="text-xl font-black uppercase tracking-widest text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)] border-b-4 border-white/30 pb-2">Playlists</h3>
+            <div className="border-2 border-white/40 bg-black/50 backdrop-blur-xl shadow-[2px_2px_0_0_rgba(255,255,255,0.3)] p-3 mb-2 flex items-center justify-center">
+              <h3 className="text-xl font-black uppercase tracking-widest text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]">Playlists</h3>
+            </div>
             {playlists.map(p => (
               <button 
                 key={p.id}
                 onClick={() => { setActivePlaylistId(p.id); setShowPlaylist(true); setHasSearched(false); setIsEditingPlaylist(false); }}
-                className={`w-full border-2 border-white/40 p-4 text-2xl font-black uppercase tracking-tighter transition-all flex justify-between items-center ${showPlaylist && activePlaylistId === p.id ? 'bg-[#FF3366] text-[#F4EFEA] shadow-none translate-y-1 translate-x-1' : 'bg-white/10 backdrop-blur-md text-white shadow-[6px_6px_0_0_rgba(255,255,255,0.2)] hover:translate-y-1 hover:translate-x-1 hover:shadow-[2px_2px_0_0_rgba(255,255,255,0.2)]'}`}
+                className={`w-full border-2 border-white/40 p-4 text-2xl font-black uppercase tracking-tighter transition-all flex justify-between items-center ${showPlaylist && activePlaylistId === p.id ? 'bg-[#FF3366] text-[#F4EFEA] shadow-none translate-y-1 translate-x-1' : 'bg-black/50 backdrop-blur-xl text-white shadow-[6px_6px_0_0_rgba(255,255,255,0.2)] hover:translate-y-1 hover:translate-x-1 hover:shadow-[2px_2px_0_0_rgba(255,255,255,0.2)]'}`}
               >
                 <span className="truncate pr-4 text-left">{p.name}</span>
                 <span className="bg-[#024230] text-[#F4EFEA] px-3 py-1 rounded-full text-sm shrink-0">{p.songs.length}</span>
@@ -814,7 +1131,7 @@ useEffect(() => {
                   savePlaylists([...playlists, newP]);
                 }
               }}
-              className="w-full border-4 border-white/40 border-dashed p-4 text-xl font-black uppercase tracking-tighter hover:bg-white hover:text-black transition-colors"
+              className="w-full border-4 border-white/40 border-dashed p-4 text-xl font-black uppercase tracking-tighter bg-black/50 backdrop-blur-xl text-white hover:bg-white hover:text-black transition-colors"
             >
               + New Playlist
             </button>
@@ -828,9 +1145,28 @@ useEffect(() => {
         
 
 
+        {/* Animated Background Orbs */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+          <motion.div 
+            className="absolute -top-[10%] -left-[10%] w-[500px] h-[500px] rounded-full bg-[#FF3366]/40 blur-[100px]"
+            animate={{ y: [0, -120, 50, 0], x: [0, 50, -50, 0], scale: [1, 1.2, 0.9, 1] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div 
+            className="absolute top-[30%] -right-[10%] w-[600px] h-[600px] rounded-full bg-purple-600/30 blur-[120px]"
+            animate={{ y: [0, -120, 50, 0], x: [0, 50, -50, 0], scale: [1, 1.2, 0.9, 1] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", repeatType: "reverse" }}
+          />
+          <motion.div 
+            className="absolute -bottom-[20%] left-[20%] w-[700px] h-[700px] rounded-full bg-indigo-500/30 blur-[100px]"
+            animate={{ y: [0, -120, 50, 0], x: [0, 50, -50, 0], scale: [1, 1.2, 0.9, 1] }}
+            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          />
+        </div>
+
         {/* Content Area */}
         <div 
-          className={`relative z-10 flex-1 p-6 md:p-12 overflow-y-auto will-change-transform transition-all duration-[1000ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${isInactive ? '-translate-y-16 scale-[1.02]' : 'translate-y-0 scale-100'}`}
+          className={`relative z-10 flex-1 p-6 md:p-12 overflow-y-auto scroll-smooth will-change-transform transition-all duration-[1000ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${isInactive ? '-translate-y-16 scale-[1.02]' : 'translate-y-0 scale-100'}`}
         >
           {showPlaylist ? (() => {
             const activePlaylist = playlists.find(p => p.id === activePlaylistId);
@@ -851,16 +1187,23 @@ useEffect(() => {
                       className="px-3 py-2 border-2 border-transparent hover:border-[#FF3366] transition-colors uppercase font-bold text-sm"
                     >Rename</button>
                     <button 
-                      onClick={() => {
-                        const shuffled = [...activePlaylist.songs].sort(() => Math.random() - 0.5);
-                        savePlaylists(playlists.map(p => p.id === activePlaylistId ? { ...p, songs: shuffled } : p));
-                      }}
-                      className="px-3 py-2 border-2 border-transparent hover:border-[#FF3366] transition-colors uppercase font-bold text-sm"
-                    >Shuffle</button>
+                      onClick={() => setIsShuffleOn(!isShuffleOn)}
+                      className={`px-3 py-2 border-2 transition-colors uppercase font-bold text-sm ${isShuffleOn ? 'border-[#FF3366] bg-[#FF3366] text-[#F4EFEA]' : 'border-transparent hover:border-[#FF3366]'}`}
+                    >Shuffle: {isShuffleOn ? 'ON' : 'OFF'}</button>
                     <button 
                       onClick={() => setIsEditingPlaylist(!isEditingPlaylist)}
                       className={`px-3 py-2 border-2 transition-colors uppercase font-bold text-sm ${isEditingPlaylist ? 'border-[#FF3366] bg-[#FF3366] text-[#F4EFEA]' : 'border-transparent hover:border-[#FF3366]'}`}
                     >{isEditingPlaylist ? 'Done' : 'Edit'}</button>
+                    <button 
+                      onClick={() => {
+                        if (confirm(`Are you sure you want to delete the playlist "${activePlaylist.name}"?`)) {
+                          savePlaylists(playlists.filter(p => p.id !== activePlaylistId));
+                          setShowPlaylist(false);
+                          setActivePlaylistId('default');
+                        }
+                      }}
+                      className="px-3 py-2 border-2 border-transparent hover:border-red-500 hover:text-red-500 transition-colors uppercase font-bold text-sm"
+                    >Delete</button>
                   </div>
                 </div>
               </div>
@@ -910,6 +1253,93 @@ useEffect(() => {
                   </div>
                 </div>
               )}
+
+              <div className="mt-8 flex flex-col gap-4 mb-24">
+                <button 
+                  onClick={() => setShowInlineSearch(!showInlineSearch)}
+                  className="flex items-center gap-2 self-start hover:text-[#FF3366] transition-colors group"
+                >
+                  <div className="w-8 h-8 rounded-full bg-white/20 group-hover:bg-[#FF3366] text-white flex items-center justify-center transition-colors">
+                    <span className="text-xl font-bold mb-1">+</span>
+                  </div>
+                  <span className="text-lg font-black uppercase tracking-widest drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] text-white group-hover:text-[#FF3366]">Add more songs</span>
+                </button>
+                
+                <AnimatePresence>
+                  {showInlineSearch && (
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0 }} 
+                      animate={{ opacity: 1, height: 'auto' }} 
+                      exit={{ opacity: 0, height: 0 }}
+                      className="flex flex-col gap-4 overflow-hidden"
+                    >
+                      <form 
+                        onSubmit={async (e) => {
+                          e.preventDefault();
+                          if (!inlineSearchQuery.trim()) return;
+                          setIsInlineSearching(true);
+                          const results = await searchYouTube(inlineSearchQuery, "any");
+                          setInlineSearchResults(results);
+                          setIsInlineSearching(false);
+                        }}
+                        className="w-full mt-2 group"
+                      >
+                        <div className="border-2 border-white/40 bg-black/50 backdrop-blur-xl shadow-[2px_2px_0_0_rgba(255,255,255,0.3)] group-focus-within:translate-y-px group-focus-within:translate-x-px group-focus-within:shadow-[0px_0px_0_0_#024230] transition-all duration-200">
+                           <div className="bg-black/50 text-white px-2 py-0.5 inline-block text-[10px] font-black uppercase tracking-widest border-r-2 border-b-2 border-white/40 backdrop-blur-xl">Search</div>
+                           <input
+                             type="text"
+                             autoFocus
+                             placeholder="Search for songs to add..."
+                             value={inlineSearchQuery}
+                             onChange={(e) => setInlineSearchQuery(e.target.value)}
+                             className="w-full bg-transparent text-base font-bold px-3 py-2 outline-none placeholder:text-white/50 text-white"
+                           />
+                        </div>
+                        <button type="submit" className="hidden">Submit</button>
+                      </form>
+
+                      {isInlineSearching && (
+                        <div className="flex justify-center py-4">
+                          <Loader2 className="w-8 h-8 animate-spin opacity-50" />
+                        </div>
+                      )}
+
+                      {inlineSearchResults.length > 0 && !isInlineSearching && (
+                        <div className="flex flex-col bg-black/50 backdrop-blur-xl border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] overflow-hidden mb-6">
+                          <div className="flex flex-col divide-y divide-white/10 p-2">
+                            {inlineSearchResults.map((song, i) => {
+                              const alreadyInPlaylist = activePlaylist.songs.some(s => s.id === song.id);
+                              return (
+                                <div className="flex items-center group/box transition-all duration-200" key={song.id}>
+                                  <div className="flex-1 pointer-events-auto">
+                                    <SongBox 
+                                      song={song} 
+                                      index={i} 
+                                      onPlay={(e) => playSong(song, true, "radio", undefined, e)} 
+                                      isFavorite={playlists.some(p => p.songs.some(s => s.id === song.id))} 
+                                      onToggleFavorite={(e) => togglePlaylistSong(song, e)} 
+                                    />
+                                  </div>
+                                  <button 
+                                    onClick={() => {
+                                      if (alreadyInPlaylist) return;
+                                      savePlaylists(playlists.map(p => p.id === activePlaylistId ? { ...p, songs: [...p.songs, song] } : p));
+                                    }}
+                                    className={`shrink-0 mx-4 w-10 h-10 rounded-full flex items-center justify-center transition-all ${alreadyInPlaylist ? 'bg-[#FF3366]/20 text-[#FF3366] cursor-not-allowed' : 'bg-white/20 hover:bg-[#FF3366] text-white hover:scale-110 shadow-md'}`}
+                                  >
+                                    <span className="text-xl font-bold mb-1">{alreadyInPlaylist ? '✓' : '+'}</span>
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
             </div>
             );
           })() : !hasSearched ? (
@@ -941,7 +1371,7 @@ useEffect(() => {
                         song={song} 
                         index={index} 
                         onPlay={() => playSong(song)} 
-                        isFavorite={!!playlists.find(p => p.id === activePlaylistId)?.songs.find(s => s.id === song.id)} 
+                        isFavorite={playlists.some(p => p.songs.some(s => s.id === song.id))} 
                         onToggleFavorite={(e) => togglePlaylistSong(song, e)} 
                       />
                     ))}
@@ -976,7 +1406,7 @@ useEffect(() => {
                         song={song} 
                         index={index} 
                         onPlay={() => playSong(song)} 
-                        isFavorite={!!playlists.find(p => p.id === activePlaylistId)?.songs.find(s => s.id === song.id)} 
+                        isFavorite={playlists.some(p => p.songs.some(s => s.id === song.id))} 
                         onToggleFavorite={(e) => togglePlaylistSong(song, e)} 
                       />
                     ))}
@@ -1006,7 +1436,7 @@ useEffect(() => {
                         song={song} 
                         index={index} 
                         onPlay={(e) => playSong(song, true, "radio", undefined, e)}
-                        isFavorite={!!playlists.find(p => p.id === activePlaylistId)?.songs.find(s => s.id === song.id)} 
+                        isFavorite={playlists.some(p => p.songs.some(s => s.id === song.id))} 
                         onToggleFavorite={(e) => togglePlaylistSong(song, e)} 
                       />
                     ))}
@@ -1015,6 +1445,12 @@ useEffect(() => {
               )}
             </div>
           )}
+          
+          <div className="w-full flex justify-center pt-12 pb-24 mt-auto opacity-30 hover:opacity-100 transition-opacity">
+            <span className="text-xs font-black tracking-[0.4em] uppercase text-white drop-shadow-md">
+              Developed by Sarthak Avhad
+            </span>
+          </div>
         </div>
 
 
