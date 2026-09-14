@@ -18,15 +18,15 @@ export async function searchYouTube(query: string, searchType: "artist" | "song"
     const results = await ytm.searchSongs(query);
     
     let videos = results.map((v) => {
-      const mins = Math.floor(v.duration / 60);
-      const secs = (v.duration % 60).toString().padStart(2, "0");
+      const mins = Math.floor((v.duration || 0) / 60);
+      const secs = ((v.duration || 0) % 60).toString().padStart(2, "0");
       return {
         id: v.videoId,
         title: v.name,
         artist: v.artist?.name || "Unknown Artist",
-        image: v.thumbnails && v.thumbnails.length > 0 ? v.thumbnails[v.thumbnails.length - 1].url : "",
+        image: v.thumbnails && v.thumbnails.length > 0 ? v.thumbnails[v.thumbnails.length - 1].url.replace(/w\d+-h\d+/, 'w1080-h1080') : "",
         duration: `${mins}:${secs}`,
-        seconds: v.duration,
+        seconds: v.duration || 0,
       };
     });
 
@@ -58,6 +58,7 @@ export async function getSearchSuggestions(query: string) {
 export type SyncedLyric = {
   time: number;
   text: string;
+  words?: { text: string; time: number }[];
 };
 
 export async function getSyncedLyrics(title: string, artist: string): Promise<SyncedLyric[]> {
@@ -86,6 +87,22 @@ export async function getSyncedLyrics(title: string, artist: string): Promise<Sy
             }
           }
         }
+        
+        for (let i = 0; i < parsed.length; i++) {
+          const line = parsed[i];
+          const nextTime = i < parsed.length - 1 ? parsed[i + 1].time : line.time + 5;
+          const duration = nextTime - line.time;
+          
+          const words = line.text.split(' ');
+          const effectiveDuration = Math.min(duration, words.length * 0.45); 
+          const timePerWord = effectiveDuration / words.length;
+          
+          line.words = words.map((w, index) => ({
+             text: w,
+             time: line.time + (index * timePerWord)
+          }));
+        }
+        
         return parsed;
       }
     }
@@ -106,15 +123,15 @@ export async function getTrendingWorldwide() {
     await init();
     const results = await ytm.searchSongs("top trending pop songs worldwide 2024");
     let videos = results.map((v) => {
-      const mins = Math.floor(v.duration / 60);
-      const secs = (v.duration % 60).toString().padStart(2, "0");
+      const mins = Math.floor((v.duration || 0) / 60);
+      const secs = ((v.duration || 0) % 60).toString().padStart(2, "0");
       return {
         id: v.videoId,
         title: v.name,
         artist: v.artist?.name || "Unknown Artist",
-        image: v.thumbnails && v.thumbnails.length > 0 ? v.thumbnails[v.thumbnails.length - 1].url : "",
+        image: v.thumbnails && v.thumbnails.length > 0 ? v.thumbnails[v.thumbnails.length - 1].url.replace(/w\d+-h\d+/, 'w1080-h1080') : "",
         duration: `${mins}:${secs}`,
-        seconds: v.duration,
+        seconds: v.duration || 0,
       };
     });
     return videos.slice(0, 10);
@@ -129,15 +146,15 @@ export async function getTrendingIndia() {
     await init();
     const results = await ytm.searchSongs("top trending bollywood hindi punjabi songs 2024");
     let videos = results.map((v) => {
-      const mins = Math.floor(v.duration / 60);
-      const secs = (v.duration % 60).toString().padStart(2, "0");
+      const mins = Math.floor((v.duration || 0) / 60);
+      const secs = ((v.duration || 0) % 60).toString().padStart(2, "0");
       return {
         id: v.videoId,
         title: v.name,
         artist: v.artist?.name || "Unknown Artist",
-        image: v.thumbnails && v.thumbnails.length > 0 ? v.thumbnails[v.thumbnails.length - 1].url : "",
+        image: v.thumbnails && v.thumbnails.length > 0 ? v.thumbnails[v.thumbnails.length - 1].url.replace(/w\d+-h\d+/, 'w1080-h1080') : "",
         duration: `${mins}:${secs}`,
-        seconds: v.duration,
+        seconds: v.duration || 0,
       };
     });
     return videos.slice(0, 10);
@@ -151,7 +168,7 @@ export async function getRelatedSongs(videoId: string) {
   try {
     await init();
     const upNext = await ytm.getUpNexts(videoId);
-    let videos = upNext.filter(v => v.type === "SONG" || v.type === "VIDEO").map((v: any) => {
+    let videos = upNext.filter(v => (v.type === "SONG" || v.type === "VIDEO") && v.videoId !== videoId).map((v: any) => {
       // duration is string like "3:13"
       let seconds = 0;
       if (v.duration) {
@@ -164,7 +181,7 @@ export async function getRelatedSongs(videoId: string) {
         id: v.videoId,
         title: v.title,
         artist: v.artists || "Unknown Artist",
-        image: v.thumbnail || "",
+        image: (v.thumbnail || "").replace(/w\d+-h\d+/, 'w1080-h1080'),
         duration: v.duration,
         seconds: seconds,
       };
@@ -175,3 +192,18 @@ export async function getRelatedSongs(videoId: string) {
     return [];
   }
 }
+
+export async function getArtistBackground(artist: string) {
+  try {
+    const res = await fetch(`https://www.theaudiodb.com/api/v1/json/2/search.php?s=${encodeURIComponent(artist)}`);
+    const data = await res.json();
+    if (data && data.artists && data.artists.length > 0) {
+      const a = data.artists[0];
+      return a.strArtistFanart || a.strArtistFanart2 || a.strArtistThumb || a.strArtistWideThumb || null;
+    }
+  } catch (error) {
+    console.error("AudioDB error:", error);
+  }
+  return null;
+}
+
