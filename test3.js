@@ -1,0 +1,1 @@
+const YouTube = require('youtube-sr').default; async function run() { const r = await YouTube.search('Justin Bieber', {limit: 5}); r.forEach(v => console.log('Channel:', v.channel.name, '| Title:', v.title)); } run();
