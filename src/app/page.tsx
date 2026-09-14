@@ -603,6 +603,35 @@ useEffect(() => {
     setProgress(newTime);
   };
 
+  // Keep references to latest song actions for MediaSession (avoids stale closures)
+  const mediaActions = useRef({ playNextSong, playPreviousSong });
+  useEffect(() => {
+    mediaActions.current = { playNextSong, playPreviousSong };
+  });
+
+  useEffect(() => {
+    if ('mediaSession' in navigator && currentSong) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: currentSong.title,
+        artist: currentSong.artist,
+        artwork: [{ src: currentSong.image, sizes: '512x512', type: 'image/jpeg' }]
+      });
+
+      navigator.mediaSession.setActionHandler('play', () => {
+        if (playerRef.current) playerRef.current.playVideo();
+      });
+      navigator.mediaSession.setActionHandler('pause', () => {
+        if (playerRef.current) playerRef.current.pauseVideo();
+      });
+      navigator.mediaSession.setActionHandler('previoustrack', () => {
+        mediaActions.current.playPreviousSong();
+      });
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        mediaActions.current.playNextSong();
+      });
+    }
+  }, [currentSong]);
+
   if (!isClient) return null; // Hydration mismatch prevention
 
   if (!activeProfile) {
