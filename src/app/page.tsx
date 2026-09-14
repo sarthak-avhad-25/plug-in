@@ -882,36 +882,9 @@ useEffect(() => {
           {currentSong && (
             <motion.div
               key={currentSong.id}
-              custom={clickOrigin}
-              initial={(origin) => {
-                if (!origin || typeof document === 'undefined') return { opacity: 0, height: 0, marginBottom: 0, scale: 0.8 };
-                const leftCol = document.getElementById('left-column');
-                let dx = 0;
-                let dy = 0;
-                if (leftCol) {
-                  const rect = leftCol.getBoundingClientRect();
-                  // origin is e.clientX, e.clientY
-                  // We want the relative offset from the center of the Now Playing box.
-                  // The Now Playing box will be roughly near the top of the left column.
-                  // We can approximate its center at rect.left + rect.width/2, rect.top + 150
-                  const boxCenterX = rect.left + rect.width / 2;
-                  const boxCenterY = rect.top + 150;
-                  dx = origin.x - boxCenterX;
-                  dy = origin.y - boxCenterY;
-                }
-                return { 
-                  opacity: 0, 
-                  height: 0, 
-                  marginBottom: 0, 
-                  x: dx, 
-                  y: dy, 
-                  scale: 0.05,
-                  transformOrigin: "center",
-                  filter: "blur(10px)"
-                };
-              }}
-              animate={{ opacity: 1, height: "auto", marginBottom: 48, x: 0, y: 0, scale: 1, filter: "blur(0px)" }}
-              exit={{ opacity: 0, height: 0, marginBottom: 0, scale: 0.5, x: 0, y: 0, filter: "blur(10px)" }}
+              initial={{ opacity: 0, height: 0, marginBottom: 0, scale: 0.8 }}
+              animate={{ opacity: 1, height: "auto", marginBottom: 48, scale: 1, filter: "blur(0px)" }}
+              exit={{ opacity: 0, height: 0, marginBottom: 0, scale: 0.5, filter: "blur(10px)" }}
               transition={{ type: "spring", damping: 15, stiffness: 120, mass: 0.6 }}
               className="w-full flex flex-col gap-4 overflow-visible origin-center relative z-50"
             >

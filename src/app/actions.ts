@@ -48,8 +48,8 @@ export async function getArtistBackground(artistName: string): Promise<string | 
     const artists = await ytm.searchArtists(artistName);
     if (artists && artists.length > 0) {
       const artist = await ytm.getArtist(artists[0].artistId);
-      if (artist && artist.banners && artist.banners.length > 0) {
-        let url = artist.banners[artist.banners.length - 1].url;
+      if (artist && (artist as any).banners && (artist as any).banners.length > 0) {
+        let url = (artist as any).banners[(artist as any).banners.length - 1].url;
         // Upscale if needed, though they are usually 1920+ wide
         if (url.includes('w212-h106')) {
            url = url.replace(/w\d+-h\d+/, 'w1920-h1080');
