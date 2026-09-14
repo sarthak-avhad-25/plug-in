@@ -243,7 +243,8 @@ useEffect(() => {
   const playerRef = useRef<YouTubePlayer | null>(null);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
-  const silentAudioRef = useRef<HTMLAudioElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [useNativeAudio, setUseNativeAudio] = useState(false);
 
   const lastScrolledIndex = useRef(-1);
   const isUserScrolling = useRef(false);
@@ -343,7 +344,12 @@ useEffect(() => {
 
   const onReady = (event: any) => {
     playerRef.current = event.target;
-    playerRef.current.setVolume(50);
+    // If native audio is handling sound, mute YouTube (keep it for state events only)
+    if (useNativeAudio) {
+      playerRef.current.setVolume(0);
+    } else {
+      playerRef.current.setVolume(50);
+    }
   };
 
   const onStateChange = (event: any) => {
@@ -352,22 +358,30 @@ useEffect(() => {
       setDuration(playerRef.current.getDuration());
       if (progressInterval.current) clearInterval(progressInterval.current);
       progressInterval.current = setInterval(() => {
-        if (playerRef.current) setProgress(playerRef.current.getCurrentTime());
+        if (useNativeAudio && audioRef.current) {
+          setProgress(audioRef.current.currentTime);
+        } else if (playerRef.current) {
+          setProgress(playerRef.current.getCurrentTime());
+        }
       }, 150);
-      // Start silent audio to keep tab alive in background
-      if (silentAudioRef.current) {
-        silentAudioRef.current.play().catch(() => {});
+      // Start native audio playback in sync
+      if (useNativeAudio && audioRef.current) {
+        audioRef.current.currentTime = playerRef.current.getCurrentTime();
+        audioRef.current.play().catch(() => {});
       }
     } else if (event.data === 2) {
       setIsPlaying(false);
       if (progressInterval.current) clearInterval(progressInterval.current);
-      // Pause silent audio when user pauses playback
-      if (silentAudioRef.current) {
-        silentAudioRef.current.pause();
+      // Pause native audio when YouTube pauses
+      if (useNativeAudio && audioRef.current) {
+        audioRef.current.pause();
       }
     } else if (event.data === 0) {
       setIsPlaying(false);
       if (progressInterval.current) clearInterval(progressInterval.current);
+      if (useNativeAudio && audioRef.current) {
+        audioRef.current.pause();
+      }
       playNextSong();
     }
   };
@@ -376,9 +390,19 @@ useEffect(() => {
 
 
   const togglePlay = () => {
-    if (!playerRef.current) return;
-    if (isPlaying) playerRef.current.pauseVideo();
-    else playerRef.current.playVideo();
+    if (useNativeAudio && audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+        playerRef.current?.pauseVideo();
+      } else {
+        audioRef.current.play().catch(() => {});
+        playerRef.current?.playVideo();
+      }
+    } else {
+      if (!playerRef.current) return;
+      if (isPlaying) playerRef.current.pauseVideo();
+      else playerRef.current.playVideo();
+    }
   };
 
   const executeFullSearch = async (queryToSearch: string, searchType: "artist" | "song" | "any" = "any") => {
@@ -607,11 +631,16 @@ useEffect(() => {
   };
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!playerRef.current || !duration) return;
+    if (!duration) return;
     const bounds = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - bounds.left;
     const newTime = (x / bounds.width) * duration;
-    playerRef.current.seekTo(newTime, true);
+    if (useNativeAudio && audioRef.current) {
+      audioRef.current.currentTime = newTime;
+    }
+    if (playerRef.current) {
+      playerRef.current.seekTo(newTime, true);
+    }
     setProgress(newTime);
   };
 
@@ -620,6 +649,30 @@ useEffect(() => {
   useEffect(() => {
     mediaActions.current = { playNextSong, playPreviousSong };
   });
+
+  // Load native audio stream for background playback support
+  useEffect(() => {
+    if (!currentSong) return;
+    const audioUrl = `/api/audio?v=${currentSong.id}`;
+    if (audioRef.current) {
+      audioRef.current.src = audioUrl;
+      audioRef.current.load();
+      // Test if native audio works; if so, mute YouTube
+      audioRef.current.oncanplaythrough = () => {
+        setUseNativeAudio(true);
+        if (playerRef.current) {
+          playerRef.current.setVolume(0);
+        }
+      };
+      audioRef.current.onerror = () => {
+        // Fallback: native audio failed, use YouTube audio
+        setUseNativeAudio(false);
+        if (playerRef.current) {
+          playerRef.current.setVolume(50);
+        }
+      };
+    }
+  }, [currentSong]);
 
   useEffect(() => {
     if ('mediaSession' in navigator && currentSong) {
@@ -630,9 +683,15 @@ useEffect(() => {
       });
 
       navigator.mediaSession.setActionHandler('play', () => {
+        if (useNativeAudio && audioRef.current) {
+          audioRef.current.play().catch(() => {});
+        }
         if (playerRef.current) playerRef.current.playVideo();
       });
       navigator.mediaSession.setActionHandler('pause', () => {
+        if (useNativeAudio && audioRef.current) {
+          audioRef.current.pause();
+        }
         if (playerRef.current) playerRef.current.pauseVideo();
       });
       navigator.mediaSession.setActionHandler('previoustrack', () => {
@@ -641,8 +700,42 @@ useEffect(() => {
       navigator.mediaSession.setActionHandler('nexttrack', () => {
         mediaActions.current.playNextSong();
       });
+      navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+        const skip = details.seekOffset ?? 10;
+        let currentTime = 0;
+        if (useNativeAudio && audioRef.current) {
+          currentTime = audioRef.current.currentTime;
+        } else if (playerRef.current) {
+          currentTime = playerRef.current.getCurrentTime();
+        }
+        const newTime = Math.max(0, currentTime - skip);
+        if (useNativeAudio && audioRef.current) {
+          audioRef.current.currentTime = newTime;
+        }
+        if (playerRef.current) {
+          playerRef.current.seekTo(newTime, true);
+        }
+        setProgress(newTime);
+      });
+      navigator.mediaSession.setActionHandler('seekforward', (details) => {
+        const skip = details.seekOffset ?? 10;
+        let currentTime = 0;
+        if (useNativeAudio && audioRef.current) {
+          currentTime = audioRef.current.currentTime;
+        } else if (playerRef.current) {
+          currentTime = playerRef.current.getCurrentTime();
+        }
+        const newTime = Math.min(duration, currentTime + skip);
+        if (useNativeAudio && audioRef.current) {
+          audioRef.current.currentTime = newTime;
+        }
+        if (playerRef.current) {
+          playerRef.current.seekTo(newTime, true);
+        }
+        setProgress(newTime);
+      });
     }
-  }, [currentSong]);
+  }, [currentSong, useNativeAudio]);
 
   if (!isClient) return null; // Hydration mismatch prevention
 
@@ -775,8 +868,8 @@ useEffect(() => {
           />
         )}
       </div>
-      {/* Silent audio to keep playback alive */}
-      <audio ref={silentAudioRef} src="data:audio/mp3;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" loop playsInline style={{display:"none"}} />
+      {/* Native audio element for background/lock-screen playback */}
+      <audio ref={audioRef} playsInline preload="auto" style={{display:"none"}} />
 
       {/* LEFT COLUMN - SEARCH & UI */}
       <div id="left-column" className="w-full md:w-[50%] lg:w-[40%] flex flex-col border-t-4 md:border-t-0 md:border-l-4 border-[#024230] relative z-20 bg-[#111] text-white overflow-visible drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
