@@ -813,7 +813,7 @@ useEffect(() => {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="absolute top-full left-0 w-full mt-4 bg-black/50 backdrop-blur-xl border-2 border-white/30 shadow-[8px_8px_0_0_rgba(255,255,255,0.2)] z-50 flex flex-col divide-y-2 divide-white/20"
+                className="md:absolute md:top-full md:left-0 w-full mt-2 md:mt-4 bg-black/50 backdrop-blur-xl border-2 border-white/30 shadow-[8px_8px_0_0_rgba(255,255,255,0.2)] z-50 flex flex-col divide-y-2 divide-white/20"
               >
                 {artistSuggestions.map((sug, i) => (
                   <li
@@ -858,7 +858,7 @@ useEffect(() => {
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="absolute top-full left-0 w-full mt-4 bg-black/50 backdrop-blur-xl border-2 border-white/30 shadow-[8px_8px_0_0_rgba(255,255,255,0.2)] z-50 flex flex-col divide-y-2 divide-white/20"
+                    className="md:absolute md:top-full md:left-0 w-full mt-2 md:mt-4 bg-black/50 backdrop-blur-xl border-2 border-white/30 shadow-[8px_8px_0_0_rgba(255,255,255,0.2)] z-50 flex flex-col divide-y-2 divide-white/20"
                   >
                     {songSuggestions.map((sug, i) => (
                       <li 
