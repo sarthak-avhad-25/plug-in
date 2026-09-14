@@ -89,7 +89,7 @@ export async function searchYouTube(query: string, searchType: "artist" | "song"
       videos = videos.filter((v) => v.title.toLowerCase().includes(query.toLowerCase()));
     }
 
-    return await enrichSongsWithItunes(videos.slice(0, 10));
+    return await enrichSongsWithItunes(videos);
   } catch (error) {
     console.error("YouTube search error:", error);
     return [];
