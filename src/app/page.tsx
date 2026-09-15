@@ -616,15 +616,24 @@ useEffect(() => {
     
     // Explicitly load and play synchronously to satisfy mobile autoplay policies
     if (playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
+      playerRef.current.setVolume(0);
       playerRef.current.loadVideoById(song.id);
       playerRef.current.playVideo();
     }
 
     // Force native audio to start immediately on all devices
     if (audioRef.current) {
+      audioRef.current.play().catch(() => {});
       audioRef.current.src = `/api/audio?v=${song.id}`;
-      audioRef.current.load();
-      audioRef.current.play().catch((err) => console.log("Native audio autoplay prevented:", err));
+      audioRef.current.play().catch((err) => {
+        console.log("Native audio autoplay prevented:", err);
+        setUseNativeAudio(false);
+        if (playerRef.current) {
+          playerRef.current.setVolume(100);
+          // If we unmute and the browser pauses it, the UI will correctly show paused
+          // so the user can just tap play once.
+        }
+      });
     }
     
     setLyrics([]);
