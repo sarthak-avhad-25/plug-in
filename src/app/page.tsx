@@ -2,10 +2,11 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2, Trash2, Info } from "lucide-react";
+import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2, Trash2, Info, Home, Library, Compass, ChevronDown, MoreHorizontal, ListMusic } from "lucide-react";
 import YouTube, { YouTubePlayer } from "react-youtube";
 import { searchYouTube, getArtistBackground, getSearchSuggestions, getSyncedLyrics, getTrendingWorldwide, getTrendingIndia, getRelatedSongs } from "./actions";
 import type { SyncedLyric } from "./actions";
+import { loadProfiles, saveProfilesServer, loadActiveProfile, saveActiveProfileServer, loadPlaylistsServer, savePlaylistsServer, deletePlaylistsServer } from "./storage";
 
 type Profile = {
   id: string;
@@ -35,28 +36,28 @@ const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite }: { song: 
     onClick={(e) => onPlay(e)}
     className="p-2 md:p-4 hover:bg-white/10 rounded-xl md:rounded-2xl transition-all duration-500 transform hover:scale-[1.02] md:hover:scale-110 hover:shadow-2xl cursor-pointer flex flex-row items-center gap-3 md:gap-4 group"
   >
-    <div className="w-8 shrink-0 text-xl font-black opacity-40 group-hover:opacity-100 group-hover:text-white transition-colors">
-      #{index + 1}
+    <div className="w-8 shrink-0 text-sm md:text-xl font-bold md:font-black opacity-40 group-hover:opacity-100 group-hover:text-white transition-colors text-center">
+      {index + 1}
     </div>
-    <div className="w-12 h-12 md:w-16 md:h-16 rounded-lg md:rounded-xl border border-white/20 group-hover:border-white/50 shrink-0 relative overflow-hidden bg-black shadow-lg">
-      <img src={song.image} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" alt={song.title} />
-      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-[#FF3366]/80 transition-opacity">
-        <Play className="w-6 h-6 text-white fill-white ml-1" />
+    <div className="w-12 h-12 md:w-16 md:h-16 rounded-md md:rounded-xl border border-white/10 md:border-white/20 group-hover:border-white/50 shrink-0 relative overflow-hidden bg-black shadow-md md:shadow-lg">
+      <img src={song.image} className="w-full h-full object-cover opacity-90 md:opacity-80 group-hover:opacity-100 transition-opacity" alt={song.title} />
+      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/40 md:bg-[#FF3366]/80 transition-opacity">
+        <Play className="w-5 h-5 md:w-6 md:h-6 text-white fill-white ml-1" />
       </div>
     </div>
-    <div className="flex flex-col flex-1 overflow-hidden">
-      <span className="text-sm md:text-base font-black uppercase tracking-tighter truncate leading-none mb-1 transform transition-all duration-500 group-hover:scale-105 group-hover:text-white">
+    <div className="flex flex-col flex-1 overflow-hidden border-b border-white/5 md:border-transparent pb-2 md:pb-0 h-full justify-center">
+      <span className="text-sm md:text-base font-semibold md:font-black tracking-normal md:uppercase md:tracking-tighter truncate leading-none mb-1 transform transition-all duration-300 md:duration-500 group-hover:scale-105 group-hover:text-white">
         {song.title}
       </span>
-      <span className="text-xs font-bold tracking-widest uppercase opacity-70 truncate">
+      <span className="text-xs font-normal md:font-bold md:tracking-widest md:uppercase opacity-60 md:opacity-70 truncate">
         {song.artist}
       </span>
     </div>
     <button 
       onClick={onToggleFavorite}
-      className="ml-auto p-2 opacity-50 group-hover:opacity-100 transition-opacity hover:scale-110"
+      className="ml-auto p-2 opacity-50 group-hover:opacity-100 transition-opacity md:hover:scale-110"
     >
-      <Heart className={`w-8 h-8 ${isFavorite ? 'fill-[#FF3366] text-[#FF3366]' : 'text-current'}`} />
+      <Heart className={`w-5 h-5 md:w-8 md:h-8 ${isFavorite ? 'fill-[#FC3C44] text-[#FC3C44]' : 'text-current'}`} />
     </button>
   </div>
 );
@@ -100,10 +101,17 @@ export default function FransHalsMusicApp() {
   const [isInlineSearching, setIsInlineSearching] = useState(false);
   const [isLyricsExpanded, setIsLyricsExpanded] = useState(false);
   const [hasHeadphones, setHasHeadphones] = useState(false);
+
+  // Mobile specific state
+  const [mobileTab, setMobileTab] = useState<"home" | "search" | "library">("home");
+  const [showMobilePlayer, setShowMobilePlayer] = useState(false);
+
   const savePlaylists = (newPlaylists: Playlist[]) => {
     setPlaylists(newPlaylists);
     if (activeProfile) {
       localStorage.setItem(`frans_hals_playlists_${activeProfile.id}`, JSON.stringify(newPlaylists));
+      // Persist to Redis in the background (fire-and-forget)
+      savePlaylistsServer(activeProfile.id, newPlaylists);
     }
   };
 
@@ -174,12 +182,24 @@ export default function FransHalsMusicApp() {
 
     if (saved) {
       try {
-        setPlaylists(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        setPlaylists(parsed);
+        // Also push to Redis to keep it in sync
+        savePlaylistsServer(activeProfile.id, parsed);
       } catch (e) {
         setPlaylists([]);
       }
     } else {
-      setPlaylists([]);
+      // No local data — try loading from Redis (cloud backup)
+      loadPlaylistsServer(activeProfile.id).then(serverPlaylists => {
+        if (serverPlaylists && serverPlaylists.length > 0) {
+          setPlaylists(serverPlaylists);
+          // Cache in localStorage for faster subsequent loads
+          localStorage.setItem(profileKey, JSON.stringify(serverPlaylists));
+        } else {
+          setPlaylists([]);
+        }
+      });
     }
   }, [activeProfile]);
 
@@ -211,17 +231,43 @@ useEffect(() => {
     setIsClient(true);
     const saved = localStorage.getItem("music_profiles");
     if (saved) {
-      setProfiles(JSON.parse(saved));
+      const parsed = JSON.parse(saved);
+      setProfiles(parsed);
+      // Sync to Redis in background
+      saveProfilesServer(parsed);
+    } else {
+      // No local profiles — try loading from Redis
+      loadProfiles().then(serverProfiles => {
+        if (serverProfiles && serverProfiles.length > 0) {
+          setProfiles(serverProfiles);
+          localStorage.setItem("music_profiles", JSON.stringify(serverProfiles));
+        }
+      });
     }
     const savedActive = localStorage.getItem("music_active_profile");
     if (savedActive) {
-      try { setActiveProfile(JSON.parse(savedActive)); } catch(e) {}
+      try {
+        const parsed = JSON.parse(savedActive);
+        setActiveProfile(parsed);
+        // Sync to Redis in background
+        saveActiveProfileServer(parsed);
+      } catch(e) {}
+    } else {
+      // No local active profile — try loading from Redis
+      loadActiveProfile().then(serverActive => {
+        if (serverActive) {
+          setActiveProfile(serverActive);
+          localStorage.setItem("music_active_profile", JSON.stringify(serverActive));
+        }
+      });
     }
   }, []);
 
   const saveProfiles = (newProfiles: Profile[]) => {
     setProfiles(newProfiles);
     localStorage.setItem("music_profiles", JSON.stringify(newProfiles));
+    // Persist to Redis in the background
+    saveProfilesServer(newProfiles);
   };
 
   const togglePlaylistSong = (song: Song, e: React.MouseEvent) => {
@@ -754,6 +800,7 @@ useEffect(() => {
               <div key={p.id} className="flex flex-col items-center gap-4 group cursor-pointer" onClick={() => {
                 setActiveProfile(p);
                 localStorage.setItem("music_active_profile", JSON.stringify(p));
+                saveActiveProfileServer(p);
               }}>
                 <div className={`w-32 h-32 md:w-40 md:h-40 rounded-xl bg-gradient-to-br ${p.color} flex items-center justify-center text-6xl shadow-xl group-hover:scale-105 group-hover:ring-4 ring-white transition-all duration-300 relative overflow-hidden`}>
                   <span className="relative z-10">{p.emoji}</span>
@@ -765,6 +812,7 @@ useEffect(() => {
                         const newProfiles = profiles.filter(prof => prof.id !== p.id);
                         saveProfiles(newProfiles);
                         localStorage.removeItem(`frans_hals_playlists_${p.id}`); // Clean up their private playlists
+                        deletePlaylistsServer(p.id); // Clean up from Redis too
                       }
                     }}
                     className="absolute top-2 right-2 bg-black/60 hover:bg-red-600 text-white w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-20"
@@ -872,7 +920,7 @@ useEffect(() => {
       <audio ref={audioRef} playsInline preload="auto" style={{display:"none"}} />
 
       {/* LEFT COLUMN - SEARCH & UI */}
-      <div id="left-column" className="w-full md:w-[50%] lg:w-[40%] flex flex-col border-t-4 md:border-t-0 md:border-l-4 border-[#024230] relative z-20 bg-[#111] text-white overflow-visible drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+      <div id="left-column" className="hidden md:flex w-full md:w-[50%] lg:w-[40%] flex-col border-t-4 md:border-t-0 md:border-l-4 border-[#024230] relative z-20 bg-[#111] text-white overflow-visible drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
   <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-pink-500 to-indigo-500 opacity-30 pointer-events-none bg-[length:200%_200%] animate-[gradientMove_15s_linear_infinite]" />
   <style jsx>{`
     @keyframes gradientMove {
@@ -1250,7 +1298,7 @@ useEffect(() => {
       </div>
 
       {/* RIGHT COLUMN - RESULTS & PLAYER */}
-      <div className="w-full md:w-[50%] lg:w-[60%] relative bg-gradient-to-br from-[#1a1a1a] via-[#050505] to-black shadow-[inset_0_0_80px_rgba(0,0,0,0.9)] text-[#F4EFEA] overflow-hidden flex flex-col min-h-[50vh] md:min-h-screen">
+      <div className="hidden md:flex w-full md:w-[50%] lg:w-[60%] relative bg-gradient-to-br from-[#1a1a1a] via-[#050505] to-black shadow-[inset_0_0_80px_rgba(0,0,0,0.9)] text-[#F4EFEA] overflow-hidden flex-col min-h-[50vh] md:min-h-screen">
         
 
 
@@ -1564,6 +1612,271 @@ useEffect(() => {
 
 
       </div>
+
+      {/* MOBILE VIEW (Apple Music Style) */}
+      <div className="flex md:hidden w-full h-[100dvh] flex-col bg-black text-white relative overflow-hidden">
+        {/* Scrollable Main Content */}
+        <div className="flex-1 overflow-y-auto pb-32 px-4 scrollbar-hide pt-12">
+          {mobileTab === "home" && (
+            <div className="flex flex-col gap-8">
+              <h1 className="text-3xl font-bold tracking-tight">Listen Now</h1>
+              
+              {/* Trending Worldwide */}
+              <div className="flex flex-col gap-4">
+                <h2 className="text-xl font-bold">Trending Worldwide</h2>
+                <div className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide snap-x">
+                  {trendingWorldwide.length === 0 ? (
+                     <div className="flex justify-center py-8 w-full"><Loader2 className="w-8 h-8 animate-spin text-[#FC3C44]" /></div>
+                  ) : trendingWorldwide.map(song => (
+                    <div key={song.id} className="min-w-[150px] max-w-[150px] flex flex-col gap-2 snap-start" onClick={() => playSong(song)}>
+                      <img src={song.image} className="w-[150px] h-[150px] rounded-xl object-cover shadow-sm" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold truncate">{song.title}</span>
+                        <span className="text-xs text-white/60 truncate">{song.artist}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Trending India */}
+              <div className="flex flex-col gap-4">
+                <h2 className="text-xl font-bold">Trending in India</h2>
+                <div className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide snap-x">
+                  {trendingIndia.length === 0 ? (
+                     <div className="flex justify-center py-8 w-full"><Loader2 className="w-8 h-8 animate-spin text-[#FC3C44]" /></div>
+                  ) : trendingIndia.map(song => (
+                    <div key={song.id} className="min-w-[150px] max-w-[150px] flex flex-col gap-2 snap-start" onClick={() => playSong(song)}>
+                      <img src={song.image} className="w-[150px] h-[150px] rounded-xl object-cover shadow-sm" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold truncate">{song.title}</span>
+                        <span className="text-xs text-white/60 truncate">{song.artist}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {mobileTab === "search" && (
+            <div className="flex flex-col gap-6">
+              <h1 className="text-3xl font-bold tracking-tight">Search</h1>
+              <div className="relative">
+                <Search className="absolute left-3 top-3.5 w-5 h-5 text-white/50" />
+                <input 
+                  type="text" 
+                  placeholder="Artists, Songs, Lyrics" 
+                  value={songQuery}
+                  onChange={(e) => {
+                    setSongQuery(e.target.value);
+                    if (e.target.value.trim().length > 1) {
+                       getSearchSuggestions(e.target.value).then(setSongSuggestions);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const executeFullSearch = async () => {
+                        if (!songQuery.trim()) return;
+                        setIsSearching(true);
+                        setHasSearched(true);
+                        setSongSuggestions([]);
+                        try {
+                          const results = await searchYouTube(songQuery, "any");
+                          setSearchResults(results);
+                        } finally {
+                          setIsSearching(false);
+                        }
+                      };
+                      executeFullSearch();
+                    }
+                  }}
+                  className="w-full bg-[#1C1C1E] rounded-xl py-3 pl-10 pr-4 text-base font-semibold outline-none focus:bg-[#2C2C2E] transition-colors"
+                />
+              </div>
+              
+              {isSearching ? (
+                <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-[#FC3C44]" /></div>
+              ) : searchResults.length > 0 ? (
+                <div className="flex flex-col gap-2 mt-4">
+                  <h2 className="text-xl font-bold mb-2">Results</h2>
+                  {searchResults.map((song, i) => (
+                    <div key={song.id} className="flex items-center gap-3 active:bg-white/10 p-2 rounded-lg" onClick={(e) => playSong(song, true, "radio", undefined, e)}>
+                      <img src={song.image} className="w-12 h-12 rounded-md object-cover" />
+                      <div className="flex flex-col flex-1 overflow-hidden">
+                        <span className="text-base font-semibold truncate">{song.title}</span>
+                        <span className="text-sm text-white/50 truncate">{song.artist}</span>
+                      </div>
+                      <button onClick={(e) => { e.stopPropagation(); togglePlaylistSong(song, e); }} className="p-2">
+                        <Heart className={`w-5 h-5 ${playlists.some(p => p.songs.some(s => s.id === song.id)) ? 'fill-[#FC3C44] text-[#FC3C44]' : 'text-white/50'}`} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          )}
+
+          {mobileTab === "library" && (
+            <div className="flex flex-col gap-6">
+              <h1 className="text-3xl font-bold tracking-tight">Library</h1>
+              <div className="flex flex-col bg-[#1C1C1E] rounded-xl overflow-hidden">
+                {playlists.map(p => (
+                  <div key={p.id} className="flex items-center gap-4 p-4 border-b border-white/5 active:bg-white/10" onClick={() => { setActivePlaylistId(p.id); setShowPlaylist(true); }}>
+                    <ListMusic className="w-6 h-6 text-[#FC3C44]" />
+                    <div className="flex flex-col">
+                      <span className="text-lg font-semibold">{p.name}</span>
+                      <span className="text-xs text-white/50">{p.songs.length} songs</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {showPlaylist && playlists.find(p => p.id === activePlaylistId) && (
+                <div className="flex flex-col gap-2 mt-4">
+                  <h2 className="text-xl font-bold mb-2">{playlists.find(p => p.id === activePlaylistId)?.name}</h2>
+                  {playlists.find(p => p.id === activePlaylistId)?.songs.map((song, i) => (
+                    <div key={song.id} className="flex items-center gap-3 active:bg-white/10 p-2 rounded-lg" onClick={(e) => playSong(song, true, "playlist", undefined, e)}>
+                      <img src={song.image} className="w-12 h-12 rounded-md object-cover" />
+                      <div className="flex flex-col flex-1 overflow-hidden">
+                        <span className="text-base font-semibold truncate">{song.title}</span>
+                        <span className="text-sm text-white/50 truncate">{song.artist}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Mini Player */}
+        {currentSong && (
+          <div className="absolute bottom-[88px] left-2 right-2 bg-[#2C2C2E]/90 backdrop-blur-2xl rounded-xl p-2 flex items-center gap-3 shadow-lg z-40 border border-white/5" onClick={() => setShowMobilePlayer(true)}>
+            <img src={currentSong.image} className="w-12 h-12 rounded-lg object-cover shadow-sm" />
+            <div className="flex flex-col flex-1 overflow-hidden">
+              <span className="text-sm font-semibold truncate">{currentSong.title}</span>
+              <span className="text-xs text-white/60 truncate">{currentSong.artist}</span>
+            </div>
+            <div className="flex items-center gap-4 pr-2" onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => togglePlay()}>
+                {isPlaying ? <Pause className="w-6 h-6 fill-white text-white" /> : <Play className="w-6 h-6 fill-white text-white" />}
+              </button>
+              <button onClick={() => playNextSong()}>
+                <SkipForward className="w-6 h-6 fill-white text-white" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Bottom Tab Bar */}
+        <div className="absolute bottom-0 left-0 right-0 h-[84px] bg-[#1C1C1E]/80 backdrop-blur-3xl border-t border-white/10 flex justify-around items-start pt-3 pb-8 z-30">
+          <button onClick={() => setMobileTab("home")} className={`flex flex-col items-center gap-1 w-20 ${mobileTab === "home" ? "text-[#FC3C44]" : "text-white/50"}`}>
+            <Home className={`w-6 h-6 ${mobileTab === "home" ? "fill-[#FC3C44]" : ""}`} />
+            <span className="text-[10px] font-medium">Listen Now</span>
+          </button>
+          <button onClick={() => setMobileTab("search")} className={`flex flex-col items-center gap-1 w-20 ${mobileTab === "search" ? "text-[#FC3C44]" : "text-white/50"}`}>
+            <Search className="w-6 h-6" />
+            <span className="text-[10px] font-medium">Search</span>
+          </button>
+          <button onClick={() => setMobileTab("library")} className={`flex flex-col items-center gap-1 w-20 ${mobileTab === "library" ? "text-[#FC3C44]" : "text-white/50"}`}>
+            <ListMusic className={`w-6 h-6 ${mobileTab === "library" ? "fill-[#FC3C44]" : ""}`} />
+            <span className="text-[10px] font-medium">Library</span>
+          </button>
+        </div>
+
+        {/* Full Screen Player Modal */}
+        <AnimatePresence>
+          {showMobilePlayer && currentSong && (
+            <motion.div 
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 26, stiffness: 220 }}
+              className="fixed inset-0 z-50 flex flex-col bg-black overflow-hidden"
+            >
+              {/* Animated Blurred Background matching current song */}
+              <div className="absolute inset-0 z-0">
+                <img src={currentSong.image} className="w-full h-full object-cover opacity-60 blur-3xl scale-125 saturate-150" />
+                <div className="absolute inset-0 bg-black/30 backdrop-blur-3xl" />
+              </div>
+              
+              <div className="relative z-10 flex flex-col h-full px-6 pt-4 pb-12">
+                <div className="flex justify-center mb-6">
+                  <div className="w-10 h-1.5 bg-white/30 rounded-full cursor-pointer" onClick={() => setShowMobilePlayer(false)} />
+                </div>
+                
+                <div className="w-full aspect-square rounded-xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.5)] mb-8 mt-2 transition-transform duration-500 ease-out">
+                  <img src={currentSong.image} className="w-full h-full object-cover" />
+                </div>
+                
+                <div className="flex justify-between items-end mb-6">
+                  <div className="flex flex-col flex-1 overflow-hidden pr-4">
+                    <span className="text-2xl font-bold truncate text-white">{currentSong.title}</span>
+                    <span className="text-lg text-white/70 truncate">{currentSong.artist}</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                     <button onClick={(e) => togglePlaylistSong(currentSong, e)}>
+                       <Heart className={`w-7 h-7 ${playlists.some(p => p.songs.some(s => s.id === currentSong.id)) ? 'fill-[#FC3C44] text-[#FC3C44]' : 'text-white'}`} />
+                     </button>
+                  </div>
+                </div>
+                
+                {/* Progress Bar */}
+                <div className="flex flex-col gap-2 mb-8">
+                  <div 
+                    className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden"
+                    onClick={(e) => {
+                      if (!currentSong || duration === 0) return;
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const x = e.clientX - rect.left;
+                      const newProgress = (x / rect.width) * 100;
+                      setProgress(newProgress);
+                      const newTime = (newProgress / 100) * duration;
+                      const player = (window as any).ytPlayer as YouTubePlayer;
+                      if (player && typeof player.seekTo === 'function') {
+                        player.seekTo(newTime, true);
+                      }
+                    }}
+                  >
+                    <div className="h-full bg-white/80 rounded-full" style={{ width: `${progress}%` }} />
+                  </div>
+                  <div className="flex justify-between text-xs text-white/50 font-medium">
+                    <span>{Math.floor((progress / 100 * duration) / 60)}:{(Math.floor(progress / 100 * duration) % 60).toString().padStart(2, '0')}</span>
+                    <span>-{Math.floor((duration - (progress / 100 * duration)) / 60)}:{(Math.floor(duration - (progress / 100 * duration)) % 60).toString().padStart(2, '0')}</span>
+                  </div>
+                </div>
+                
+                {/* Controls */}
+                <div className="flex justify-between items-center px-2 mb-8">
+                  <button className="text-white/50"><ListMusic className="w-5 h-5" /></button>
+                  <div className="flex items-center gap-8">
+                    <button onClick={() => playPreviousSong()}><SkipBack className="w-10 h-10 fill-white text-white" /></button>
+                    <button onClick={() => togglePlay()}>
+                      {isPlaying ? <Pause className="w-14 h-14 fill-white text-white" /> : <Play className="w-14 h-14 fill-white text-white ml-2" />}
+                    </button>
+                    <button onClick={() => playNextSong()}><SkipForward className="w-10 h-10 fill-white text-white" /></button>
+                  </div>
+                  <button onClick={() => setIsLyricsExpanded(!isLyricsExpanded)} className={isLyricsExpanded ? 'text-[#FC3C44]' : 'text-white/50'}>
+                    <Info className="w-5 h-5" />
+                  </button>
+                </div>
+                
+                {/* Volume slider mock */}
+                <div className="flex items-center gap-3 w-full px-2">
+                  <Minimize2 className="w-3 h-3 text-white/50" />
+                  <div className="flex-1 h-1 bg-white/20 rounded-full">
+                    <div className="h-full w-2/3 bg-white/80 rounded-full" />
+                  </div>
+                  <Maximize2 className="w-4 h-4 text-white/50" />
+                </div>
+
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
     </div>
   );
 }
