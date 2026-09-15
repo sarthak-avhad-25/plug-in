@@ -1670,8 +1670,11 @@ useEffect(() => {
                   value={songQuery}
                   onChange={(e) => {
                     setSongQuery(e.target.value);
+                    setHasSearched(false);
                     if (e.target.value.trim().length > 1) {
                        getSearchSuggestions(e.target.value).then(setSongSuggestions);
+                    } else {
+                       setSongSuggestions([]);
                     }
                   }}
                   onKeyDown={(e) => {
@@ -1693,6 +1696,29 @@ useEffect(() => {
                   }}
                   className="w-full bg-[#1C1C1E] rounded-xl py-3 pl-10 pr-4 text-base font-semibold outline-none focus:bg-[#2C2C2E] transition-colors"
                 />
+                {songSuggestions.length > 0 && !hasSearched && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-[#2C2C2E]/95 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden z-50 shadow-2xl max-h-[40vh] overflow-y-auto">
+                    {songSuggestions.map((s, i) => (
+                      <div 
+                        key={i} 
+                        className="px-4 py-3 flex items-center gap-3 border-b border-white/5 last:border-none active:bg-white/10"
+                        onClick={() => {
+                          setSongQuery(s);
+                          setSongSuggestions([]);
+                          setHasSearched(true);
+                          setIsSearching(true);
+                          searchYouTube(s, "any").then(res => {
+                            setSearchResults(res);
+                            setIsSearching(false);
+                          });
+                        }}
+                      >
+                        <Search className="w-4 h-4 text-white/50" />
+                        <span className="text-sm font-medium">{s}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               
               {isSearching ? (
@@ -1823,14 +1849,16 @@ useEffect(() => {
                 </div>
                 
                 {/* Progress Bar */}
-                <div className="flex flex-col gap-2 mb-8">
-                  <div 
-                    className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden"
-                    onClick={(e) => {
+                <div className="flex flex-col gap-2 mb-8 mt-4">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={progress || 0}
+                    onChange={(e) => {
                       if (!currentSong || duration === 0) return;
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const x = e.clientX - rect.left;
-                      const newProgress = (x / rect.width) * 100;
+                      const newProgress = parseFloat(e.target.value);
                       setProgress(newProgress);
                       const newTime = (newProgress / 100) * duration;
                       const player = (window as any).ytPlayer as YouTubePlayer;
@@ -1838,9 +1866,11 @@ useEffect(() => {
                         player.seekTo(newTime, true);
                       }
                     }}
-                  >
-                    <div className="h-full bg-white/80 rounded-full" style={{ width: `${progress}%` }} />
-                  </div>
+                    className="w-full h-1.5 rounded-full appearance-none outline-none bg-white/20 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+                    style={{
+                      background: `linear-gradient(to right, rgba(255,255,255,0.8) ${progress}%, rgba(255,255,255,0.2) ${progress}%)`
+                    }}
+                  />
                   <div className="flex justify-between text-xs text-white/50 font-medium">
                     <span>{Math.floor((progress / 100 * duration) / 60)}:{(Math.floor(progress / 100 * duration) % 60).toString().padStart(2, '0')}</span>
                     <span>-{Math.floor((duration - (progress / 100 * duration)) / 60)}:{(Math.floor(duration - (progress / 100 * duration)) % 60).toString().padStart(2, '0')}</span>
