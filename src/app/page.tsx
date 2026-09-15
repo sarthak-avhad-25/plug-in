@@ -991,7 +991,7 @@ useEffect(() => {
           </div>
 
           {/* Mobile Bottom Sheet */}
-          <div className="md:hidden fixed bottom-0 left-0 right-0 z-[101] bg-[#1a1a1a]/95 backdrop-blur-2xl border-t border-white/20 rounded-t-3xl shadow-[0_-8px_32px_rgba(0,0,0,0.8)] p-6 flex flex-col gap-4 animate-in slide-in-from-bottom-full duration-300">
+          <div className="md:hidden fixed bottom-0 left-0 right-0 z-[101] bg-[#1a1a1a]/95 backdrop-blur-md border-t border-white/20 rounded-t-3xl shadow-[0_-8px_32px_rgba(0,0,0,0.8)] p-6 flex flex-col gap-4 animate-in slide-in-from-bottom-full duration-300">
             <div className="w-12 h-1.5 bg-white/20 rounded-full self-center mb-2" />
             <div className="text-sm font-bold text-white/70 px-2 text-center">Save to Library</div>
             <div className="flex flex-col gap-2 max-h-[50vh] overflow-y-auto scrollbar-hide">
@@ -1494,7 +1494,7 @@ useEffect(() => {
       </div>
 
       {/* RIGHT COLUMN - RESULTS & PLAYER */}
-      <div className="hidden md:flex w-full md:w-[50%] lg:w-[60%] relative bg-white/80 backdrop-blur-3xl border-l border-gray-200 text-[#1d1d1f] overflow-hidden flex-col min-h-[50vh] md:min-h-screen">
+      <div className="hidden md:flex w-full md:w-[50%] lg:w-[60%] relative bg-white/80 backdrop-blur-md border-l border-gray-200 text-[#1d1d1f] overflow-hidden flex-col min-h-[50vh] md:min-h-screen">
         
 
 
@@ -1909,7 +1909,7 @@ useEffect(() => {
                   className="w-full bg-[#1C1C1E] rounded-xl py-3 pl-10 pr-4 text-base font-semibold outline-none focus:bg-[#2C2C2E] transition-colors"
                 />
                 {songSuggestions.length > 0 && !hasSearched && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-[#2C2C2E]/95 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden z-50 shadow-2xl max-h-[40vh] overflow-y-auto">
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-[#2C2C2E]/95 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden z-50 shadow-2xl max-h-[40vh] overflow-y-auto">
                     {songSuggestions.map((s, i) => (
                       <div 
                         key={i} 
@@ -2069,7 +2069,7 @@ useEffect(() => {
 
         {/* Mini Player */}
         {currentSong && (
-          <div className="absolute bottom-[88px] left-2 right-2 bg-[#2C2C2E]/90 backdrop-blur-2xl rounded-xl p-2 flex items-center gap-3 shadow-lg z-40 border border-white/5" onClick={() => setShowMobilePlayer(true)}>
+          <div className="absolute bottom-[88px] left-2 right-2 bg-[#2C2C2E]/90 backdrop-blur-md rounded-xl p-2 flex items-center gap-3 shadow-lg z-40 border border-white/5" onClick={() => setShowMobilePlayer(true)}>
             <img src={currentSong.image} className="w-12 h-12 rounded-lg object-cover shadow-sm" />
             <div className="flex flex-col flex-1 overflow-hidden">
               <span className="text-sm font-semibold truncate">{currentSong.title}</span>
@@ -2087,7 +2087,7 @@ useEffect(() => {
         )}
 
         {/* Bottom Tab Bar */}
-        <div className="absolute bottom-0 left-0 right-0 h-[84px] bg-[#1C1C1E]/80 backdrop-blur-3xl border-t border-white/10 flex justify-around items-start pt-3 pb-8 z-30">
+        <div className="absolute bottom-0 left-0 right-0 h-[84px] bg-[#1C1C1E]/80 backdrop-blur-md border-t border-white/10 flex justify-around items-start pt-3 pb-8 z-30">
           <button aria-label="Listen Now" onClick={() => setMobileTab("home")} className={`flex flex-col items-center gap-1 w-20 ${mobileTab === "home" ? "text-[#fa233b]" : "text-white/50"}`}>
             <Home className={`w-6 h-6 ${mobileTab === "home" ? "fill-[#fa233b]" : ""}`} />
             
@@ -2125,7 +2125,7 @@ useEffect(() => {
               {/* Animated Blurred Background matching current song */}
               <div className="absolute inset-0 z-0">
                 <img src={currentSong.image} className="w-full h-full object-cover opacity-60 blur-3xl scale-125 saturate-150" />
-                <div className="absolute inset-0 bg-black/30 backdrop-blur-3xl" />
+                <div className="absolute inset-0 bg-black/60" />
               </div>
               
               <div className="relative z-10 flex flex-col h-full px-6 pt-4 pb-12 overflow-y-auto scrollbar-hide">
