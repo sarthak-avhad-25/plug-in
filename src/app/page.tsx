@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2, Trash2, Info, Home, Library, Compass, ChevronDown, MoreHorizontal, ListMusic } from "lucide-react";
+import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2, Trash2, Info, Home, Library, Compass, ChevronDown, MoreHorizontal, ListMusic, Quote } from "lucide-react";
 import YouTube, { YouTubePlayer } from "react-youtube";
 import { searchYouTube, getArtistBackground, getSearchSuggestions, getSyncedLyrics, getTrendingWorldwide, getTrendingIndia, getRelatedSongs } from "./actions";
 import type { SyncedLyric } from "./actions";
@@ -1840,11 +1840,78 @@ useEffect(() => {
                   <div className="w-10 h-1.5 bg-white/30 rounded-full cursor-pointer" onClick={() => setShowMobilePlayer(false)} />
                 </div>
                 
-                <div className="w-full aspect-square rounded-xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.5)] mb-8 mt-2 transition-transform duration-500 ease-out">
-                  <img src={currentSong.image} className="w-full h-full object-cover" />
-                </div>
+                {/* Album Art OR Lyrics */}
+                {isLyricsExpanded ? (
+                  <div 
+                    ref={lyricsContainerRef}
+                    onWheel={handleUserInteraction}
+                    onTouchMove={handleUserInteraction}
+                    onMouseDown={handleUserInteraction}
+                    className="flex-1 overflow-y-auto overflow-x-hidden relative scrollbar-hide scroll-smooth mt-2 mb-6 [mask-image:linear-gradient(to_bottom,transparent,black_10%,black_90%,transparent)]"
+                  >
+                    {lyricsLoading ? (
+                       <div className="w-full h-full flex items-center justify-center">
+                         <Loader2 className="w-8 h-8 animate-spin text-white" />
+                       </div>
+                    ) : lyrics.length === 0 ? (
+                       <div className="w-full h-full flex flex-col items-center justify-center opacity-50 text-center px-4">
+                         <Info className="w-12 h-12 mb-4" />
+                         <span className="text-lg font-bold">No Lyrics Available</span>
+                       </div>
+                    ) : (
+                       <div className="flex flex-col gap-6 w-full px-2 py-[40vh]">
+                         {lyrics.map((line, i) => {
+                            const activeIndex = lyrics.reduce((acc, l, idx) => (progress >= l.time ? idx : acc), 0);
+                            const isActive = i === activeIndex;
+                            const isPast = i < activeIndex;
+                            return (
+                              <motion.div 
+                                key={i} 
+                                onClick={() => {
+                                  if (playerRef.current) {
+                                    playerRef.current.seekTo(line.time, true);
+                                    setProgress(line.time);
+                                    isUserScrolling.current = false;
+                                    if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+                                  }
+                                }}
+                                animate={{ 
+                                  opacity: isActive ? 1 : (isPast ? 0.3 : 0.5), 
+                                  scale: isActive ? 1.05 : 1,
+                                  filter: isActive ? 'blur(0px)' : 'blur(1px)'
+                                }}
+                                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                className="cursor-pointer font-bold text-2xl md:text-3xl origin-left leading-tight"
+                              >
+                                {line.words ? line.words.map((w, wIdx) => {
+                                  const isWordActive = isActive && progress >= w.time;
+                                  return (
+                                    <span 
+                                      key={wIdx} 
+                                      className="inline-block mr-2 transition-colors duration-200"
+                                      style={{ color: isWordActive ? '#fff' : (isActive ? 'rgba(255,255,255,0.4)' : 'inherit') }}
+                                    >
+                                      {w.text}
+                                    </span>
+                                  )
+                                }) : (
+                                  <span style={{ color: isActive ? '#fff' : 'inherit' }}>
+                                    {line.text}
+                                  </span>
+                                )}
+                              </motion.div>
+                            )
+                         })}
+                       </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="w-full aspect-square shrink-0 rounded-xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.5)] mb-8 mt-2 transition-all duration-500 ease-out">
+                    <img src={currentSong.image} className="w-full h-full object-cover" />
+                  </div>
+                )}
                 
-                <div className="flex justify-between items-end mb-6">
+                <div className={`flex justify-between items-end mb-6 ${isLyricsExpanded ? 'shrink-0' : ''}`}>
                   <div className="flex flex-col flex-1 overflow-hidden pr-4">
                     <span className="text-2xl font-bold truncate text-white">{currentSong.title}</span>
                     <span className="text-lg text-white/70 truncate">{currentSong.artist}</span>
@@ -1897,12 +1964,12 @@ useEffect(() => {
                     <button onClick={() => playNextSong()}><SkipForward className="w-10 h-10 fill-white text-white" /></button>
                   </div>
                   <button onClick={() => setIsLyricsExpanded(!isLyricsExpanded)} className={isLyricsExpanded ? 'text-[#FC3C44]' : 'text-white/50'}>
-                    <Info className="w-5 h-5" />
+                    <Quote className="w-5 h-5 fill-current" />
                   </button>
                 </div>
                 
                 {/* Volume slider mock */}
-                <div className="flex items-center gap-3 w-full px-2">
+                <div className={`flex items-center gap-3 w-full px-2 ${isLyricsExpanded ? 'hidden' : ''}`}>
                   <Minimize2 className="w-3 h-3 text-white/50" />
                   <div className="flex-1 h-1 bg-white/20 rounded-full">
                     <div className="h-full w-2/3 bg-white/80 rounded-full" />
