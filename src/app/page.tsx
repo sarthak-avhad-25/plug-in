@@ -623,8 +623,8 @@ useEffect(() => {
       playerRef.current.playVideo();
     }
 
-    // Force native audio to start immediately on mobile
-    if (useNativeAudio && audioRef.current) {
+    // Force native audio to start immediately on all devices
+    if (audioRef.current) {
       audioRef.current.src = `/api/audio?v=${song.id}`;
       audioRef.current.load();
       audioRef.current.play().catch((err) => console.log("Native audio autoplay prevented:", err));
@@ -726,8 +726,10 @@ useEffect(() => {
     if (!currentSong) return;
     const audioUrl = `/api/audio?v=${currentSong.id}`;
     if (audioRef.current) {
-      audioRef.current.src = audioUrl;
-      audioRef.current.load();
+      if (!audioRef.current.src.includes(audioUrl)) {
+        audioRef.current.src = audioUrl;
+        audioRef.current.load();
+      }
       // Test if native audio works; if so, mute YouTube
       audioRef.current.oncanplaythrough = () => {
         setUseNativeAudio(true);
