@@ -625,7 +625,7 @@ useEffect(() => {
 
     // Force native audio to start immediately on mobile
     if (useNativeAudio && audioRef.current) {
-      audioRef.current.src = `/api/audio?videoId=${song.id}`;
+      audioRef.current.src = `/api/audio?v=${song.id}`;
       audioRef.current.load();
       audioRef.current.play().catch((err) => console.log("Native audio autoplay prevented:", err));
     }
