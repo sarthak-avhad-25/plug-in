@@ -1819,6 +1819,14 @@ useEffect(() => {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 26, stiffness: 220 }}
+              drag="y"
+              dragConstraints={{ top: 0 }}
+              dragElastic={{ top: 0, bottom: 1 }}
+              onDragEnd={(e, { offset, velocity }) => {
+                if (offset.y > 150 || velocity.y > 500) {
+                  setShowMobilePlayer(false);
+                }
+              }}
               className="fixed inset-0 z-50 flex flex-col bg-black overflow-hidden"
             >
               {/* Animated Blurred Background matching current song */}
