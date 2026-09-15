@@ -32,3 +32,15 @@ body {
   0% { background-position: 200% center; }
   100% { background-position: -200% center; }
 }
+
+@layer components {
+  .btn-base {
+    @apply flex items-center justify-center transition-all duration-300 transform active:scale-95;
+  }
+  .btn-icon {
+    @apply btn-base p-2 rounded-full hover:bg-white/10;
+  }
+  .btn-text {
+    @apply btn-base px-3 py-2 border-2 font-bold text-sm rounded-lg;
+  }
+}
