@@ -595,7 +595,7 @@ useEffect(() => {
 
   const [clickOrigin, setClickOrigin] = useState<{x: number, y: number} | null>(null);
 
-  const playSong = async (song: Song, addToHistory: boolean = true, context: "radio" | "playlist" = "radio", overridePlaylistSongs?: Song[], e?: React.MouseEvent) => {
+  const playSong = (song: Song, addToHistory: boolean = true, context: "radio" | "playlist" = "radio", overridePlaylistSongs?: Song[], e?: React.MouseEvent) => {
     if (e) {
       setClickOrigin({ x: e.clientX, y: e.clientY });
     } else {
@@ -615,6 +615,7 @@ useEffect(() => {
       setPlaybackHistory((prev) => [...prev, currentSong]);
     }
     setCurrentSong(song);
+    setIsPlaying(true);
     
     // Explicitly load and play synchronously to satisfy mobile autoplay policies
     if (playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
@@ -625,7 +626,8 @@ useEffect(() => {
     // Force native audio to start immediately on mobile
     if (useNativeAudio && audioRef.current) {
       audioRef.current.src = `/api/audio?videoId=${song.id}`;
-      audioRef.current.play().catch(() => {});
+      audioRef.current.load();
+      audioRef.current.play().catch((err) => console.log("Native audio autoplay prevented:", err));
     }
     
     setLyrics([]);
@@ -635,9 +637,10 @@ useEffect(() => {
     // Fetch related songs in the background
     getRelatedSongs(song.id).then(setRelatedSongs);
     
-    const fetchedLyrics = await getSyncedLyrics(song.title, song.artist);
-    setLyrics(fetchedLyrics);
-    setLyricsLoading(false);
+    getSyncedLyrics(song.title, song.artist).then(fetchedLyrics => {
+      setLyrics(fetchedLyrics);
+      setLyricsLoading(false);
+    });
   };
 
   const playNextSong = () => {
