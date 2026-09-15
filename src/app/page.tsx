@@ -396,6 +396,10 @@ useEffect(() => {
     } else {
       playerRef.current.setVolume(50);
     }
+    // Stop the dummy video if no song is selected yet
+    if (!currentSong) {
+      playerRef.current.stopVideo();
+    }
   };
 
   const onStateChange = (event: any) => {
@@ -606,6 +610,13 @@ useEffect(() => {
       setPlaybackHistory((prev) => [...prev, currentSong]);
     }
     setCurrentSong(song);
+    
+    // Explicitly load and play synchronously to satisfy mobile autoplay policies
+    if (playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
+      playerRef.current.loadVideoById(song.id);
+      playerRef.current.playVideo();
+    }
+    
     setLyrics([]);
     setLyricsLoading(true);
     lastScrolledIndex.current = -1;
@@ -907,14 +918,12 @@ useEffect(() => {
 
       {/* Hidden YouTube Player */}
       <div className="hidden">
-        {currentSong && (
-          <YouTube
-            videoId={currentSong.id}
-            opts={{ height: "0", width: "0", playerVars: { autoplay: 1, controls: 0 } }}
-            onReady={onReady}
-            onStateChange={onStateChange}
-          />
-        )}
+        <YouTube
+          videoId={currentSong ? currentSong.id : "dQw4w9WgXcQ"}
+          opts={{ height: "0", width: "0", playerVars: { autoplay: 1, controls: 0 } }}
+          onReady={onReady}
+          onStateChange={onStateChange}
+        />
       </div>
       {/* Native audio element for background/lock-screen playback */}
       <audio ref={audioRef} playsInline preload="auto" style={{display:"none"}} />
