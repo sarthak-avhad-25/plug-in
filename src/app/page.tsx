@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2, Trash2, Info, Home, Library, Compass, ChevronDown, MoreHorizontal, ListMusic, Quote } from "lucide-react";
 import YouTube, { YouTubePlayer } from "react-youtube";
 import { searchYouTube, getArtistBackground, getSearchSuggestions, getSyncedLyrics, getTrendingWorldwide, getTrendingIndia, getRelatedSongs } from "./actions";
@@ -63,6 +63,7 @@ const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite }: { song: 
 );
 
 export default function FransHalsMusicApp() {
+  const dragControls = useDragControls();
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -229,6 +230,10 @@ useEffect(() => {
 
   useEffect(() => {
     setIsClient(true);
+    // Auto-enable native audio on mobile to bypass strict iframe autoplay policies
+    if (typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+      setUseNativeAudio(true);
+    }
     const saved = localStorage.getItem("music_profiles");
     if (saved) {
       const parsed = JSON.parse(saved);
@@ -615,6 +620,12 @@ useEffect(() => {
     if (playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
       playerRef.current.loadVideoById(song.id);
       playerRef.current.playVideo();
+    }
+
+    // Force native audio to start immediately on mobile
+    if (useNativeAudio && audioRef.current) {
+      audioRef.current.src = `/api/audio?videoId=${song.id}`;
+      audioRef.current.play().catch(() => {});
     }
     
     setLyrics([]);
@@ -1831,6 +1842,8 @@ useEffect(() => {
               drag="y"
               dragConstraints={{ top: 0 }}
               dragElastic={{ top: 0, bottom: 1 }}
+              dragListener={false}
+              dragControls={dragControls}
               onDragEnd={(e, { offset, velocity }) => {
                 if (offset.y > 150 || velocity.y > 500) {
                   setShowMobilePlayer(false);
@@ -1845,8 +1858,11 @@ useEffect(() => {
               </div>
               
               <div className="relative z-10 flex flex-col h-full px-6 pt-4 pb-12 overflow-y-auto scrollbar-hide">
-                <div className="flex justify-center mb-6">
-                  <div className="w-10 h-1.5 bg-white/30 rounded-full cursor-pointer" onClick={() => setShowMobilePlayer(false)} />
+                <div 
+                  className="flex justify-center mb-6 touch-none"
+                  onPointerDown={(e) => dragControls.start(e)}
+                >
+                  <div className="w-10 h-1.5 bg-white/30 rounded-full cursor-grab active:cursor-grabbing" />
                 </div>
                 
                 {/* Album Art OR Lyrics */}
@@ -1915,8 +1931,11 @@ useEffect(() => {
                     )}
                   </div>
                 ) : (
-                  <div className="w-full aspect-square shrink-0 rounded-xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.5)] mb-8 mt-2 transition-all duration-500 ease-out">
-                    <img src={currentSong.image} className="w-full h-full object-cover" />
+                  <div 
+                    className="w-full aspect-square shrink-0 rounded-xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.5)] mb-8 mt-2 transition-all duration-500 ease-out touch-none cursor-grab active:cursor-grabbing"
+                    onPointerDown={(e) => dragControls.start(e)}
+                  >
+                    <img src={currentSong.image} className="w-full h-full object-cover pointer-events-none" />
                   </div>
                 )}
                 
