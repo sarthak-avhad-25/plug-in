@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     // Pick the best audio-only format
     const format = ytdl.chooseFormat(info.formats, {
       quality: "highestaudio",
-      filter: "audioonly",
+      filter: (f) => f.container === "mp4" && f.hasAudio && !f.hasVideo,
     });
 
     if (!format || !format.url) {
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     const headers = new Headers();
     headers.set(
       "Content-Type",
-      format.mimeType?.split(";")[0] || "audio/webm"
+      format.mimeType?.split(";")[0] || "audio/mp4"
     );
     headers.set("Accept-Ranges", "bytes");
     headers.set("Cache-Control", "public, max-age=3600");
