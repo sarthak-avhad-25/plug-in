@@ -106,6 +106,7 @@ export default function FransHalsMusicApp() {
   // Mobile specific state
   const [mobileTab, setMobileTab] = useState<"home" | "search" | "library">("home");
   const [showMobilePlayer, setShowMobilePlayer] = useState(false);
+  const [useNativeAudio, setUseNativeAudio] = useState(false);
 
   const savePlaylists = (newPlaylists: Playlist[]) => {
     setPlaylists(newPlaylists);
@@ -295,7 +296,7 @@ useEffect(() => {
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
-  const [useNativeAudio, setUseNativeAudio] = useState(false);
+
 
   const lastScrolledIndex = useRef(-1);
   const isUserScrolling = useRef(false);
