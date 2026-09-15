@@ -1977,6 +1977,40 @@ useEffect(() => {
                   <Maximize2 className="w-4 h-4 text-white/50" />
                 </div>
 
+                {/* Mini Lyrics Preview (When not expanded) */}
+                {!isLyricsExpanded && lyrics.length > 0 && (
+                  <div 
+                    onClick={() => setIsLyricsExpanded(true)}
+                    className="mt-8 bg-white/10 rounded-2xl p-4 flex flex-col gap-2 relative overflow-hidden cursor-pointer shadow-lg active:scale-95 transition-transform"
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold uppercase tracking-widest text-white/50">Lyrics</span>
+                      <div className="flex gap-1">
+                         <div className="w-1.5 h-1.5 rounded-full bg-white/30" />
+                         <div className="w-1.5 h-1.5 rounded-full bg-white/30" />
+                         <div className="w-1.5 h-1.5 rounded-full bg-white/30" />
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1 min-h-[48px] justify-center">
+                      {(() => {
+                        const activeIndex = lyrics.reduce((acc, l, idx) => (progress >= l.time ? idx : acc), 0);
+                        const currentLine = lyrics[activeIndex];
+                        const nextLine = lyrics[activeIndex + 1];
+                        return (
+                          <>
+                            <span className="text-white font-bold text-lg truncate">
+                              {currentLine ? currentLine.text : "♪"}
+                            </span>
+                            <span className="text-white/40 font-medium text-sm truncate">
+                              {nextLine ? nextLine.text : ""}
+                            </span>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
+
               </div>
             </motion.div>
           )}
