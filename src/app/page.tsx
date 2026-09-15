@@ -446,8 +446,11 @@ useEffect(() => {
 
 
   const togglePlay = () => {
+    const newIsPlaying = !isPlaying;
+    setIsPlaying(newIsPlaying);
+    
     if (useNativeAudio && audioRef.current) {
-      if (isPlaying) {
+      if (!newIsPlaying) {
         audioRef.current.pause();
         playerRef.current?.pauseVideo();
       } else {
@@ -456,7 +459,7 @@ useEffect(() => {
       }
     } else {
       if (!playerRef.current) return;
-      if (isPlaying) playerRef.current.pauseVideo();
+      if (!newIsPlaying) playerRef.current.pauseVideo();
       else playerRef.current.playVideo();
     }
   };
@@ -1002,7 +1005,21 @@ useEffect(() => {
         />
       </div>
       {/* Native audio element for background/lock-screen playback */}
-      <audio ref={audioRef} playsInline preload="auto" style={{display:"none"}} />
+      <audio 
+        ref={audioRef} 
+        playsInline 
+        preload="auto" 
+        style={{display:"none"}} 
+        onPlay={() => {
+          setIsPlaying(true);
+          playerRef.current?.playVideo();
+        }}
+        onPause={() => {
+          setIsPlaying(false);
+          playerRef.current?.pauseVideo();
+        }}
+        onEnded={() => playNextSong()}
+      />
 
       {/* LEFT COLUMN - SEARCH & UI */}
       <div id="left-column" className="hidden md:flex w-full md:w-[50%] lg:w-[40%] flex-col border-t-4 md:border-t-0 md:border-l-4 border-[#024230] relative z-20 bg-[#111] text-white overflow-visible drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
