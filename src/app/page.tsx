@@ -639,6 +639,8 @@ useEffect(() => {
           setUseNativeAudio(false);
           // Fallback to YouTube
           if (shouldPlayRef.current && playerRef.current) {
+            playerRef.current.unMute?.();
+            playerRef.current.setVolume(100);
             playerRef.current.loadVideoById(song.id);
             playerRef.current.playVideo();
           }
@@ -1010,6 +1012,8 @@ useEffect(() => {
                 console.log("Native audio play failed:", err);
                 setUseNativeAudio(false);
                 if (shouldPlayRef.current && playerRef.current && currentSong) {
+                  playerRef.current.unMute?.();
+                  playerRef.current.setVolume(100);
                   playerRef.current.loadVideoById(currentSong.id);
                   playerRef.current.playVideo();
                 }
@@ -1053,6 +1057,8 @@ useEffect(() => {
         onError={(e) => {
           setUseNativeAudio(false);
           if (shouldPlayRef.current && playerRef.current && currentSong) {
+            playerRef.current.unMute?.();
+            playerRef.current.setVolume(100);
             playerRef.current.loadVideoById(currentSong.id);
             playerRef.current.playVideo();
           }
