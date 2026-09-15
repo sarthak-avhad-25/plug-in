@@ -409,35 +409,28 @@ useEffect(() => {
   };
 
   const onStateChange = (event: any) => {
+    if (useNativeAudio) {
+      if (event.data === 1 && !duration && playerRef.current) {
+        setDuration(playerRef.current.getDuration());
+      }
+      return;
+    }
+
     if (event.data === 1) {
       setIsPlaying(true);
       setDuration(playerRef.current.getDuration());
       if (progressInterval.current) clearInterval(progressInterval.current);
       progressInterval.current = setInterval(() => {
-        if (useNativeAudio && audioRef.current) {
-          setProgress(audioRef.current.currentTime);
-        } else if (playerRef.current) {
+        if (playerRef.current) {
           setProgress(playerRef.current.getCurrentTime());
         }
       }, 150);
-      // Start native audio playback in sync
-      if (useNativeAudio && audioRef.current) {
-        audioRef.current.currentTime = playerRef.current.getCurrentTime();
-        audioRef.current.play().catch(() => {});
-      }
     } else if (event.data === 2) {
       setIsPlaying(false);
       if (progressInterval.current) clearInterval(progressInterval.current);
-      // Pause native audio when YouTube pauses
-      if (useNativeAudio && audioRef.current) {
-        audioRef.current.pause();
-      }
     } else if (event.data === 0) {
       setIsPlaying(false);
       if (progressInterval.current) clearInterval(progressInterval.current);
-      if (useNativeAudio && audioRef.current) {
-        audioRef.current.pause();
-      }
       playNextSong();
     }
   };
@@ -1013,10 +1006,24 @@ useEffect(() => {
         onPlay={() => {
           setIsPlaying(true);
           playerRef.current?.playVideo();
+          if (useNativeAudio) {
+            if (progressInterval.current) clearInterval(progressInterval.current);
+            progressInterval.current = setInterval(() => {
+              if (audioRef.current) setProgress(audioRef.current.currentTime);
+            }, 150);
+          }
         }}
         onPause={() => {
           setIsPlaying(false);
           playerRef.current?.pauseVideo();
+          if (useNativeAudio && progressInterval.current) {
+            clearInterval(progressInterval.current);
+          }
+        }}
+        onLoadedMetadata={(e) => {
+          if (useNativeAudio && e.currentTarget.duration) {
+            setDuration(e.currentTarget.duration);
+          }
         }}
         onEnded={() => playNextSong()}
       />
