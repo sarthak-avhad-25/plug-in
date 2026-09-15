@@ -721,12 +721,7 @@ useEffect(() => {
   // Load native audio stream for background playback support
   useEffect(() => {
     if (!currentSong) return;
-    const audioUrl = `/api/audio?v=${currentSong.id}`;
     if (audioRef.current) {
-      if (!audioRef.current.src.includes(audioUrl)) {
-        audioRef.current.src = audioUrl;
-        audioRef.current.load();
-      }
       // Test if native audio works; if so, mute YouTube
       audioRef.current.oncanplaythrough = () => {
         setUseNativeAudio(true);
