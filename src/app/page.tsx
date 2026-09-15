@@ -1113,15 +1113,6 @@ useEffect(() => {
             setDuration(e.currentTarget.duration);
           }
         }}
-        onError={(e) => {
-          setUseNativeAudio(false);
-          if (shouldPlayRef.current && playerRef.current && currentSong) {
-            playerRef.current.unMute?.();
-            playerRef.current.setVolume(100);
-            playerRef.current.loadVideoById(currentSong.id);
-            playerRef.current.playVideo();
-          }
-        }}
       />
 
       {/* LEFT COLUMN - SEARCH & UI */}
