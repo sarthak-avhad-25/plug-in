@@ -107,6 +107,8 @@ export default function FransHalsMusicApp() {
   const [hasHeadphones, setHasHeadphones] = useState(false);
 
   // Mobile specific state
+  const [mobileTab, setMobileTab] = useState<"home" | "search" | "library">("home");
+  const [showMobilePlayer, setShowMobilePlayer] = useState(false);
   const [useNativeAudio, setUseNativeAudio] = useState(false);
 
   const savePlaylists = (newPlaylists: Playlist[]) => {
@@ -943,7 +945,7 @@ useEffect(() => {
           <div className="fixed inset-0 z-[100]" onClick={() => setPlaylistMenu(null)} />
           {/* Desktop Context Menu */}
           <div 
-            className="flex fixed z-[101] bg-white/90 shadow-xl border-gray-200 text-black backdrop-blur-xl border border-white/20 rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.8)] p-3 flex-col gap-2 min-w-[180px] origin-top"
+            className="hidden md:flex fixed z-[101] bg-white/90 shadow-xl border-gray-200 text-black backdrop-blur-xl border border-white/20 rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.8)] p-3 flex-col gap-2 min-w-[180px] origin-top"
             style={{ 
               top: Math.min(playlistMenu.y, (typeof window !== 'undefined' ? window.innerHeight : 800) - (playlists.length * 40 + 50)), 
               left: Math.max(10, playlistMenu.x - 180) 
@@ -1114,7 +1116,7 @@ useEffect(() => {
       />
 
       {/* LEFT COLUMN - SEARCH & UI */}
-      <div id="left-column" className="flex w-full md:w-[50%] lg:w-[40%] flex-col border-t-4 md:border-t-0 md:border-l-4 border-[#024230] relative z-20 bg-[#111] text-white overflow-visible drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+      <div id="left-column" className="hidden md:flex w-full md:w-[50%] lg:w-[40%] flex-col border-t-4 md:border-t-0 md:border-l-4 border-[#024230] relative z-20 bg-[#111] text-white overflow-visible drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
   <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-pink-500 to-indigo-500 opacity-30 pointer-events-none bg-[length:200%_200%] animate-[gradientMove_15s_linear_infinite]" />
   <style jsx>{`
     @keyframes gradientMove {
@@ -1492,7 +1494,7 @@ useEffect(() => {
       </div>
 
       {/* RIGHT COLUMN - RESULTS & PLAYER */}
-      <div className="flex w-full md:w-[50%] lg:w-[60%] relative bg-white/80 backdrop-blur-3xl border-l border-gray-200 text-[#1d1d1f] overflow-hidden flex-col min-h-[50vh] md:min-h-screen">
+      <div className="hidden md:flex w-full md:w-[50%] lg:w-[60%] relative bg-white/80 backdrop-blur-3xl border-l border-gray-200 text-[#1d1d1f] overflow-hidden flex-col min-h-[50vh] md:min-h-screen">
         
 
 
@@ -1805,6 +1807,502 @@ useEffect(() => {
         </div>
 
 
+      </div>
+
+      {/* MOBILE VIEW (Apple Music Style) */}
+      <div className="flex md:hidden w-full h-[100dvh] flex-col bg-black text-white relative overflow-hidden">
+        {/* Scrollable Main Content */}
+        <div className="flex-1 overflow-y-auto pb-48 px-4 scrollbar-hide pt-12">
+          {mobileTab === "home" && (
+            <div className="flex flex-col gap-8">
+              <h1 className="text-3xl font-bold tracking-tight">Listen Now</h1>
+              
+              {/* Trending Worldwide */}
+              <div className="flex flex-col gap-4">
+                <h2 className="text-xl font-bold">Trending Worldwide</h2>
+                <div className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide snap-x">
+                  {trendingWorldwide.length === 0 ? (
+                     <div className="flex justify-center py-8 w-full"><Loader2 className="w-8 h-8 animate-spin text-[#fa233b]" /></div>
+                  ) : trendingWorldwide.map(song => (
+                    <div key={song.id} className="min-w-[150px] max-w-[150px] flex flex-col gap-2 snap-start relative" onClick={() => playSong(song)}>
+                      <div className="relative w-[150px] h-[150px]">
+                        <img src={song.image} className="w-full h-full rounded-xl object-cover shadow-sm" />
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); togglePlaylistSong(song, e); }}
+                          className="absolute top-2 right-2 p-1.5 bg-black/40 backdrop-blur-md rounded-full text-white z-10"
+                        >
+                          <Heart className={`w-4 h-4 ${playlists.some(p => p.songs.some(s => s.id === song.id)) ? 'fill-[#fa233b] text-[#fa233b]' : 'text-white'}`} />
+                        </button>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold line-clamp-2 leading-tight">{song.title}</span>
+                        <span className="text-xs text-white/60 line-clamp-2 leading-tight">{song.artist}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Trending India */}
+              <div className="flex flex-col gap-4">
+                <h2 className="text-xl font-bold">Trending in India</h2>
+                <div className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide snap-x">
+                  {trendingIndia.length === 0 ? (
+                     <div className="flex justify-center py-8 w-full"><Loader2 className="w-8 h-8 animate-spin text-[#fa233b]" /></div>
+                  ) : trendingIndia.map(song => (
+                    <div key={song.id} className="min-w-[150px] max-w-[150px] flex flex-col gap-2 snap-start relative" onClick={() => playSong(song)}>
+                      <div className="relative w-[150px] h-[150px]">
+                        <img src={song.image} className="w-full h-full rounded-xl object-cover shadow-sm" />
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); togglePlaylistSong(song, e); }}
+                          className="absolute top-2 right-2 p-1.5 bg-black/40 backdrop-blur-md rounded-full text-white z-10"
+                        >
+                          <Heart className={`w-4 h-4 ${playlists.some(p => p.songs.some(s => s.id === song.id)) ? 'fill-[#fa233b] text-[#fa233b]' : 'text-white'}`} />
+                        </button>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold line-clamp-2 leading-tight">{song.title}</span>
+                        <span className="text-xs text-white/60 line-clamp-2 leading-tight">{song.artist}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {mobileTab === "search" && (
+            <div className="flex flex-col gap-6">
+              <h1 className="text-3xl font-bold tracking-tight">Search</h1>
+              <div className="relative">
+                <Search className="absolute left-3 top-3.5 w-5 h-5 text-white/50" />
+                <input 
+                  type="text" 
+                  placeholder="Artists, Songs, Lyrics" 
+                  value={songQuery}
+                  onChange={(e) => {
+                    setSongQuery(e.target.value);
+                    setHasSearched(false);
+                    if (e.target.value.trim().length > 1) {
+                       getSearchSuggestions(e.target.value).then(setSongSuggestions);
+                    } else {
+                       setSongSuggestions([]);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const executeFullSearch = async () => {
+                        if (!songQuery.trim()) return;
+                        setIsSearching(true);
+                        setHasSearched(true);
+                        setSongSuggestions([]);
+                        try {
+                          const results = await searchYouTube(songQuery, "any");
+                          setSearchResults(results);
+                        } finally {
+                          setIsSearching(false);
+                        }
+                      };
+                      executeFullSearch();
+                    }
+                  }}
+                  className="w-full bg-[#1C1C1E] rounded-xl py-3 pl-10 pr-4 text-base font-semibold outline-none focus:bg-[#2C2C2E] transition-colors"
+                />
+                {songSuggestions.length > 0 && !hasSearched && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-[#2C2C2E]/95 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden z-50 shadow-2xl max-h-[40vh] overflow-y-auto">
+                    {songSuggestions.map((s, i) => (
+                      <div 
+                        key={i} 
+                        className="px-4 py-3 flex items-center gap-3 border-b border-white/5 last:border-none active:bg-white/10"
+                        onClick={() => {
+                          setSongQuery(s);
+                          setSongSuggestions([]);
+                          setHasSearched(true);
+                          setIsSearching(true);
+                          searchYouTube(s, "any").then(res => {
+                            setSearchResults(res);
+                            setIsSearching(false);
+                          });
+                        }}
+                      >
+                        <Search className="w-4 h-4 text-white/50" />
+                        <span className="text-sm font-medium">{s}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {isSearching ? (
+                <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-[#fa233b]" /></div>
+              ) : searchResults.length > 0 ? (
+                <div className="flex flex-col gap-2 mt-4">
+                  <h2 className="text-xl font-bold mb-2">Results</h2>
+                  {searchResults.map((song, i) => (
+                    <div key={song.id} className="flex items-center gap-3 active:bg-white/10 p-2 rounded-lg" onClick={(e) => playSong(song, true, "radio", undefined, e)}>
+                      <img src={song.image} className="w-12 h-12 rounded-md object-cover" />
+                      <div className="flex flex-col flex-1 overflow-hidden">
+                        <span className="text-base font-semibold truncate">{song.title}</span>
+                        <span className="text-sm text-white/50 truncate">{song.artist}</span>
+                      </div>
+                      <button onClick={(e) => { e.stopPropagation(); togglePlaylistSong(song, e); }} className="p-2">
+                        <Heart className={`w-5 h-5 ${playlists.some(p => p.songs.some(s => s.id === song.id)) ? 'fill-[#fa233b] text-[#fa233b]' : 'text-white/50'}`} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          )}
+
+          {mobileTab === "library" && (
+            <div className="flex flex-col gap-6">
+              <h1 className="text-3xl font-bold tracking-tight">Library</h1>
+              <div className="flex flex-col bg-[#1C1C1E] rounded-xl overflow-hidden">
+                {playlists.map(p => (
+                  <div key={p.id} className="flex items-center gap-4 p-4 border-b border-white/5 active:bg-white/10" onClick={() => { setActivePlaylistId(p.id); setShowPlaylist(true); }}>
+                    <ListMusic className="w-6 h-6 text-[#fa233b]" />
+                    <div className="flex flex-col">
+                      <span className="text-lg font-semibold">{p.name}</span>
+                      <span className="text-xs text-white/50">{p.songs.length} songs</span>
+                    </div>
+                  </div>
+                ))}
+                <div 
+                  className="flex items-center gap-4 p-4 active:bg-white/10 text-[#fa233b] cursor-pointer" 
+                  onClick={() => {
+                    const name = prompt("Enter library name:");
+                    if (name) {
+                      savePlaylists([...playlists, { id: Date.now().toString(), name, songs: [] }]);
+                    }
+                  }}
+                >
+                  <div className="w-6 h-6 flex items-center justify-center font-bold text-xl">+</div>
+                  <span className="text-lg font-semibold">New Library</span>
+                </div>
+              </div>
+              
+              {showPlaylist && playlists.find(p => p.id === activePlaylistId) && (
+                <div className="flex flex-col gap-2 mt-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-bold">{playlists.find(p => p.id === activePlaylistId)?.name}</h2>
+                    <button 
+                      onClick={() => setShowInlineSearch(!showInlineSearch)}
+                      className="px-3 py-1 bg-[#fa233b] text-white rounded-full text-sm font-bold"
+                    >
+                      {showInlineSearch ? "Close" : "+ Add Songs"}
+                    </button>
+                  </div>
+
+                  {showInlineSearch && (
+                    <div className="flex flex-col gap-4 mb-4">
+                      <form 
+                        onSubmit={async (e) => {
+                          e.preventDefault();
+                          if (!inlineSearchQuery.trim()) return;
+                          setIsInlineSearching(true);
+                          const results = await searchYouTube(inlineSearchQuery, "any");
+                          setInlineSearchResults(results);
+                          setIsInlineSearching(false);
+                        }}
+                      >
+                        <input
+                          type="text"
+                          placeholder="Search for songs to add..."
+                          value={inlineSearchQuery}
+                          onChange={(e) => setInlineSearchQuery(e.target.value)}
+                          className="w-full bg-[#1C1C1E] text-white px-4 py-3 rounded-xl outline-none"
+                        />
+                      </form>
+
+                      {isInlineSearching && (
+                        <div className="flex justify-center py-4">
+                          <Loader2 className="w-8 h-8 animate-spin opacity-50 text-white" />
+                        </div>
+                      )}
+
+                      {inlineSearchResults.length > 0 && !isInlineSearching && (
+                        <div className="flex flex-col gap-2 max-h-[40vh] overflow-y-auto">
+                           {inlineSearchResults.map((song) => {
+                             const alreadyInPlaylist = playlists.find(p => p.id === activePlaylistId)?.songs.some(s => s.id === song.id);
+                             return (
+                               <div key={song.id} className="flex items-center gap-3 bg-[#1C1C1E] p-2 rounded-lg">
+                                 <img src={song.image} className="w-12 h-12 rounded-md object-cover" />
+                                 <div className="flex flex-col flex-1 overflow-hidden">
+                                   <span className="text-sm font-semibold truncate">{song.title}</span>
+                                   <span className="text-xs text-white/50 truncate">{song.artist}</span>
+                                 </div>
+                                 <button 
+                                   onClick={() => {
+                                     if (alreadyInPlaylist) return;
+                                     savePlaylists(playlists.map(p => p.id === activePlaylistId ? { ...p, songs: [...p.songs, song] } : p));
+                                   }}
+                                   className={`p-2 rounded-full shrink-0 ${alreadyInPlaylist ? 'bg-[#fa233b]/20 text-[#fa233b]' : 'bg-white/10 text-white hover:bg-[#fa233b]'}`}
+                                 >
+                                   {alreadyInPlaylist ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                                 </button>
+                               </div>
+                             );
+                           })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {playlists.find(p => p.id === activePlaylistId)?.songs.map((song, i) => (
+                    <div key={song.id} className="flex items-center gap-3 active:bg-white/10 p-2 rounded-lg" onClick={(e) => playSong(song, true, "playlist", undefined, e)}>
+                      <img src={song.image} className="w-12 h-12 rounded-md object-cover" />
+                      <div className="flex flex-col flex-1 overflow-hidden">
+                        <span className="text-base font-semibold truncate">{song.title}</span>
+                        <span className="text-sm text-white/50 truncate">{song.artist}</span>
+                      </div>
+                      <button onClick={(e) => { e.stopPropagation(); togglePlaylistSong(song, e); }} className="p-2">
+                        <Heart className={`w-5 h-5 ${playlists.some(p => p.songs.some(s => s.id === song.id)) ? 'fill-[#fa233b] text-[#fa233b]' : 'text-white/50'}`} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Mini Player */}
+        {currentSong && (
+          <div className="absolute bottom-[88px] left-2 right-2 bg-[#2C2C2E]/90 backdrop-blur-2xl rounded-xl p-2 flex items-center gap-3 shadow-lg z-40 border border-white/5" onClick={() => setShowMobilePlayer(true)}>
+            <img src={currentSong.image} className="w-12 h-12 rounded-lg object-cover shadow-sm" />
+            <div className="flex flex-col flex-1 overflow-hidden">
+              <span className="text-sm font-semibold truncate">{currentSong.title}</span>
+              <span className="text-xs text-white/60 truncate">{currentSong.artist}</span>
+            </div>
+            <div className="flex items-center gap-4 pr-2" onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => togglePlay()}>
+                {isPlaying ? <Pause className="w-6 h-6 fill-white text-white" /> : <Play className="w-6 h-6 fill-white text-white" />}
+              </button>
+              <button onClick={() => playNextSong()}>
+                <SkipForward className="w-6 h-6 fill-white text-white" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Bottom Tab Bar */}
+        <div className="absolute bottom-0 left-0 right-0 h-[84px] bg-[#1C1C1E]/80 backdrop-blur-3xl border-t border-white/10 flex justify-around items-start pt-3 pb-8 z-30">
+          <button aria-label="Listen Now" onClick={() => setMobileTab("home")} className={`flex flex-col items-center gap-1 w-20 ${mobileTab === "home" ? "text-[#fa233b]" : "text-white/50"}`}>
+            <Home className={`w-6 h-6 ${mobileTab === "home" ? "fill-[#fa233b]" : ""}`} />
+            
+          </button>
+          <button aria-label="Search" onClick={() => setMobileTab("search")} className={`flex flex-col items-center gap-1 w-20 ${mobileTab === "search" ? "text-[#fa233b]" : "text-white/50"}`}>
+            <Search className="w-6 h-6" />
+            
+          </button>
+          <button aria-label="Library" onClick={() => setMobileTab("library")} className={`flex flex-col items-center gap-1 w-20 ${mobileTab === "library" ? "text-[#fa233b]" : "text-white/50"}`}>
+            <ListMusic className={`w-6 h-6 ${mobileTab === "library" ? "fill-[#fa233b]" : ""}`} />
+            
+          </button>
+        </div>
+
+        {/* Full Screen Player Modal */}
+        <AnimatePresence>
+          {showMobilePlayer && currentSong && (
+            <motion.div 
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 26, stiffness: 220 }}
+              drag="y"
+              dragConstraints={{ top: 0 }}
+              dragElastic={{ top: 0, bottom: 1 }}
+              dragListener={false}
+              dragControls={dragControls}
+              onDragEnd={(e, { offset, velocity }) => {
+                if (offset.y > 150 || velocity.y > 500) {
+                  setShowMobilePlayer(false);
+                }
+              }}
+              className="fixed inset-0 z-50 flex flex-col bg-black overflow-hidden"
+            >
+              {/* Animated Blurred Background matching current song */}
+              <div className="absolute inset-0 z-0">
+                <img src={currentSong.image} className="w-full h-full object-cover opacity-60 blur-3xl scale-125 saturate-150" />
+                <div className="absolute inset-0 bg-black/30 backdrop-blur-3xl" />
+              </div>
+              
+              <div className="relative z-10 flex flex-col h-full px-6 pt-4 pb-12 overflow-y-auto scrollbar-hide">
+                <div 
+                  className="flex justify-center mb-6 touch-none"
+                  onPointerDown={(e) => dragControls.start(e)}
+                >
+                  <div className="w-10 h-1.5 bg-white/30 rounded-full cursor-grab active:cursor-grabbing" />
+                </div>
+                
+                {/* Album Art OR Lyrics */}
+                {isLyricsExpanded ? (
+                  <div 
+                    ref={lyricsContainerRef}
+                    onWheel={handleUserInteraction}
+                    onTouchMove={handleUserInteraction}
+                    onMouseDown={handleUserInteraction}
+                    className="flex-1 overflow-y-auto overflow-x-hidden relative scrollbar-hide scroll-smooth mt-2 mb-6 [mask-image:linear-gradient(to_bottom,transparent,black_10%,black_90%,transparent)]"
+                  >
+                    {lyricsLoading ? (
+                       <div className="w-full h-full flex items-center justify-center">
+                         <Loader2 className="w-8 h-8 animate-spin text-white" />
+                       </div>
+                    ) : lyrics.length === 0 ? (
+                       <div className="w-full h-full flex flex-col items-center justify-center opacity-50 text-center px-4">
+                         <Info className="w-12 h-12 mb-4" />
+                         <span className="text-lg font-bold">No Lyrics Available</span>
+                       </div>
+                    ) : (
+                       <div className="flex flex-col gap-6 w-full px-2 py-[40vh]">
+                         {lyrics.map((line, i) => {
+                            const activeIndex = lyrics.reduce((acc, l, idx) => (progress >= l.time ? idx : acc), 0);
+                            const isActive = i === activeIndex;
+                            const isPast = i < activeIndex;
+                            return (
+                              <motion.div 
+                                key={i} 
+                                onClick={() => {
+                                  if (playerRef.current) {
+                                    playerRef.current.seekTo(line.time, true);
+                                    setProgress(line.time);
+                                    isUserScrolling.current = false;
+                                    if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+                                  }
+                                }}
+                                animate={{ 
+                                  opacity: isActive ? 1 : (isPast ? 0.3 : 0.5), 
+                                  scale: isActive ? 1.05 : 1,
+                                  filter: isActive ? 'blur(0px)' : 'blur(1px)'
+                                }}
+                                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                className="cursor-pointer font-bold text-2xl md:text-3xl origin-left leading-tight"
+                              >
+                                {line.words ? line.words.map((w, wIdx) => {
+                                  const isWordActive = isActive && progress >= w.time;
+                                  return (
+                                    <span 
+                                      key={wIdx} 
+                                      className="inline-block mr-2 transition-colors duration-200"
+                                      style={{ color: isWordActive ? '#fff' : (isActive ? 'rgba(255,255,255,0.4)' : 'inherit') }}
+                                    >
+                                      {w.text}
+                                    </span>
+                                  )
+                                }) : (
+                                  <span style={{ color: isActive ? '#fff' : 'inherit' }}>
+                                    {line.text}
+                                  </span>
+                                )}
+                              </motion.div>
+                            )
+                         })}
+                       </div>
+                    )}
+                  </div>
+                ) : (
+                  <div 
+                    className="w-full aspect-square shrink-0 rounded-xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.5)] mb-8 mt-2 transition-all duration-500 ease-out touch-none cursor-grab active:cursor-grabbing"
+                    onPointerDown={(e) => dragControls.start(e)}
+                  >
+                    <img src={currentSong.image} className="w-full h-full object-cover pointer-events-none" />
+                  </div>
+                )}
+                
+                <div className={`flex justify-between items-end mb-6 ${isLyricsExpanded ? 'shrink-0' : ''}`}>
+                  <div className="flex flex-col flex-1 overflow-hidden pr-4">
+                    <span className="text-2xl font-bold truncate text-white">{currentSong.title}</span>
+                    <span className="text-lg text-white/70 truncate">{currentSong.artist}</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                     <button onClick={(e) => togglePlaylistSong(currentSong, e)}>
+                       <Heart className={`w-7 h-7 ${playlists.some(p => p.songs.some(s => s.id === currentSong.id)) ? 'fill-[#fa233b] text-[#fa233b]' : 'text-white'}`} />
+                     </button>
+                  </div>
+                </div>
+                
+                {/* Progress Bar */}
+                <div className="flex flex-col gap-2 mb-8 mt-4">
+                  <input
+                    type="range"
+                    min="0"
+                    max={duration || 100}
+                    step="0.01"
+                    value={progress || 0}
+                    onChange={(e) => {
+                      if (!currentSong || duration === 0) return;
+                      const newTime = parseFloat(e.target.value);
+                      setProgress(newTime);
+                      if (useNativeAudio && audioRef.current) {
+                        audioRef.current.currentTime = newTime;
+                      }
+                      if (playerRef.current) {
+                        playerRef.current.seekTo(newTime, true);
+                      }
+                    }}
+                    className="w-full h-1.5 rounded-full appearance-none outline-none bg-white/20 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+                    style={{
+                      background: `linear-gradient(to right, rgba(255,255,255,0.8) ${duration ? (progress / duration) * 100 : 0}%, rgba(255,255,255,0.2) ${duration ? (progress / duration) * 100 : 0}%)`
+                    }}
+                  />
+                  <div className="flex justify-between text-xs text-white/50 font-medium">
+                    <span>{Math.floor(progress / 60)}:{(Math.floor(progress % 60)).toString().padStart(2, '0')}</span>
+                    <span>-{Math.floor((duration - progress) / 60)}:{(Math.floor((duration - progress) % 60)).toString().padStart(2, '0')}</span>
+                  </div>
+                </div>
+                
+                {/* Controls */}
+                <div className="flex justify-between items-center px-2 mb-4">
+                  <button className="text-white/50"><ListMusic className="w-5 h-5" /></button>
+                  <div className="flex items-center gap-8">
+                    <button onClick={() => playPreviousSong()}><SkipBack className="w-10 h-10 fill-white text-white" /></button>
+                    <button onClick={() => togglePlay()}>
+                      {isPlaying ? <Pause className="w-14 h-14 fill-white text-white" /> : <Play className="w-14 h-14 fill-white text-white ml-2" />}
+                    </button>
+                    <button onClick={() => playNextSong()}><SkipForward className="w-10 h-10 fill-white text-white" /></button>
+                  </div>
+                  <button onClick={() => setIsLyricsExpanded(!isLyricsExpanded)} className={isLyricsExpanded ? 'text-[#fa233b]' : 'text-white/50'}>
+                    <Quote className="w-5 h-5 fill-current" />
+                  </button>
+                </div>
+
+                {/* Mini Lyrics Preview (When not expanded) */}
+                {!isLyricsExpanded && lyrics.length > 0 && (
+                  <div 
+                    onClick={() => setIsLyricsExpanded(true)}
+                    className="mt-2 bg-[#2C2C2E]/60 backdrop-blur-md rounded-2xl p-4 flex flex-col gap-1 relative cursor-pointer shadow-lg active:scale-95 transition-transform"
+                  >
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-bold  tracking-widest text-white/70">Lyrics</span>
+                      <div className="bg-black/20 p-1.5 rounded-full">
+                         <Maximize2 className="w-3 h-3 text-white/70" />
+                      </div>
+                    </div>
+                    <div className="flex flex-col min-h-[60px] justify-start mask-image:linear-gradient(to_bottom,black_60%,transparent)]">
+                      {(() => {
+                        const activeIndex = lyrics.reduce((acc, l, idx) => (progress >= l.time ? idx : acc), 0);
+                        const currentLine = lyrics[activeIndex];
+                        const nextLine = lyrics[activeIndex + 1];
+                        return (
+                          <>
+                            <span className="text-white font-bold text-lg leading-tight line-clamp-2">
+                              {currentLine ? currentLine.text : "♪"}
+                            </span>
+                            <span className="text-white/50 font-semibold text-base leading-tight truncate mt-1">
+                              {nextLine ? nextLine.text : ""}
+                            </span>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
     </div>
