@@ -1844,7 +1844,7 @@ useEffect(() => {
                 <div className="absolute inset-0 bg-black/30 backdrop-blur-3xl" />
               </div>
               
-              <div className="relative z-10 flex flex-col h-full px-6 pt-4 pb-12">
+              <div className="relative z-10 flex flex-col h-full px-6 pt-4 pb-12 overflow-y-auto scrollbar-hide">
                 <div className="flex justify-center mb-6">
                   <div className="w-10 h-1.5 bg-white/30 rounded-full cursor-pointer" onClick={() => setShowMobilePlayer(false)} />
                 </div>
@@ -1963,7 +1963,7 @@ useEffect(() => {
                 </div>
                 
                 {/* Controls */}
-                <div className="flex justify-between items-center px-2 mb-8">
+                <div className="flex justify-between items-center px-2 mb-4">
                   <button className="text-white/50"><ListMusic className="w-5 h-5" /></button>
                   <div className="flex items-center gap-8">
                     <button onClick={() => playPreviousSong()}><SkipBack className="w-10 h-10 fill-white text-white" /></button>
@@ -1976,41 +1976,30 @@ useEffect(() => {
                     <Quote className="w-5 h-5 fill-current" />
                   </button>
                 </div>
-                
-                {/* Volume slider mock */}
-                <div className={`flex items-center gap-3 w-full px-2 ${isLyricsExpanded ? 'hidden' : ''}`}>
-                  <Minimize2 className="w-3 h-3 text-white/50" />
-                  <div className="flex-1 h-1 bg-white/20 rounded-full">
-                    <div className="h-full w-2/3 bg-white/80 rounded-full" />
-                  </div>
-                  <Maximize2 className="w-4 h-4 text-white/50" />
-                </div>
 
                 {/* Mini Lyrics Preview (When not expanded) */}
                 {!isLyricsExpanded && lyrics.length > 0 && (
                   <div 
                     onClick={() => setIsLyricsExpanded(true)}
-                    className="mt-8 bg-white/10 rounded-2xl p-4 flex flex-col gap-2 relative overflow-hidden cursor-pointer shadow-lg active:scale-95 transition-transform"
+                    className="mt-2 bg-[#2C2C2E]/60 backdrop-blur-md rounded-2xl p-4 flex flex-col gap-1 relative cursor-pointer shadow-lg active:scale-95 transition-transform"
                   >
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold uppercase tracking-widest text-white/50">Lyrics</span>
-                      <div className="flex gap-1">
-                         <div className="w-1.5 h-1.5 rounded-full bg-white/30" />
-                         <div className="w-1.5 h-1.5 rounded-full bg-white/30" />
-                         <div className="w-1.5 h-1.5 rounded-full bg-white/30" />
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-bold uppercase tracking-widest text-white/70">Lyrics</span>
+                      <div className="bg-black/20 p-1.5 rounded-full">
+                         <Maximize2 className="w-3 h-3 text-white/70" />
                       </div>
                     </div>
-                    <div className="flex flex-col gap-1 min-h-[48px] justify-center">
+                    <div className="flex flex-col min-h-[60px] justify-start mask-image:linear-gradient(to_bottom,black_60%,transparent)]">
                       {(() => {
                         const activeIndex = lyrics.reduce((acc, l, idx) => (progress >= l.time ? idx : acc), 0);
                         const currentLine = lyrics[activeIndex];
                         const nextLine = lyrics[activeIndex + 1];
                         return (
                           <>
-                            <span className="text-white font-bold text-lg truncate">
+                            <span className="text-white font-bold text-lg leading-tight line-clamp-2">
                               {currentLine ? currentLine.text : "♪"}
                             </span>
-                            <span className="text-white/40 font-medium text-sm truncate">
+                            <span className="text-white/50 font-semibold text-base leading-tight truncate mt-1">
                               {nextLine ? nextLine.text : ""}
                             </span>
                           </>
