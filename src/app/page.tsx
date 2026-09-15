@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
-import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2, Trash2, Info, Home, Library, Compass, ChevronDown, MoreHorizontal, ListMusic, Quote } from "lucide-react";
+import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2, Trash2, Info, Home, Library, Compass, ChevronDown, MoreHorizontal, ListMusic, Quote, Check, Plus } from "lucide-react";
 import YouTube, { YouTubePlayer } from "react-youtube";
 import { searchYouTube, getArtistBackground, getSearchSuggestions, getSyncedLyrics, getTrendingWorldwide, getTrendingIndia, getRelatedSongs } from "./actions";
 import type { SyncedLyric } from "./actions";
@@ -928,6 +928,20 @@ useEffect(() => {
                 </button>
               );
             })}
+            <button
+              onClick={() => {
+                const name = prompt("Enter new playlist name:");
+                if (name) {
+                  const newPl = { id: Date.now().toString(), name, songs: [playlistMenu.song] };
+                  savePlaylists([...playlists, newPl]);
+                  setPlaylistMenu(null);
+                }
+              }}
+              className="flex items-center justify-between px-3 py-2 text-[#FF3366] hover:bg-[#FF3366]/10 rounded-xl text-sm font-bold transition-all hover:scale-105 active:scale-95 border-t border-white/5 mt-1 pt-3"
+            >
+              <span className="truncate pr-4">New Playlist</span>
+              <Plus className="w-4 h-4 shrink-0" />
+            </button>
           </div>
 
           {/* Mobile Bottom Sheet */}
@@ -958,6 +972,20 @@ useEffect(() => {
                 );
               })}
             </div>
+            <button
+              onClick={() => {
+                const name = prompt("Enter new library name:");
+                if (name) {
+                  const newPl = { id: Date.now().toString(), name, songs: [playlistMenu.song] };
+                  savePlaylists([...playlists, newPl]);
+                  setPlaylistMenu(null);
+                }
+              }}
+              className="flex items-center justify-center gap-2 p-4 mt-2 bg-[#FF3366]/10 active:bg-[#FF3366]/20 border border-[#FF3366]/30 rounded-2xl text-base font-bold text-[#FF3366] transition-all"
+            >
+              <Plus className="w-5 h-5 shrink-0" />
+              <span>New Library</span>
+            </button>
           </div>
         </>
       )}
@@ -1844,7 +1872,71 @@ useEffect(() => {
               
               {showPlaylist && playlists.find(p => p.id === activePlaylistId) && (
                 <div className="flex flex-col gap-2 mt-4">
-                  <h2 className="text-xl font-bold mb-2">{playlists.find(p => p.id === activePlaylistId)?.name}</h2>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-bold">{playlists.find(p => p.id === activePlaylistId)?.name}</h2>
+                    <button 
+                      onClick={() => setShowInlineSearch(!showInlineSearch)}
+                      className="px-3 py-1 bg-[#FF3366] text-white rounded-full text-sm font-bold"
+                    >
+                      {showInlineSearch ? "Close" : "+ Add Songs"}
+                    </button>
+                  </div>
+
+                  {showInlineSearch && (
+                    <div className="flex flex-col gap-4 mb-4">
+                      <form 
+                        onSubmit={async (e) => {
+                          e.preventDefault();
+                          if (!inlineSearchQuery.trim()) return;
+                          setIsInlineSearching(true);
+                          const results = await searchYouTube(inlineSearchQuery, "any");
+                          setInlineSearchResults(results);
+                          setIsInlineSearching(false);
+                        }}
+                      >
+                        <input
+                          type="text"
+                          placeholder="Search for songs to add..."
+                          value={inlineSearchQuery}
+                          onChange={(e) => setInlineSearchQuery(e.target.value)}
+                          className="w-full bg-[#1C1C1E] text-white px-4 py-3 rounded-xl outline-none"
+                        />
+                      </form>
+
+                      {isInlineSearching && (
+                        <div className="flex justify-center py-4">
+                          <Loader2 className="w-8 h-8 animate-spin opacity-50 text-white" />
+                        </div>
+                      )}
+
+                      {inlineSearchResults.length > 0 && !isInlineSearching && (
+                        <div className="flex flex-col gap-2 max-h-[40vh] overflow-y-auto">
+                           {inlineSearchResults.map((song) => {
+                             const alreadyInPlaylist = playlists.find(p => p.id === activePlaylistId)?.songs.some(s => s.id === song.id);
+                             return (
+                               <div key={song.id} className="flex items-center gap-3 bg-[#1C1C1E] p-2 rounded-lg">
+                                 <img src={song.image} className="w-12 h-12 rounded-md object-cover" />
+                                 <div className="flex flex-col flex-1 overflow-hidden">
+                                   <span className="text-sm font-semibold truncate">{song.title}</span>
+                                   <span className="text-xs text-white/50 truncate">{song.artist}</span>
+                                 </div>
+                                 <button 
+                                   onClick={() => {
+                                     if (alreadyInPlaylist) return;
+                                     savePlaylists(playlists.map(p => p.id === activePlaylistId ? { ...p, songs: [...p.songs, song] } : p));
+                                   }}
+                                   className={`p-2 rounded-full shrink-0 ${alreadyInPlaylist ? 'bg-[#FF3366]/20 text-[#FF3366]' : 'bg-white/10 text-white hover:bg-[#FF3366]'}`}
+                                 >
+                                   {alreadyInPlaylist ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                                 </button>
+                               </div>
+                             );
+                           })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {playlists.find(p => p.id === activePlaylistId)?.songs.map((song, i) => (
                     <div key={song.id} className="flex items-center gap-3 active:bg-white/10 p-2 rounded-lg" onClick={(e) => playSong(song, true, "playlist", undefined, e)}>
                       <img src={song.image} className="w-12 h-12 rounded-md object-cover" />
