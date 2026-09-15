@@ -1853,27 +1853,28 @@ useEffect(() => {
                   <input
                     type="range"
                     min="0"
-                    max="100"
+                    max={duration || 100}
                     step="0.01"
                     value={progress || 0}
                     onChange={(e) => {
                       if (!currentSong || duration === 0) return;
-                      const newProgress = parseFloat(e.target.value);
-                      setProgress(newProgress);
-                      const newTime = (newProgress / 100) * duration;
-                      const player = (window as any).ytPlayer as YouTubePlayer;
-                      if (player && typeof player.seekTo === 'function') {
-                        player.seekTo(newTime, true);
+                      const newTime = parseFloat(e.target.value);
+                      setProgress(newTime);
+                      if (useNativeAudio && audioRef.current) {
+                        audioRef.current.currentTime = newTime;
+                      }
+                      if (playerRef.current) {
+                        playerRef.current.seekTo(newTime, true);
                       }
                     }}
                     className="w-full h-1.5 rounded-full appearance-none outline-none bg-white/20 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
                     style={{
-                      background: `linear-gradient(to right, rgba(255,255,255,0.8) ${progress}%, rgba(255,255,255,0.2) ${progress}%)`
+                      background: `linear-gradient(to right, rgba(255,255,255,0.8) ${duration ? (progress / duration) * 100 : 0}%, rgba(255,255,255,0.2) ${duration ? (progress / duration) * 100 : 0}%)`
                     }}
                   />
                   <div className="flex justify-between text-xs text-white/50 font-medium">
-                    <span>{Math.floor((progress / 100 * duration) / 60)}:{(Math.floor(progress / 100 * duration) % 60).toString().padStart(2, '0')}</span>
-                    <span>-{Math.floor((duration - (progress / 100 * duration)) / 60)}:{(Math.floor(duration - (progress / 100 * duration)) % 60).toString().padStart(2, '0')}</span>
+                    <span>{Math.floor(progress / 60)}:{(Math.floor(progress % 60)).toString().padStart(2, '0')}</span>
+                    <span>-{Math.floor((duration - progress) / 60)}:{(Math.floor((duration - progress) % 60)).toString().padStart(2, '0')}</span>
                   </div>
                 </div>
                 
