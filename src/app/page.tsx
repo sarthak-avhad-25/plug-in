@@ -897,8 +897,9 @@ useEffect(() => {
       {playlistMenu && (
         <>
           <div className="fixed inset-0 z-[100]" onClick={() => setPlaylistMenu(null)} />
+          {/* Desktop Context Menu */}
           <div 
-            className="fixed z-[101] bg-[#1a1a1a]/90 backdrop-blur-xl border border-white/20 rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.8)] p-3 flex flex-col gap-2 min-w-[180px] origin-top"
+            className="hidden md:flex fixed z-[101] bg-[#1a1a1a]/90 backdrop-blur-xl border border-white/20 rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.8)] p-3 flex-col gap-2 min-w-[180px] origin-top"
             style={{ 
               top: Math.min(playlistMenu.y, (typeof window !== 'undefined' ? window.innerHeight : 800) - (playlists.length * 40 + 50)), 
               left: Math.max(10, playlistMenu.x - 180) 
@@ -927,6 +928,36 @@ useEffect(() => {
                 </button>
               );
             })}
+          </div>
+
+          {/* Mobile Bottom Sheet */}
+          <div className="md:hidden fixed bottom-0 left-0 right-0 z-[101] bg-[#1a1a1a]/95 backdrop-blur-2xl border-t border-white/20 rounded-t-3xl shadow-[0_-8px_32px_rgba(0,0,0,0.8)] p-6 flex flex-col gap-4 animate-in slide-in-from-bottom-full duration-300">
+            <div className="w-12 h-1.5 bg-white/20 rounded-full self-center mb-2" />
+            <div className="text-sm font-bold text-white/70 px-2 text-center">Save to Library</div>
+            <div className="flex flex-col gap-2 max-h-[50vh] overflow-y-auto scrollbar-hide">
+              {playlists.map(p => {
+                const hasSong = p.songs.some(s => s.id === playlistMenu.song.id);
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      const newPlaylists = playlists.map(pl => {
+                        if (pl.id === p.id) {
+                          return { ...pl, songs: hasSong ? pl.songs.filter(s => s.id !== playlistMenu.song.id) : [...pl.songs, playlistMenu.song] };
+                        }
+                        return pl;
+                      });
+                      savePlaylists(newPlaylists);
+                      setPlaylistMenu(null);
+                    }}
+                    className="flex items-center justify-between p-4 bg-white/5 active:bg-white/10 rounded-2xl text-base font-semibold text-white transition-all"
+                  >
+                    <span className="truncate pr-4">{p.name}</span>
+                    {hasSong ? <Heart className="w-6 h-6 shrink-0 fill-[#FC3C44] text-[#FC3C44]" /> : <Heart className="w-6 h-6 shrink-0 text-white/30" />}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </>
       )}
@@ -1653,8 +1684,16 @@ useEffect(() => {
                   {trendingWorldwide.length === 0 ? (
                      <div className="flex justify-center py-8 w-full"><Loader2 className="w-8 h-8 animate-spin text-[#FC3C44]" /></div>
                   ) : trendingWorldwide.map(song => (
-                    <div key={song.id} className="min-w-[150px] max-w-[150px] flex flex-col gap-2 snap-start" onClick={() => playSong(song)}>
-                      <img src={song.image} className="w-[150px] h-[150px] rounded-xl object-cover shadow-sm" />
+                    <div key={song.id} className="min-w-[150px] max-w-[150px] flex flex-col gap-2 snap-start relative" onClick={() => playSong(song)}>
+                      <div className="relative w-[150px] h-[150px]">
+                        <img src={song.image} className="w-full h-full rounded-xl object-cover shadow-sm" />
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); togglePlaylistSong(song, e); }}
+                          className="absolute top-2 right-2 p-1.5 bg-black/40 backdrop-blur-md rounded-full text-white z-10"
+                        >
+                          <Heart className={`w-4 h-4 ${playlists.some(p => p.songs.some(s => s.id === song.id)) ? 'fill-[#FC3C44] text-[#FC3C44]' : 'text-white'}`} />
+                        </button>
+                      </div>
                       <div className="flex flex-col">
                         <span className="text-sm font-semibold truncate">{song.title}</span>
                         <span className="text-xs text-white/60 truncate">{song.artist}</span>
@@ -1671,8 +1710,16 @@ useEffect(() => {
                   {trendingIndia.length === 0 ? (
                      <div className="flex justify-center py-8 w-full"><Loader2 className="w-8 h-8 animate-spin text-[#FC3C44]" /></div>
                   ) : trendingIndia.map(song => (
-                    <div key={song.id} className="min-w-[150px] max-w-[150px] flex flex-col gap-2 snap-start" onClick={() => playSong(song)}>
-                      <img src={song.image} className="w-[150px] h-[150px] rounded-xl object-cover shadow-sm" />
+                    <div key={song.id} className="min-w-[150px] max-w-[150px] flex flex-col gap-2 snap-start relative" onClick={() => playSong(song)}>
+                      <div className="relative w-[150px] h-[150px]">
+                        <img src={song.image} className="w-full h-full rounded-xl object-cover shadow-sm" />
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); togglePlaylistSong(song, e); }}
+                          className="absolute top-2 right-2 p-1.5 bg-black/40 backdrop-blur-md rounded-full text-white z-10"
+                        >
+                          <Heart className={`w-4 h-4 ${playlists.some(p => p.songs.some(s => s.id === song.id)) ? 'fill-[#FC3C44] text-[#FC3C44]' : 'text-white'}`} />
+                        </button>
+                      </div>
                       <div className="flex flex-col">
                         <span className="text-sm font-semibold truncate">{song.title}</span>
                         <span className="text-xs text-white/60 truncate">{song.artist}</span>
@@ -1781,6 +1828,18 @@ useEffect(() => {
                     </div>
                   </div>
                 ))}
+                <div 
+                  className="flex items-center gap-4 p-4 active:bg-white/10 text-[#FF3366] cursor-pointer" 
+                  onClick={() => {
+                    const name = prompt("Enter library name:");
+                    if (name) {
+                      savePlaylists([...playlists, { id: Date.now().toString(), name, songs: [] }]);
+                    }
+                  }}
+                >
+                  <div className="w-6 h-6 flex items-center justify-center font-bold text-xl">+</div>
+                  <span className="text-lg font-semibold">New Library</span>
+                </div>
               </div>
               
               {showPlaylist && playlists.find(p => p.id === activePlaylistId) && (
@@ -1793,6 +1852,9 @@ useEffect(() => {
                         <span className="text-base font-semibold truncate">{song.title}</span>
                         <span className="text-sm text-white/50 truncate">{song.artist}</span>
                       </div>
+                      <button onClick={(e) => { e.stopPropagation(); togglePlaylistSong(song, e); }} className="p-2">
+                        <Heart className={`w-5 h-5 ${playlists.some(p => p.songs.some(s => s.id === song.id)) ? 'fill-[#FC3C44] text-[#FC3C44]' : 'text-white/50'}`} />
+                      </button>
                     </div>
                   ))}
                 </div>
