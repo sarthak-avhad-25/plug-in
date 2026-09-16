@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2, Trash2, Info, Home, Library, Compass, ChevronDown, MoreHorizontal, ListMusic, Quote, Check, Plus , Shuffle, Repeat, Volume2, Share} from "lucide-react";
 import YouTube, { YouTubePlayer } from "react-youtube";
-import { searchYouTube, getArtistBackground, getSearchSuggestions, getSyncedLyrics, getTrendingWorldwide, getTrendingIndia, getRelatedSongs } from "./actions";
+import { searchYouTube, getArtistBackground, getSearchSuggestions, getSyncedLyrics, getTrendingWorldwide, getTrendingIndia, getRelatedSongs, getAlternativeSourceId } from "./actions";
 import type { SyncedLyric } from "./actions";
 import { loadProfiles, saveProfilesServer, loadActiveProfile, saveActiveProfileServer, loadPlaylistsServer, savePlaylistsServer, deletePlaylistsServer } from "./storage";
 
@@ -471,8 +471,25 @@ useEffect(() => {
     }
   };
 
-
-
+  const onYouTubeError = async (event: any) => {
+    logDebug(`YouTube IFrame Error: \${event.data}`);
+    // Error 150/101 means embed is blocked by copyright owner. 100 means video removed/private.
+    if ((event.data === 150 || event.data === 101 || event.data === 100) && currentSong) {
+      logDebug(`Embed blocked (\${event.data}). Resolving alternative source...`);
+      setPlaybackState("loading");
+      const altId = await getAlternativeSourceId(currentSong.title, currentSong.artist);
+      if (altId && playerRef.current) {
+        logDebug(`Found alternative ID: \${altId}. Resuming playback...`);
+        playerRef.current.loadVideoById(altId);
+        playerRef.current.playVideo();
+      } else {
+        logDebug(`No alternative source found. Playback failed.`);
+        setPlaybackState("error");
+      }
+    } else {
+      setPlaybackState("error");
+    }
+  };
 
   const togglePlay = () => {
     if (useNativeAudio && audioRef.current) {
@@ -1141,6 +1158,7 @@ useEffect(() => {
           opts={{ height: "100", width: "100", playerVars: { autoplay: 1, controls: 0, playsinline: 1 } }}
           onReady={onReady}
           onStateChange={onStateChange}
+          onError={onYouTubeError}
         />
       </div>
       {/* Native audio element for background/lock-screen playback */}

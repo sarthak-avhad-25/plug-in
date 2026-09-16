@@ -249,3 +249,18 @@ export async function getRelatedSongs(videoId: string) {
 }
 
 
+
+import YouTubeSR from "youtube-sr";
+
+export async function getAlternativeSourceId(title: string, artist: string): Promise<string | null> {
+  try {
+    const query = `${title} ${artist} lyrics`;
+    const results = await YouTubeSR.search(query, { limit: 1, type: "video" });
+    if (results && results.length > 0) {
+      return results[0].id || null;
+    }
+  } catch (error) {
+    console.error("Alternative source resolution failed:", error);
+  }
+  return null;
+}
