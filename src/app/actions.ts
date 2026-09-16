@@ -189,7 +189,7 @@ export async function getTrendingWorldwide() {
         seconds: v.duration || 0,
       };
     });
-    return await enrichSongsWithItunes(videos.slice(0, 10));
+    return await enrichSongsWithItunes(videos.slice(0, 15));
   } catch (error) {
     console.error("Trending Worldwide error:", error);
     return [];
@@ -212,7 +212,7 @@ export async function getTrendingIndia() {
         seconds: v.duration || 0,
       };
     });
-    return await enrichSongsWithItunes(videos.slice(0, 10));
+    return await enrichSongsWithItunes(videos.slice(0, 15));
   } catch (error) {
     console.error("Trending India error:", error);
     return [];
