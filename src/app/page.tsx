@@ -85,6 +85,18 @@ export default function FransHalsMusicApp() {
   const [lyricsLoading, setLyricsLoading] = useState(false);
 
   const [isClient, setIsClient] = useState(false);
+  
+  // STEP 11 - Temporary Debug Mode
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  const logDebug = (msg: string, audio?: HTMLAudioElement | null) => {
+    let audioState = "";
+    if (audio) {
+      audioState = ` [RS:${audio.readyState} NS:${audio.networkState} P:${audio.paused} CT:${audio.currentTime.toFixed(1)} DUR:${audio.duration} SRC:${audio.currentSrc.substring(0, 30)}]`;
+    }
+    const fullMsg = `[${new Date().toLocaleTimeString()}] ${msg}${audioState}`;
+    console.log("[AUDIO DEBUG]", fullMsg);
+    setDebugLogs(prev => [...prev.slice(-9), fullMsg]);
+  };
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
 
@@ -462,7 +474,9 @@ useEffect(() => {
         audioRef.current.pause();
       } else {
         shouldPlayRef.current = true;
-        audioRef.current.play().catch(() => {});
+        audioRef.current.play().catch((err: any) => {
+          logDebug(`togglePlay native play rejected: ${err.message}`);
+        });
       }
     } else {
       if (!playerRef.current) return;
@@ -611,7 +625,7 @@ useEffect(() => {
 
   const [clickOrigin, setClickOrigin] = useState<{x: number, y: number} | null>(null);
 
-  const playSong = (song: Song, addToHistory: boolean = true, context: "radio" | "playlist" = "radio", overridePlaylistSongs?: Song[], e?: React.MouseEvent) => {
+  const playSong = async (song: Song, addToHistory: boolean = true, context: "radio" | "playlist" = "radio", overridePlaylistSongs?: Song[], e?: React.MouseEvent) => {
     if (e) {
       setClickOrigin({ x: e.clientX, y: e.clientY });
     } else {
@@ -634,33 +648,53 @@ useEffect(() => {
     shouldPlayRef.current = true;
     setCurrentSong(song);
     setUseNativeAudio(true); // Always attempt native audio first for a new song
+    setIsPlaying(false); // Do NOT set playing until actual playback
 
-    // Stop YouTube explicitly before starting new native playback
+    logDebug(`playSong: ${song.title}`, audioRef.current);
+
+    // STEP 3: PRESERVE USER GESTURE FOR FALLBACK
     if (playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
-      playerRef.current.pauseVideo();
+      playerRef.current.unMute?.();
+      playerRef.current.setVolume(100);
+      playerRef.current.loadVideoById(song.id);
+      // Prime it by calling play and pause within the user gesture
+      playerRef.current.playVideo();
+      setTimeout(() => {
+        if (useNativeAudio && playerRef.current) {
+          playerRef.current.pauseVideo();
+        }
+      }, 50);
+      logDebug(`YouTube iframe primed for fallback.`);
     }
 
-    // Set source. We will let the `onCanPlay` event handle the actual .play() to ensure readiness,
-    // OR we can call .play() synchronously here. Given the user's explicit instructions:
-    // "set the new source, wait until the media/player is ready, call play(), handle the returned Promise correctly"
-    // We will rely on autoPlay + onCanPlay (or just handle it directly here if we want synchronous).
-    // Actually, calling play() here natively waits for readiness anyway.
+    // STEP 5: FIX SOURCE LOADING
     if (audioRef.current) {
+      logDebug(`Stopping previous source and loading new...`, audioRef.current);
+      audioRef.current.pause();
       audioRef.current.src = `/api/audio?v=${song.id}`;
-      const playPromise = audioRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((err) => {
-          if (err.name === 'AbortError') return; // Ignore if caused by rapid switching
-          console.log("Native audio autoplay prevented/failed:", err);
-          setUseNativeAudio(false);
-          // Fallback to YouTube
-          if (shouldPlayRef.current && playerRef.current) {
-            playerRef.current.unMute?.();
-            playerRef.current.setVolume(100);
-            playerRef.current.loadVideoById(song.id);
-            playerRef.current.playVideo();
-          }
-        });
+      audioRef.current.load();
+      
+      try {
+        logDebug(`Calling audio.play()...`, audioRef.current);
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          await playPromise;
+          logDebug(`audio.play() resolved successfully!`, audioRef.current);
+          setIsPlaying(true); // actual playback started
+        }
+      } catch (err: any) {
+        if (err.name === 'AbortError') {
+          logDebug(`audio.play() aborted (likely rapid switching)`);
+          return;
+        }
+        logDebug(`audio.play() rejected: ${err.name} - ${err.message}`, audioRef.current);
+        
+        // STEP 8: INVOKE FALLBACK
+        setUseNativeAudio(false);
+        if (shouldPlayRef.current && playerRef.current) {
+          logDebug(`Invoking YouTube fallback via playVideo()`);
+          playerRef.current.playVideo();
+        }
       }
     }
     
@@ -768,7 +802,9 @@ useEffect(() => {
       navigator.mediaSession.setActionHandler('play', () => {
         shouldPlayRef.current = true;
         if (useNativeAudio && audioRef.current) {
-          audioRef.current.play().catch(() => {});
+          audioRef.current.play().catch((err: any) => {
+            logDebug(`MediaSession play rejected: ${err.message}`);
+          });
         } else if (playerRef.current) {
           playerRef.current.playVideo();
         }
@@ -1066,55 +1102,40 @@ useEffect(() => {
         preload="auto" 
         style={{display:"none"}} 
         onError={(e) => {
-          console.log("Native audio source failed to load:", e);
+          const err = e.currentTarget.error;
+          logDebug(`Native audio error event! Code: ${err?.code} Msg: ${err?.message}`, e.currentTarget);
           setUseNativeAudio(false);
           if (shouldPlayRef.current && playerRef.current && currentSong) {
-            playerRef.current.unMute?.();
-            playerRef.current.setVolume(100);
-            playerRef.current.loadVideoById(currentSong.id);
+            logDebug(`Fallback to YouTube inside onError`);
             playerRef.current.playVideo();
           }
         }}
         onCanPlay={(e) => {
-          if (shouldPlayRef.current && useNativeAudio) {
-            const playPromise = e.currentTarget.play();
-            if (playPromise !== undefined) {
-              playPromise.catch((err) => {
-                if (err.name === 'AbortError') return; // Ignore rapid switches
-                console.log("Native audio play failed:", err);
-                setUseNativeAudio(false);
-                if (shouldPlayRef.current && playerRef.current && currentSong) {
-                  playerRef.current.unMute?.();
-                  playerRef.current.setVolume(100);
-                  playerRef.current.loadVideoById(currentSong.id);
-                  playerRef.current.playVideo();
-                }
-              });
-            }
-          }
+          logDebug(`Native onCanPlay fired.`, e.currentTarget);
         }}
-        onCanPlayThrough={() => {
+        onCanPlayThrough={(e) => {
+          logDebug(`Native onCanPlayThrough fired.`, e.currentTarget);
           setUseNativeAudio(true);
           // Only one source plays at a time. If native audio is ready, pause YouTube fallback
           if (playerRef.current) {
             playerRef.current.pauseVideo();
           }
         }}
-        onPlay={() => {
+        onPlay={(e) => {
+          logDebug(`Native onPlay fired!`, e.currentTarget);
           setIsPlaying(true);
           if (useNativeAudio) {
             playerRef.current?.pauseVideo(); // Ensure YouTube is paused while native is playing
-            if (progressInterval.current) clearInterval(progressInterval.current);
-            progressInterval.current = setInterval(() => {
-              if (audioRef.current) setProgress(audioRef.current.currentTime);
-            }, 150);
           }
         }}
-        onPause={() => {
-          setIsPlaying(false);
-          if (useNativeAudio && progressInterval.current) {
-            clearInterval(progressInterval.current);
+        onTimeUpdate={(e) => {
+          if (useNativeAudio) {
+            setProgress(e.currentTarget.currentTime);
           }
+        }}
+        onPause={(e) => {
+          logDebug(`Native onPause fired!`, e.currentTarget);
+          setIsPlaying(false);
         }}
         onEnded={() => {
           if (useNativeAudio) {
@@ -2261,6 +2282,11 @@ useEffect(() => {
         </AnimatePresence>
       </div>
 
+      {debugLogs.length > 0 && (
+        <div className="fixed top-0 left-0 z-[9999] bg-black/80 text-green-400 font-mono text-[10px] p-2 pointer-events-none w-full max-h-[200px] overflow-hidden break-all">
+          {debugLogs.map((log, i) => <div key={i}>{log}</div>)}
+        </div>
+      )}
     </div>
   );
 }
