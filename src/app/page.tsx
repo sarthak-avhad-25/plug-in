@@ -445,8 +445,13 @@ useEffect(() => {
       return;
     }
 
-    if (event.data === 1) {
+    if (event.data === -1) { // unstarted
+      setPlaybackState("loading");
+    } else if (event.data === 3) { // buffering
+      setPlaybackState("buffering");
+    } else if (event.data === 1) { // playing
       setIsPlaying(true);
+      setPlaybackState("playing");
       setDuration(playerRef.current.getDuration());
       if (progressInterval.current) clearInterval(progressInterval.current);
       progressInterval.current = setInterval(() => {
@@ -454,11 +459,13 @@ useEffect(() => {
           setProgress(playerRef.current.getCurrentTime());
         }
       }, 150);
-    } else if (event.data === 2) {
+    } else if (event.data === 2) { // paused
       setIsPlaying(false);
+      setPlaybackState("paused");
       if (progressInterval.current) clearInterval(progressInterval.current);
-    } else if (event.data === 0) {
+    } else if (event.data === 0) { // ended
       setIsPlaying(false);
+      setPlaybackState("idle");
       if (progressInterval.current) clearInterval(progressInterval.current);
       playNextSong();
     }
@@ -471,20 +478,28 @@ useEffect(() => {
     if (useNativeAudio && audioRef.current) {
       if (isPlaying) {
         shouldPlayRef.current = false;
+        setIsPlaying(false);
+        setPlaybackState("paused");
         audioRef.current.pause();
       } else {
         shouldPlayRef.current = true;
+        setPlaybackState("playing"); // Optimistic
         audioRef.current.play().catch((err: any) => {
           logDebug(`togglePlay native play rejected: ${err.message}`);
+          setIsPlaying(false);
+          setPlaybackState("error");
         });
       }
     } else {
       if (!playerRef.current) return;
       if (isPlaying) {
         shouldPlayRef.current = false;
+        setIsPlaying(false);
+        setPlaybackState("paused");
         playerRef.current.pauseVideo();
       } else {
         shouldPlayRef.current = true;
+        setPlaybackState("buffering"); // Optimistic until yt updates
         playerRef.current.playVideo();
       }
     }
@@ -625,7 +640,14 @@ useEffect(() => {
 
   const [clickOrigin, setClickOrigin] = useState<{x: number, y: number} | null>(null);
 
+  const playRequestIdRef = useRef(0);
+  const [playbackState, setPlaybackState] = useState<"idle" | "loading" | "playing" | "paused" | "buffering" | "error">("idle");
+  const [isDraggingTimeline, setIsDraggingTimeline] = useState(false);
+  const [dragProgress, setDragProgress] = useState(0);
+
   const playSong = async (song: Song, addToHistory: boolean = true, context: "radio" | "playlist" = "radio", overridePlaylistSongs?: Song[], e?: React.MouseEvent) => {
+    const currentId = ++playRequestIdRef.current;
+    
     if (e) {
       setClickOrigin({ x: e.clientX, y: e.clientY });
     } else {
@@ -641,60 +663,73 @@ useEffect(() => {
       setPlaybackContext({ type: "radio" });
     }
 
-    if (addToHistory && currentSong) {
-      setPlaybackHistory((prev) => [...prev, currentSong]);
+    if (addToHistory && currentSong?.id !== song.id) {
+      setPlaybackHistory((prev) => [...prev, song]);
     }
     
     shouldPlayRef.current = true;
     setCurrentSong(song);
-    setUseNativeAudio(true); // Always attempt native audio first for a new song
-    setIsPlaying(false); // Do NOT set playing until actual playback
+    setPlaybackState("loading");
+    setIsPlaying(false); // Legacy sync
 
     logDebug(`playSong: ${song.title}`, audioRef.current);
 
-    // STEP 3: PRESERVE USER GESTURE FOR FALLBACK
+    // STEP 3: INSTANT GESTURE PRIMING
     if (playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
       playerRef.current.unMute?.();
       playerRef.current.setVolume(100);
       playerRef.current.loadVideoById(song.id);
-      // Prime it by calling play and pause within the user gesture
       playerRef.current.playVideo();
-      setTimeout(() => {
-        if (useNativeAudio && playerRef.current) {
-          playerRef.current.pauseVideo();
-        }
-      }, 50);
-      logDebug(`YouTube iframe primed for fallback.`);
+      playerRef.current.pauseVideo(); // Prime synchronously, NO setTimeout delay!
+      logDebug(`YouTube iframe primed instantly.`);
+    }
+    
+    if (audioRef.current) {
+      audioRef.current.play().catch(()=>{});
+      audioRef.current.pause(); // Prime native audio synchronously
     }
 
-    // STEP 5: FIX SOURCE LOADING
-    if (audioRef.current) {
-      logDebug(`Stopping previous source and loading new...`, audioRef.current);
-      audioRef.current.pause();
-      audioRef.current.src = `/api/audio?v=${song.id}`;
-      audioRef.current.load();
+    try {
+      logDebug(`Validating native source...`);
+      const res = await fetch(`/api/audio?v=${song.id}`, { method: 'HEAD', signal: AbortSignal.timeout(4000) });
       
-      try {
-        logDebug(`Calling audio.play()...`, audioRef.current);
-        const playPromise = audioRef.current.play();
-        if (playPromise !== undefined) {
-          await playPromise;
-          logDebug(`audio.play() resolved successfully!`, audioRef.current);
-          setIsPlaying(true); // actual playback started
+      if (playRequestIdRef.current !== currentId) {
+        logDebug(`playSong aborted by newer request.`);
+        return; 
+      }
+      
+      if (res.ok) {
+        // Source is perfectly valid!
+        logDebug(`Native source valid (HTTP \${res.status})`);
+        setUseNativeAudio(true);
+        if (audioRef.current) {
+          audioRef.current.src = `/api/audio?v=${song.id}`;
+          audioRef.current.load();
+          const playPromise = audioRef.current.play();
+          if (playPromise !== undefined) {
+            await playPromise;
+            if (playRequestIdRef.current === currentId) {
+               setPlaybackState("playing");
+               setIsPlaying(true);
+            }
+          }
         }
-      } catch (err: any) {
-        if (err.name === 'AbortError') {
-          logDebug(`audio.play() aborted (likely rapid switching)`);
-          return;
-        }
-        logDebug(`audio.play() rejected: ${err.name} - ${err.message}`, audioRef.current);
-        
-        // STEP 8: INVOKE FALLBACK
+      } else {
+        // Source failed (e.g. 400 Bad Request)
+        logDebug(`Native source invalid (HTTP \${res.status}). Invoking YouTube fallback directly.`);
         setUseNativeAudio(false);
         if (shouldPlayRef.current && playerRef.current) {
-          logDebug(`Invoking YouTube fallback via playVideo()`);
           playerRef.current.playVideo();
         }
+      }
+    } catch (err: any) {
+      // Network failure or timeout during validation
+      if (playRequestIdRef.current !== currentId) return;
+      
+      logDebug(`Validation failed/timed out (\${err.message}). Invoking YouTube fallback.`);
+      setUseNativeAudio(false);
+      if (shouldPlayRef.current && playerRef.current) {
+        playerRef.current.playVideo();
       }
     }
     
@@ -746,6 +781,19 @@ useEffect(() => {
   };
 
   const playPreviousSong = () => {
+    // Restart current song if past 3 seconds
+    const currentAudioTime = useNativeAudio && audioRef.current ? audioRef.current.currentTime : progress;
+    if (currentAudioTime > 3) {
+      if (useNativeAudio && audioRef.current) {
+        audioRef.current.currentTime = 0;
+      }
+      if (playerRef.current && typeof playerRef.current.seekTo === 'function') {
+        playerRef.current.seekTo(0, true);
+      }
+      setProgress(0);
+      return;
+    }
+
     if (playbackContext.type === "playlist" && !isShuffleOn) {
       let actualSongs = playbackContext.playlistSongs || [];
       if (playbackContext.playlistId) {
@@ -1104,6 +1152,7 @@ useEffect(() => {
         onError={(e) => {
           const err = e.currentTarget.error;
           logDebug(`Native audio error event! Code: ${err?.code} Msg: ${err?.message}`, e.currentTarget);
+          setPlaybackState("error");
           setUseNativeAudio(false);
           if (shouldPlayRef.current && playerRef.current && currentSong) {
             logDebug(`Fallback to YouTube inside onError`);
@@ -1124,9 +1173,22 @@ useEffect(() => {
         onPlay={(e) => {
           logDebug(`Native onPlay fired!`, e.currentTarget);
           setIsPlaying(true);
+          setPlaybackState("playing");
           if (useNativeAudio) {
             playerRef.current?.pauseVideo(); // Ensure YouTube is paused while native is playing
           }
+        }}
+        onWaiting={(e) => {
+          logDebug(`Native onWaiting (buffering) fired!`, e.currentTarget);
+          setPlaybackState("buffering");
+        }}
+        onStalled={(e) => {
+          logDebug(`Native onStalled fired!`, e.currentTarget);
+          setPlaybackState("buffering");
+        }}
+        onPlaying={(e) => {
+          logDebug(`Native onPlaying fired!`, e.currentTarget);
+          setPlaybackState("playing");
         }}
         onTimeUpdate={(e) => {
           if (useNativeAudio) {
@@ -1136,9 +1198,11 @@ useEffect(() => {
         onPause={(e) => {
           logDebug(`Native onPause fired!`, e.currentTarget);
           setIsPlaying(false);
+          setPlaybackState("paused");
         }}
         onEnded={() => {
           if (useNativeAudio) {
+            setPlaybackState("idle");
             playNextSong();
           }
         }}
@@ -1966,7 +2030,13 @@ useEffect(() => {
                   onClick={togglePlay}
                   className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
                 >
-                  {isPlaying ? <Pause className="w-5 h-5 fill-black text-black" /> : <Play className="w-5 h-5 fill-black text-black ml-1" />}
+                  {playbackState === "loading" || playbackState === "buffering" ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-black" />
+                  ) : isPlaying ? (
+                    <Pause className="w-5 h-5 fill-black text-black" />
+                  ) : (
+                    <Play className="w-5 h-5 fill-black text-black ml-1" />
+                  )}
                 </button>
               </div>
               {/* Mini Progress Bar */}
@@ -2063,29 +2133,44 @@ useEffect(() => {
                     <Heart className={`w-7 h-7 ${playlists.some(p => p.songs.some(s => s.id === currentSong.id)) ? 'fill-[#D4FF00] text-[#D4FF00]' : 'text-white'}`} />
                   </button>
                 </div>
-
                 {/* Timeline */}
                 <div className="flex flex-col gap-2">
                   <div 
-                    className="w-full h-2 bg-white/10 rounded-full overflow-hidden relative"
-                    onClick={(e) => {
+                    className="w-full py-4 -my-4 cursor-pointer flex items-center justify-center touch-none"
+                    onPointerDown={(e) => {
+                      setIsDraggingTimeline(true);
                       const rect = e.currentTarget.getBoundingClientRect();
-                      const clickX = e.clientX - rect.left;
-                      const percentage = clickX / rect.width;
+                      const percentage = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                      setDragProgress(percentage * duration);
+                    }}
+                    onPointerMove={(e) => {
+                      if (!isDraggingTimeline) return;
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const percentage = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                      setDragProgress(percentage * duration);
+                    }}
+                    onPointerUp={(e) => {
+                      if (!isDraggingTimeline) return;
+                      setIsDraggingTimeline(false);
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const percentage = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
                       const newTime = percentage * duration;
                       if (useNativeAudio && audioRef.current) audioRef.current.currentTime = newTime;
                       if (playerRef.current) playerRef.current.seekTo(newTime, true);
                       setProgress(newTime);
                     }}
+                    onPointerCancel={() => setIsDraggingTimeline(false)}
                   >
-                    <div 
-                      className="absolute top-0 left-0 h-full bg-[#D4FF00]"
-                      style={{ width: `${duration ? (progress / duration) * 100 : 0}%` }}
-                    />
+                    <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden relative pointer-events-none">
+                      <div 
+                        className="absolute top-0 left-0 h-full bg-[#D4FF00] transition-none"
+                        style={{ width: `${duration ? ((isDraggingTimeline ? dragProgress : progress) / duration) * 100 : 0}%` }}
+                      />
+                    </div>
                   </div>
                   <div className="flex justify-between text-xs font-medium text-white/50 tabular-nums">
-                    <span>{Math.floor(progress / 60)}:{(Math.floor(progress % 60)).toString().padStart(2, "0")}</span>
-                    <span>-{Math.floor((duration - progress) / 60)}:{(Math.floor((duration - progress) % 60)).toString().padStart(2, "0")}</span>
+                    <span>{Math.floor((isDraggingTimeline ? dragProgress : progress) / 60)}:{(Math.floor((isDraggingTimeline ? dragProgress : progress) % 60)).toString().padStart(2, "0")}</span>
+                    <span>-{Math.floor((duration - (isDraggingTimeline ? dragProgress : progress)) / 60)}:{(Math.floor((duration - (isDraggingTimeline ? dragProgress : progress)) % 60)).toString().padStart(2, "0")}</span>
                   </div>
                 </div>
 
@@ -2101,7 +2186,13 @@ useEffect(() => {
                     onClick={togglePlay}
                     className="w-20 h-20 bg-white text-black rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.3)] active:scale-95 transition-transform"
                   >
-                    {isPlaying ? <Pause className="w-10 h-10 fill-current" /> : <Play className="w-10 h-10 fill-current ml-2" />}
+                    {playbackState === "loading" || playbackState === "buffering" ? (
+                      <Loader2 className="w-10 h-10 animate-spin" />
+                    ) : isPlaying ? (
+                      <Pause className="w-10 h-10 fill-current" />
+                    ) : (
+                      <Play className="w-10 h-10 fill-current ml-2" />
+                    )}
                   </button>
                   <button onClick={playNextSong} className="p-2 text-white active:scale-90 transition-transform">
                     <SkipForward className="w-10 h-10 fill-current" />
