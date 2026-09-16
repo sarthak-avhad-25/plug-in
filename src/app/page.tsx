@@ -31,7 +31,7 @@ type Song = {
 };
 
 
-const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite }: { song: Song, index: number, onPlay: (e: React.MouseEvent) => void, isFavorite: boolean, onToggleFavorite: (e: React.MouseEvent) => void }) => (
+const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite, onOpenMenu }: { song: Song, index: number, onPlay: (e: React.MouseEvent) => void, isFavorite: boolean, onToggleFavorite: (e: React.MouseEvent) => void, onOpenMenu?: (e: React.MouseEvent) => void }) => (
   <div 
     onClick={(e) => onPlay(e)}
     className="flex items-center px-3 py-2.5 hover:bg-white/10 rounded-xl cursor-pointer group gap-4 transition-all duration-200 w-full"
@@ -60,7 +60,7 @@ const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite }: { song: 
       <span className="text-white text-sm font-semibold truncate leading-tight">
         {song.title}
       </span>
-      <span className="text-white/50 text-xs font-normal truncate mt-0.5">
+      <span className="text-gray-400 text-xs truncate mt-0.5 group-hover:text-white transition-colors duration-200">
         {song.artist}
       </span>
     </div>
@@ -72,6 +72,16 @@ const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite }: { song: 
     >
       <Heart className={`w-4 h-4 ${isFavorite ? 'fill-[#1ED760] text-[#1ED760]' : 'text-gray-400 hover:text-white'}`} />
     </button>
+    
+    {/* More Menu */}
+    {onOpenMenu && (
+      <button 
+        onClick={(e) => { e.stopPropagation(); onOpenMenu(e); }}
+        className="p-2 shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110"
+      >
+        <MoreHorizontal className="w-4 h-4 text-gray-400 hover:text-white" />
+      </button>
+    )}
   </div>
 );
 
@@ -117,6 +127,8 @@ export default function FransHalsMusicApp() {
   const [activePlaylistId, setActivePlaylistId] = useState<string>('default');
   const [playlistMenu, setPlaylistMenu] = useState<{song: Song, x: number, y: number} | null>(null);
   const [isEditingPlaylist, setIsEditingPlaylist] = useState(false);
+  const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState("");
   const [isInactive, setIsInactive] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [isLightBg, setIsLightBg] = useState(false);
@@ -132,7 +144,7 @@ export default function FransHalsMusicApp() {
   const [hasHeadphones, setHasHeadphones] = useState(false);
 
   // Mobile specific state
-  const [mobileTab, setMobileTab] = useState<"home" | "discover" | "search" | "library">("home");
+  const [mobileTab, setMobileTab] = useState<"home" | "discover" | "search" | "library" | "playlistView">("home");
   const [showMobilePlayer, setShowMobilePlayer] = useState(false);
   const [useNativeAudio, setUseNativeAudio] = useState(false);
 
@@ -210,24 +222,34 @@ export default function FransHalsMusicApp() {
       }
     }
 
+    const ensureLikedSongs = (pls: Playlist[]) => {
+      if (!pls.find(p => p.id === 'liked-songs')) {
+        return [{ id: 'liked-songs', name: 'Liked Songs', songs: [] }, ...pls];
+      }
+      return pls;
+    };
+
     if (saved) {
       try {
-        const parsed = JSON.parse(saved);
+        const parsed = ensureLikedSongs(JSON.parse(saved));
         setPlaylists(parsed);
         // Also push to Redis to keep it in sync
         savePlaylistsServer(activeProfile.id, parsed);
       } catch (e) {
-        setPlaylists([]);
+        setPlaylists(ensureLikedSongs([]));
       }
     } else {
       // No local data — try loading from Redis (cloud backup)
       loadPlaylistsServer(activeProfile.id).then(serverPlaylists => {
         if (serverPlaylists && serverPlaylists.length > 0) {
-          setPlaylists(serverPlaylists);
+          const parsed = ensureLikedSongs(serverPlaylists);
+          setPlaylists(parsed);
           // Cache in localStorage for faster subsequent loads
-          localStorage.setItem(profileKey, JSON.stringify(serverPlaylists));
+          localStorage.setItem(profileKey, JSON.stringify(parsed));
         } else {
-          setPlaylists([]);
+          const parsed = ensureLikedSongs([]);
+          setPlaylists(parsed);
+          localStorage.setItem(profileKey, JSON.stringify(parsed));
         }
       });
     }
@@ -304,20 +326,23 @@ useEffect(() => {
     saveProfilesServer(newProfiles);
   };
 
-  const togglePlaylistSong = (song: Song, e: React.MouseEvent) => {
+  const toggleLike = (song: Song, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (playlists.length > 1) {
-      setPlaylistMenu({ song, x: e.clientX, y: e.clientY });
-    } else {
-      const p = playlists[0];
-      const exists = p.songs.find(s => s.id === song.id);
-      const newPlaylists = playlists.map(pl => 
-        pl.id === p.id 
-          ? { ...pl, songs: exists ? pl.songs.filter(s => s.id !== song.id) : [...pl.songs, song] } 
-          : pl
-      );
-      savePlaylists(newPlaylists);
-    }
+    const likedPlaylist = playlists.find(p => p.id === 'liked-songs');
+    if (!likedPlaylist) return;
+    
+    const exists = likedPlaylist.songs.find(s => s.id === song.id) ?? false;
+    const newPlaylists = playlists.map(pl => 
+      pl.id === 'liked-songs' 
+        ? { ...pl, songs: exists ? pl.songs.filter(s => s.id !== song.id) : [...pl.songs, song] } 
+        : pl
+    );
+    savePlaylists(newPlaylists);
+  };
+  
+  const openPlaylistMenu = (song: Song, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPlaylistMenu({ song, x: e.clientX, y: e.clientY });
   };
   
   const playerRef = useRef<YouTubePlayer | null>(null);
@@ -1090,25 +1115,26 @@ useEffect(() => {
             })}
             <button
               onClick={() => {
-                const name = prompt("Enter new playlist name:");
-                if (name) {
-                  const newPl = { id: Date.now().toString(), name, songs: [playlistMenu.song] };
-                  savePlaylists([...playlists, newPl]);
-                  setPlaylistMenu(null);
-                }
+                setShowCreatePlaylist(true);
               }}
-              className="flex items-center justify-between px-3 py-2 text-[#D4FF00] hover:bg-[#D4FF00]/10 rounded-[2rem] text-sm font-bold transition-all hover:scale-105 active:scale-95 border-t border-white/5 mt-1 pt-3"
+              className="mt-2 flex items-center justify-center gap-2 px-3 py-2 bg-white text-black hover:bg-gray-200 rounded-[2rem] text-sm font-bold transition-all hover:scale-105 active:scale-95"
             >
-              <span className="truncate pr-4">New Playlist</span>
-              <Plus className="w-4 h-4 shrink-0" />
+              <Plus className="w-4 h-4" /> New Playlist
             </button>
           </div>
 
-          {/* Mobile Bottom Sheet */}
-          <div className="md:hidden fixed bottom-0 left-0 right-0 z-[101] bg-[#1a1a1a]/95 backdrop-blur-md border-t border-white/20 rounded-t-3xl shadow-[0_-8px_32px_rgba(0,0,0,0.8)] p-6 flex flex-col gap-4 animate-in slide-in-from-bottom-full duration-300">
-            <div className="w-12 h-1.5 bg-[#000000]/20 rounded-full self-center mb-2" />
-            <div className="text-sm font-bold text-white/70 px-2 text-center">Save to Library</div>
-            <div className="flex flex-col gap-2 max-h-[50vh] overflow-y-auto scrollbar-hide">
+          {/* Mobile Action Menu Overlay */}
+          <div className="md:hidden fixed inset-x-0 bottom-0 z-[101] bg-[#111111] rounded-t-3xl p-6 pb-12 flex flex-col gap-4 shadow-[0_-20px_50px_rgba(0,0,0,0.5)] animate-in slide-in-from-bottom-full">
+            <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-4" />
+            <div className="flex items-center gap-4 mb-4 pb-4 border-b border-white/10">
+              <img src={playlistMenu.song.image} className="w-16 h-16 rounded-xl object-cover" />
+              <div className="flex flex-col flex-1 min-w-0">
+                <span className="text-lg font-bold text-white truncate">{playlistMenu.song.title}</span>
+                <span className="text-sm text-white/50 truncate">{playlistMenu.song.artist}</span>
+              </div>
+            </div>
+            <div className="text-[10px] font-bold tracking-widest uppercase text-white/40 px-2 mb-2">Add to Playlist</div>
+            <div className="flex flex-col gap-2 max-h-[40vh] overflow-y-auto">
               {playlists.map(p => {
                 const hasSong = p.songs.some(s => s.id === playlistMenu.song.id);
                 return (
@@ -1124,30 +1150,74 @@ useEffect(() => {
                       savePlaylists(newPlaylists);
                       setPlaylistMenu(null);
                     }}
-                    className="flex items-center justify-between p-4 bg-[#000000]/5 active:bg-[#000000]/10 rounded-none text-base font-medium tracking-wide text-white transition-all"
+                    className="flex items-center justify-between px-4 py-4 bg-white/5 rounded-2xl text-base font-bold transition-all active:scale-95 active:bg-white/10"
                   >
                     <span className="truncate pr-4">{p.name}</span>
-                    {hasSong ? <Heart className="w-6 h-6 shrink-0 fill-[#D4FF00] text-[#D4FF00]" /> : <Heart className="w-6 h-6 shrink-0 text-white/30" />}
+                    {hasSong ? <Check className="w-5 h-5 shrink-0 text-[#D4FF00]" /> : <Plus className="w-5 h-5 shrink-0 text-white/30" />}
                   </button>
                 );
               })}
+              <button
+                onClick={() => {
+                  setShowCreatePlaylist(true);
+                }}
+                className="flex items-center justify-center gap-2 px-4 py-4 mt-2 bg-[#D4FF00] text-black rounded-2xl text-base font-bold transition-all active:scale-95"
+              >
+                <Plus className="w-5 h-5" /> Create New Playlist
+              </button>
             </div>
-            <button
-              onClick={() => {
-                const name = prompt("Enter new library name:");
-                if (name) {
-                  const newPl = { id: Date.now().toString(), name, songs: [playlistMenu.song] };
+          </div>
+        </>
+      )}
+
+      {/* Create Playlist Modal */}
+      {showCreatePlaylist && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowCreatePlaylist(false)} />
+          <div className="relative z-10 w-full max-w-sm bg-[#111] border border-white/10 p-6 rounded-3xl shadow-2xl flex flex-col gap-6 animate-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-bold text-white text-center">New Playlist</h3>
+            <input
+              type="text"
+              autoFocus
+              value={newPlaylistName}
+              onChange={(e) => setNewPlaylistName(e.target.value)}
+              placeholder="Playlist name"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white text-lg font-medium outline-none focus:border-[#D4FF00] transition-colors placeholder:text-white/30"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && newPlaylistName.trim()) {
+                  const newPl = { id: Date.now().toString(), name: newPlaylistName.trim(), songs: playlistMenu?.song ? [playlistMenu.song] : [] };
                   savePlaylists([...playlists, newPl]);
+                  setNewPlaylistName("");
+                  setShowCreatePlaylist(false);
                   setPlaylistMenu(null);
                 }
               }}
-              className="flex items-center justify-center gap-2 p-4 mt-2 bg-[#D4FF00]/10 active:bg-[#D4FF00]/20 border border-[#D4FF00]/30 rounded-none text-base font-bold text-[#D4FF00] transition-all"
-            >
-              <Plus className="w-5 h-5 shrink-0" />
-              <span>New Library</span>
-            </button>
+            />
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowCreatePlaylist(false)}
+                className="flex-1 py-4 rounded-xl font-bold text-white/50 bg-white/5 hover:bg-white/10 active:scale-95 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={!newPlaylistName.trim()}
+                onClick={() => {
+                  if (newPlaylistName.trim()) {
+                    const newPl = { id: Date.now().toString(), name: newPlaylistName.trim(), songs: playlistMenu?.song ? [playlistMenu.song] : [] };
+                    savePlaylists([...playlists, newPl]);
+                    setNewPlaylistName("");
+                    setShowCreatePlaylist(false);
+                    setPlaylistMenu(null);
+                  }
+                }}
+                className={`flex-1 py-4 rounded-xl font-bold text-black transition-all active:scale-95 ${newPlaylistName.trim() ? 'bg-[#D4FF00]' : 'bg-white/20 text-white/30 cursor-not-allowed'}`}
+              >
+                Create
+              </button>
+            </div>
           </div>
-        </>
+        </div>
       )}
 
 
@@ -1338,10 +1408,10 @@ useEffect(() => {
                      <button className="text-white/40 hover:text-white transition-colors"><Volume2 className="w-6 h-6" /></button>
                      <div className="flex items-center gap-8">
                        <button 
-                         onClick={(e) => togglePlaylistSong(currentSong, e)}
+                         onClick={(e) => toggleLike(currentSong, e)}
                          className="text-white/40 hover:text-white transition-transform active:scale-90"
                        >
-                         <Heart className={`w-6 h-6 transition-colors ${playlists.some(p => p.songs.some(s => s.id === currentSong?.id)) ? 'fill-[#1ED760] text-[#1ED760]' : 'hover:text-white'}`} />
+                         <Heart className={`w-6 h-6 transition-colors ${playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === currentSong?.id) ? 'fill-[#1ED760] text-[#1ED760]' : 'hover:text-white'}`} />
                        </button>
                        <button className="text-white/40 hover:text-white transition-transform active:scale-90"><Share className="w-6 h-6" /></button>
                        {hasHeadphones && <Headphones className="w-6 h-6 text-white/40" />}
@@ -1615,7 +1685,7 @@ useEffect(() => {
                             index={index} 
                             onPlay={() => !isEditingPlaylist && playSong(song, true, "playlist")} 
                             isFavorite={true} 
-                            onToggleFavorite={(e) => togglePlaylistSong(song, e)} 
+                            onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} 
                           />
                         </div>
                         {isEditingPlaylist && (
@@ -1683,7 +1753,7 @@ useEffect(() => {
                         <div className="flex flex-col bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] overflow-hidden mb-6">
                           <div className="flex flex-col divide-y divide-white/10 p-2">
                             {inlineSearchResults.map((song, i) => {
-                              const alreadyInPlaylist = activePlaylist.songs.some(s => s.id === song.id);
+                              const alreadyInPlaylist = activePlaylist.songs.some(s => s.id === song.id) ?? false;
                               return (
                                 <div className="flex items-center group/box transition-all duration-200" key={song.id}>
                                   <div className="flex-1 pointer-events-auto">
@@ -1691,8 +1761,8 @@ useEffect(() => {
                                       song={song} 
                                       index={i} 
                                       onPlay={(e) => playSong(song, true, "radio", undefined, e)} 
-                                      isFavorite={playlists.some(p => p.songs.some(s => s.id === song.id))} 
-                                      onToggleFavorite={(e) => togglePlaylistSong(song, e)} 
+                                      isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} 
+                                      onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} 
                                     />
                                   </div>
                                   <button 
@@ -1746,8 +1816,8 @@ useEffect(() => {
                         song={song} 
                         index={index} 
                         onPlay={() => playSong(song)} 
-                        isFavorite={playlists.some(p => p.songs.some(s => s.id === song.id))} 
-                        onToggleFavorite={(e) => togglePlaylistSong(song, e)} 
+                        isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} 
+                        onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} 
                       />
                     ))}
                     </div>
@@ -1781,8 +1851,8 @@ useEffect(() => {
                         song={song} 
                         index={index} 
                         onPlay={() => playSong(song)} 
-                        isFavorite={playlists.some(p => p.songs.some(s => s.id === song.id))} 
-                        onToggleFavorite={(e) => togglePlaylistSong(song, e)} 
+                        isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} 
+                        onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} 
                       />
                     ))}
                     </div>
@@ -1811,8 +1881,8 @@ useEffect(() => {
                         song={song} 
                         index={index} 
                         onPlay={(e) => playSong(song, true, "radio", undefined, e)}
-                        isFavorite={playlists.some(p => p.songs.some(s => s.id === song.id))} 
-                        onToggleFavorite={(e) => togglePlaylistSong(song, e)} 
+                        isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} 
+                        onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} 
                       />
                     ))}
                   </div>
@@ -1892,10 +1962,10 @@ useEffect(() => {
                         <span className="text-sm text-white/50 truncate">{song.artist}</span>
                       </div>
                       <button 
-                        onClick={(e) => { e.stopPropagation(); togglePlaylistSong(song, e); }}
+                        onClick={(e) => { e.stopPropagation(); toggleLike(song, e); }}
                         className="p-2"
                       >
-                        <Heart className={`w-5 h-5 ${playlists.some(p => p.songs.some(s => s.id === song.id)) ? 'fill-[#D4FF00] text-[#D4FF00]' : 'text-white/40'}`} />
+                        <Heart className={`w-5 h-5 ${playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false ? 'fill-[#D4FF00] text-[#D4FF00]' : 'text-white/40'}`} />
                       </button>
                     </div>
                   ))}
@@ -1979,8 +2049,14 @@ useEffect(() => {
                         <span className="text-base font-bold text-white truncate">{song.title}</span>
                         <span className="text-sm text-white/50 truncate">{song.artist}</span>
                       </div>
-                      <button className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10">
+                      <button className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 shrink-0">
                         <Play className="w-4 h-4 fill-white text-white ml-0.5" />
+                      </button>
+                      <button 
+                        onClick={(e) => openPlaylistMenu(song, e)}
+                        className="w-8 h-8 flex items-center justify-center rounded-full active:bg-white/10 shrink-0"
+                      >
+                        <MoreHorizontal className="w-5 h-5 text-white/50" />
                       </button>
                     </div>
                   ))}
@@ -1999,7 +2075,7 @@ useEffect(() => {
                     <div 
                       key={playlist.id} 
                       className="bg-white/5 rounded-2xl p-4 flex flex-col gap-4 active:bg-white/10"
-                      onClick={() => { setActivePlaylistId(playlist.id); setMobileTab("home"); /* temp hack to just show it somewhere, ideally a sub-page */ }}
+                      onClick={() => { setActivePlaylistId(playlist.id); setMobileTab("playlistView"); }}
                     >
                       <div className="w-full aspect-square rounded-xl bg-gradient-to-br from-gray-800 to-black flex items-center justify-center shadow-inner overflow-hidden">
                         {playlist.songs.length > 0 ? (
@@ -2018,6 +2094,64 @@ useEffect(() => {
               </div>
             </div>
           )}
+
+          {/* PLAYLIST VIEW TAB */}
+          {mobileTab === "playlistView" && (() => {
+            const activePlaylist = playlists.find(p => p.id === activePlaylistId);
+            if (!activePlaylist) return null;
+            return (
+              <div className="flex flex-col gap-8 animate-in fade-in duration-500 pb-32">
+                <div className="flex items-center gap-4 border-b border-white/10 pb-4">
+                  <button onClick={() => setMobileTab("library")} className="p-2 -ml-2 text-white/70 active:text-white">
+                    <ChevronDown className="w-8 h-8 rotate-90" />
+                  </button>
+                  <h2 className="text-2xl font-black uppercase tracking-widest text-white truncate">{activePlaylist.name}</h2>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-white/50">{activePlaylist.songs.length} songs</span>
+                  <button 
+                    onClick={() => {
+                      if (activePlaylist.songs.length > 0) {
+                        playSong(activePlaylist.songs[0], true, "playlist", activePlaylist.songs);
+                      }
+                    }}
+                    className="flex items-center justify-center gap-2 px-6 py-3 bg-[#D4FF00] text-black rounded-full font-bold active:scale-95 transition-transform"
+                  >
+                    <Play className="w-5 h-5 fill-current" /> Play All
+                  </button>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  {activePlaylist.songs.map((song, i) => (
+                    <div key={song.id} className="flex items-center gap-4 p-2 rounded-xl active:bg-white/5">
+                      <div className="flex-1 min-w-0" onClick={() => playSong(song, true, "playlist", activePlaylist.songs)}>
+                        <div className="flex items-center gap-4">
+                          <img src={song.image} className="w-12 h-12 rounded-lg object-cover" />
+                          <div className="flex flex-col flex-1 min-w-0">
+                            <span className="text-base font-bold text-white truncate">{song.title}</span>
+                            <span className="text-sm text-white/50 truncate">{song.artist}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={(e) => openPlaylistMenu(song, e)}
+                        className="w-10 h-10 flex items-center justify-center rounded-full active:bg-white/10 shrink-0"
+                      >
+                        <MoreHorizontal className="w-5 h-5 text-white/50" />
+                      </button>
+                    </div>
+                  ))}
+                  {activePlaylist.songs.length === 0 && (
+                     <div className="py-20 text-center flex flex-col items-center opacity-50">
+                       <ListMusic className="w-12 h-12 mb-4" />
+                       <span className="font-bold">Playlist is empty</span>
+                     </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
         </div>
 
@@ -2039,10 +2173,10 @@ useEffect(() => {
               </div>
               <div className="flex items-center gap-2 pr-2" onClick={(e) => e.stopPropagation()}>
                 <button 
-                  onClick={(e) => togglePlaylistSong(currentSong, e)}
+                  onClick={(e) => toggleLike(currentSong, e)}
                   className="p-2"
                 >
-                  <Heart className={`w-5 h-5 ${playlists.some(p => p.songs.some(s => s.id === currentSong.id)) ? 'fill-[#D4FF00] text-[#D4FF00]' : 'text-white/40'}`} />
+                  <Heart className={`w-5 h-5 ${playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === currentSong.id) ? 'fill-[#D4FF00] text-[#D4FF00]' : 'text-white/40'}`} />
                 </button>
                 <button 
                   onClick={togglePlay}
@@ -2122,8 +2256,11 @@ useEffect(() => {
                   <ChevronDown className="w-8 h-8" />
                 </button>
                 <span className="text-xs font-bold uppercase tracking-widest text-white/50">Now Playing</span>
-                <button className="p-2 -mr-2 text-white/70 active:text-white">
-                  <ListMusic className="w-6 h-6" />
+                <button 
+                  onClick={(e) => openPlaylistMenu(currentSong, e)}
+                  className="p-2 -mr-2 text-white/70 active:text-white"
+                >
+                  <MoreHorizontal className="w-6 h-6" />
                 </button>
               </div>
 
@@ -2145,10 +2282,10 @@ useEffect(() => {
                     <span className="text-lg text-[#D4FF00] truncate">{currentSong.artist}</span>
                   </div>
                   <button 
-                    onClick={(e) => togglePlaylistSong(currentSong, e)}
+                    onClick={(e) => toggleLike(currentSong, e)}
                     className="p-2 shrink-0"
                   >
-                    <Heart className={`w-7 h-7 ${playlists.some(p => p.songs.some(s => s.id === currentSong.id)) ? 'fill-[#D4FF00] text-[#D4FF00]' : 'text-white'}`} />
+                    <Heart className={`w-7 h-7 ${playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === currentSong.id) ? 'fill-[#D4FF00] text-[#D4FF00]' : 'text-white'}`} />
                   </button>
                 </div>
                 {/* Timeline */}
