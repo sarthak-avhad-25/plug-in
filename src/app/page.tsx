@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2, Trash2, Info, Home, Library, Compass, ChevronDown, MoreHorizontal, ListMusic, Quote, Check, Plus , Shuffle, Repeat, Volume2, Share} from "lucide-react";
-import YouTube, { YouTubePlayer } from "react-youtube";
 import { searchYouTube, getArtistBackground, getSearchSuggestions, getSyncedLyrics, getTrendingWorldwide, getTrendingIndia, getRelatedSongs, getAlternativeSourceId } from "./actions";
 import type { SyncedLyric } from "./actions";
 import { loadProfiles, saveProfilesServer, loadActiveProfile, saveActiveProfileServer, loadPlaylistsServer, savePlaylistsServer, deletePlaylistsServer } from "./storage";
@@ -146,8 +145,7 @@ export default function FransHalsMusicApp() {
   // Mobile specific state
   const [mobileTab, setMobileTab] = useState<"home" | "discover" | "search" | "library" | "playlistView">("home");
   const [showMobilePlayer, setShowMobilePlayer] = useState(false);
-  const [useNativeAudio, setUseNativeAudio] = useState(false);
-
+  
   const savePlaylists = (newPlaylists: Playlist[]) => {
     setPlaylists(newPlaylists);
     if (activeProfile) {
@@ -283,7 +281,7 @@ useEffect(() => {
     setIsClient(true);
     // Auto-enable native audio on mobile to bypass strict iframe autoplay policies
     if (typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-      setUseNativeAudio(true);
+      
     }
     const saved = localStorage.getItem("music_profiles");
     if (saved) {
@@ -345,9 +343,7 @@ useEffect(() => {
     setPlaylistMenu({ song, x: e.clientX, y: e.clientY });
   };
   
-  const playerRef = useRef<YouTubePlayer | null>(null);
-  const progressInterval = useRef<NodeJS.Timeout | null>(null);
-  const lyricsContainerRef = useRef<HTMLDivElement>(null);
+      const lyricsContainerRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const shouldPlayRef = useRef(false);
 
@@ -444,106 +440,22 @@ useEffect(() => {
 
   useEffect(() => {
     return () => {
-      if (progressInterval.current) clearInterval(progressInterval.current);
+      
     };
   }, []);
 
-  const onReady = (event: any) => {
-    playerRef.current = event.target;
-    // If native audio is handling sound, mute YouTube (keep it for state events only)
-    if (useNativeAudio) {
-      playerRef.current.setVolume(0);
-    } else {
-      playerRef.current.setVolume(50);
-    }
-    // Stop the dummy video if no song is selected yet
-    if (!currentSong) {
-      playerRef.current.stopVideo();
-    }
-  };
 
-  const onStateChange = (event: any) => {
-    if (useNativeAudio) {
-      if (event.data === 1 && !duration && playerRef.current) {
-        setDuration(playerRef.current.getDuration());
-      }
-      return;
-    }
 
-    if (event.data === -1) { // unstarted
-      setPlaybackState("loading");
-    } else if (event.data === 3) { // buffering
-      setPlaybackState("buffering");
-    } else if (event.data === 1) { // playing
-      setIsPlaying(true);
-      setPlaybackState("playing");
-      setDuration(playerRef.current.getDuration());
-      if (progressInterval.current) clearInterval(progressInterval.current);
-      progressInterval.current = setInterval(() => {
-        if (playerRef.current) {
-          setProgress(playerRef.current.getCurrentTime());
-        }
-      }, 150);
-    } else if (event.data === 2) { // paused
-      setIsPlaying(false);
-      setPlaybackState("paused");
-      if (progressInterval.current) clearInterval(progressInterval.current);
-    } else if (event.data === 0) { // ended
-      setIsPlaying(false);
-      setPlaybackState("idle");
-      if (progressInterval.current) clearInterval(progressInterval.current);
-      playNextSong();
-    }
-  };
-
-  const onYouTubeError = async (event: any) => {
-    logDebug(`YouTube IFrame Error: \${event.data}`);
-    // Error 150/101 means embed is blocked by copyright owner. 100 means video removed/private.
-    if ((event.data === 150 || event.data === 101 || event.data === 100) && currentSong) {
-      logDebug(`Embed blocked (\${event.data}). Resolving alternative source...`);
-      setPlaybackState("loading");
-      const altId = await getAlternativeSourceId(currentSong.title, currentSong.artist);
-      if (altId && playerRef.current) {
-        logDebug(`Found alternative ID: \${altId}. Resuming playback...`);
-        playerRef.current.loadVideoById(altId);
-        playerRef.current.playVideo();
-      } else {
-        logDebug(`No alternative source found. Playback failed.`);
-        setPlaybackState("error");
-      }
-    } else {
-      setPlaybackState("error");
-    }
-  };
 
   const togglePlay = () => {
-    if (useNativeAudio && audioRef.current) {
-      if (isPlaying) {
-        shouldPlayRef.current = false;
-        setIsPlaying(false);
-        setPlaybackState("paused");
-        audioRef.current.pause();
-      } else {
-        shouldPlayRef.current = true;
-        setPlaybackState("playing"); // Optimistic
-        audioRef.current.play().catch((err: any) => {
-          logDebug(`togglePlay native play rejected: ${err.message}`);
-          setIsPlaying(false);
-          setPlaybackState("error");
-        });
-      }
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
     } else {
-      if (!playerRef.current) return;
-      if (isPlaying) {
-        shouldPlayRef.current = false;
-        setIsPlaying(false);
-        setPlaybackState("paused");
-        playerRef.current.pauseVideo();
-      } else {
-        shouldPlayRef.current = true;
-        setPlaybackState("buffering"); // Optimistic until yt updates
-        playerRef.current.playVideo();
-      }
+      audioRef.current.play().catch((err: any) => {
+        logDebug(`togglePlay native play rejected: ${err.message}`);
+        setPlaybackState("error");
+      });
     }
   };
 
@@ -710,7 +622,7 @@ useEffect(() => {
   const [isDraggingTimeline, setIsDraggingTimeline] = useState(false);
   const [dragProgress, setDragProgress] = useState(0);
 
-  const playSong = async (song: Song, addToHistory: boolean = true, context: "radio" | "playlist" = "radio", overridePlaylistSongs?: Song[], e?: React.MouseEvent) => {
+  const playSong = (song: Song, addToHistory: boolean = true, context: "radio" | "playlist" = "radio", overridePlaylistSongs?: Song[], e?: React.MouseEvent) => {
     const currentId = ++playRequestIdRef.current;
     
     if (e) {
@@ -732,101 +644,24 @@ useEffect(() => {
       setPlaybackHistory((prev) => [...prev, song]);
     }
     
-    shouldPlayRef.current = true;
     setCurrentSong(song);
     setPlaybackState("loading");
-    setIsPlaying(false); // Legacy sync
 
-    logDebug(`playSong: ${song.title}`, audioRef.current);
-
-    // STEP 3: INSTANT GESTURE PRIMING
-    if (playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
-      playerRef.current.unMute?.();
-      playerRef.current.setVolume(100);
-      playerRef.current.loadVideoById(song.id);
-      playerRef.current.playVideo();
-      playerRef.current.pauseVideo(); // Prime synchronously, NO setTimeout delay!
-      logDebug(`YouTube iframe primed instantly.`);
-    }
-    
     if (audioRef.current) {
-      audioRef.current.play().catch(()=>{});
-      audioRef.current.pause(); // Prime native audio synchronously
-    }
-
-    try {
-      logDebug(`Validating native source...`);
-      let res = await fetch(`/api/audio?v=${song.id}`, { method: 'HEAD', signal: AbortSignal.timeout(4000) });
-      let targetId = song.id;
-
-      if (!res.ok) {
-        logDebug(`Native source invalid (HTTP ${res.status}). Resolving alternative source...`);
-        const altId = await getAlternativeSourceId(song.title, song.artist);
-        if (altId) {
-           targetId = altId;
-           res = await fetch(`/api/audio?v=${targetId}`, { method: 'HEAD', signal: AbortSignal.timeout(4000) });
-        }
-      }
-
-      if (playRequestIdRef.current !== currentId) {
-        logDebug(`playSong aborted by newer request.`);
-        return; 
-      }
+      audioRef.current.src = `/api/audio?v=${song.id}`;
+      audioRef.current.load();
       
-      const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-      if (res.ok || isMobile) {
-        // Enforce Native Audio on mobile for true background playback!
-        logDebug(`Using native audio (Mobile enforced or valid source)`);
-        setUseNativeAudio(true);
-        if (audioRef.current) {
-          audioRef.current.src = `/api/audio?v=${targetId}`;
-          audioRef.current.load();
-          const playPromise = audioRef.current.play();
-          if (playPromise !== undefined) {
-            playPromise.then(() => {
-              if (shouldPlayRef.current) {
-                setPlaybackState("playing");
-                setIsPlaying(true);
-                if (playerRef.current) playerRef.current.pauseVideo();
-              } else {
-                audioRef.current?.pause();
-              }
-            }).catch((err) => {
-              logDebug(`Native play rejected after load: ${err.message}`);
-              setPlaybackState("error");
-            });
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err: any) => {
+          logDebug(`Native play rejected: ${err.message}`);
+          if (playRequestIdRef.current === currentId) {
+            setPlaybackState("paused");
+            setIsPlaying(false);
           }
-        }
-      } else {
-        // Desktop fallback to YouTube IFrame if Invidious fails completely
-        logDebug(`Native source failed on Desktop. Invoking YouTube fallback.`);
-        setUseNativeAudio(false);
-        if (shouldPlayRef.current && playerRef.current) {
-          playerRef.current.playVideo();
-        }
-      }
-    } catch (err: any) {
-      if (playRequestIdRef.current !== currentId) return;
-      
-      logDebug(`Validation failed/timed out (${err.message}).`);
-      const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      
-      if (isMobile) {
-         setUseNativeAudio(true);
-         if (audioRef.current) {
-           audioRef.current.src = `/api/audio?v=${song.id}`;
-           audioRef.current.load();
-           audioRef.current.play().catch(()=>{});
-         }
-      } else {
-         setUseNativeAudio(false);
-         if (shouldPlayRef.current && playerRef.current) {
-           playerRef.current.playVideo();
-         }
+        });
       }
     }
-    
     setLyrics([]);
     setLyricsLoading(true);
     lastScrolledIndex.current = -1;
@@ -876,14 +711,12 @@ useEffect(() => {
 
   const playPreviousSong = () => {
     // Restart current song if past 3 seconds
-    const currentAudioTime = useNativeAudio && audioRef.current ? audioRef.current.currentTime : progress;
+    const currentAudioTime = audioRef.current ? audioRef.current.currentTime : progress;
     if (currentAudioTime > 3) {
-      if (useNativeAudio && audioRef.current) {
+      if (audioRef.current) {
         audioRef.current.currentTime = 0;
       }
-      if (playerRef.current && typeof playerRef.current.seekTo === 'function') {
-        playerRef.current.seekTo(0, true);
-      }
+      
       setProgress(0);
       return;
     }
@@ -916,12 +749,10 @@ useEffect(() => {
     const bounds = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - bounds.left;
     const newTime = (x / bounds.width) * duration;
-    if (useNativeAudio && audioRef.current) {
+    if (audioRef.current) {
       audioRef.current.currentTime = newTime;
     }
-    if (playerRef.current) {
-      playerRef.current.seekTo(newTime, true);
-    }
+    
     setProgress(newTime);
   };
 
@@ -943,20 +774,18 @@ useEffect(() => {
 
       navigator.mediaSession.setActionHandler('play', () => {
         shouldPlayRef.current = true;
-        if (useNativeAudio && audioRef.current) {
+        if (audioRef.current) {
           audioRef.current.play().catch((err: any) => {
             logDebug(`MediaSession play rejected: ${err.message}`);
           });
-        } else if (playerRef.current) {
-          playerRef.current.playVideo();
         }
       });
       navigator.mediaSession.setActionHandler('pause', () => {
         shouldPlayRef.current = false;
-        if (useNativeAudio && audioRef.current) {
+        if (audioRef.current) {
           audioRef.current.pause();
         }
-        if (playerRef.current) playerRef.current.pauseVideo();
+        
       });
       navigator.mediaSession.setActionHandler('previoustrack', () => {
         mediaActions.current.playPreviousSong();
@@ -967,39 +796,31 @@ useEffect(() => {
       navigator.mediaSession.setActionHandler('seekbackward', (details) => {
         const skip = details.seekOffset ?? 10;
         let currentTime = 0;
-        if (useNativeAudio && audioRef.current) {
+        if (audioRef.current) {
           currentTime = audioRef.current.currentTime;
-        } else if (playerRef.current) {
-          currentTime = playerRef.current.getCurrentTime();
         }
         const newTime = Math.max(0, currentTime - skip);
-        if (useNativeAudio && audioRef.current) {
+        if (audioRef.current) {
           audioRef.current.currentTime = newTime;
         }
-        if (playerRef.current) {
-          playerRef.current.seekTo(newTime, true);
-        }
+        
         setProgress(newTime);
       });
       navigator.mediaSession.setActionHandler('seekforward', (details) => {
         const skip = details.seekOffset ?? 10;
         let currentTime = 0;
-        if (useNativeAudio && audioRef.current) {
+        if (audioRef.current) {
           currentTime = audioRef.current.currentTime;
-        } else if (playerRef.current) {
-          currentTime = playerRef.current.getCurrentTime();
         }
         const newTime = Math.min(duration, currentTime + skip);
-        if (useNativeAudio && audioRef.current) {
+        if (audioRef.current) {
           audioRef.current.currentTime = newTime;
         }
-        if (playerRef.current) {
-          playerRef.current.seekTo(newTime, true);
-        }
+        
         setProgress(newTime);
       });
     }
-  }, [currentSong, useNativeAudio]);
+  }, [currentSong, ]);
 
   if (!isClient) return null; // Hydration mismatch prevention
 
@@ -1273,30 +1094,35 @@ useEffect(() => {
       )}
 
 
-      {/* Hidden YouTube Player */}
-      <div className="absolute opacity-0 pointer-events-none w-[1px] h-[1px] overflow-hidden -z-50" style={{ left: '-9999px' }}>
-        <YouTube
-          videoId={currentSong ? currentSong.id : "dQw4w9WgXcQ"}
-          opts={{ height: "100", width: "100", playerVars: { autoplay: 1, controls: 0, playsinline: 1 } }}
-          onReady={onReady}
-          onStateChange={onStateChange}
-          onError={onYouTubeError}
-        />
-      </div>
+      
       {/* Native audio element for background/lock-screen playback */}
       <audio 
         ref={audioRef} 
         playsInline 
         preload="auto" 
         style={{display:"none"}} 
-        onError={(e) => {
+        onError={async (e) => {
           const err = e.currentTarget.error;
           logDebug(`Native audio error event! Code: ${err?.code} Msg: ${err?.message}`, e.currentTarget);
-          setPlaybackState("error");
-          setUseNativeAudio(false);
-          if (shouldPlayRef.current && playerRef.current && currentSong) {
-            logDebug(`Fallback to YouTube inside onError`);
-            playerRef.current.playVideo();
+          
+          if (currentSong) {
+             setPlaybackState("loading");
+             logDebug(`Attempting to resolve alternative source...`);
+             const altId = await getAlternativeSourceId(currentSong.title, currentSong.artist);
+             if (altId && audioRef.current) {
+                 audioRef.current.src = `/api/audio?v=${altId}`;
+                 audioRef.current.load();
+                 audioRef.current.play().catch((e) => {
+                     setPlaybackState("error");
+                     setIsPlaying(false);
+                 });
+             } else {
+                 setPlaybackState("error");
+                 setIsPlaying(false);
+             }
+          } else {
+             setPlaybackState("error");
+             setIsPlaying(false);
           }
         }}
         onCanPlay={(e) => {
@@ -1304,18 +1130,16 @@ useEffect(() => {
         }}
         onCanPlayThrough={(e) => {
           logDebug(`Native onCanPlayThrough fired.`, e.currentTarget);
-          setUseNativeAudio(true);
+          
           // Only one source plays at a time. If native audio is ready, pause YouTube fallback
-          if (playerRef.current) {
-            playerRef.current.pauseVideo();
-          }
+          
         }}
         onPlay={(e) => {
           logDebug(`Native onPlay fired!`, e.currentTarget);
           setIsPlaying(true);
           setPlaybackState("playing");
-          if (useNativeAudio) {
-            playerRef.current?.pauseVideo(); // Ensure YouTube is paused while native is playing
+          if (true) {
+             // Ensure YouTube is paused while native is playing
           }
         }}
         onWaiting={(e) => {
@@ -1331,7 +1155,7 @@ useEffect(() => {
           setPlaybackState("playing");
         }}
         onTimeUpdate={(e) => {
-          if (useNativeAudio) {
+          if (true) {
             setProgress(e.currentTarget.currentTime);
           }
         }}
@@ -1341,13 +1165,13 @@ useEffect(() => {
           setPlaybackState("paused");
         }}
         onEnded={() => {
-          if (useNativeAudio) {
+          if (true) {
             setPlaybackState("idle");
             playNextSong();
           }
         }}
         onLoadedMetadata={(e) => {
-          if (useNativeAudio && e.currentTarget.duration) {
+          if (e.currentTarget.duration) {
             setDuration(e.currentTarget.duration);
           }
         }}
@@ -1504,12 +1328,9 @@ useEffect(() => {
                               <motion.div 
                                 key={i} 
                                 onClick={() => {
-                                  if (playerRef.current) {
-                                    playerRef.current.seekTo(line.time, true);
                                     setProgress(line.time);
                                     isUserScrolling.current = false;
                                     if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
-                                  }
                                 }}
                                 animate={{ 
                                   opacity: isActive ? 1 : isPast ? (isLyricsExpanded ? 0.8 : 0.5) : (isLyricsExpanded ? 0.9 : 0.7), 
@@ -2362,8 +2183,8 @@ useEffect(() => {
                       const rect = e.currentTarget.getBoundingClientRect();
                       const percentage = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
                       const newTime = percentage * duration;
-                      if (useNativeAudio && audioRef.current) audioRef.current.currentTime = newTime;
-                      if (playerRef.current) playerRef.current.seekTo(newTime, true);
+                      if (audioRef.current) audioRef.current.currentTime = newTime;
+                      
                       setProgress(newTime);
                     }}
                     onPointerCancel={() => setIsDraggingTimeline(false)}
@@ -2449,8 +2270,8 @@ useEffect(() => {
                             <div 
                               key={i} 
                               onClick={() => {
-                                if (useNativeAudio && audioRef.current) audioRef.current.currentTime = line.time;
-                                if (playerRef.current) playerRef.current.seekTo(line.time, true);
+                                if (audioRef.current) audioRef.current.currentTime = line.time;
+                                
                                 setProgress(line.time);
                               }}
                               className={`text-2xl md:text-3xl font-black tracking-tight transition-all duration-300 cursor-pointer ${isActive ? 'text-white scale-[1.02] origin-left drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]' : isPast ? 'text-white/30' : 'text-white/50'}`}
