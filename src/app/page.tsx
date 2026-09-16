@@ -547,17 +547,40 @@ useEffect(() => {
     }
   };
 
+  const searchRequestIdRef = useRef(0);
+
   const executeFullSearch = async (queryToSearch: string, searchType: "artist" | "song" | "any" = "any") => {
     if (!queryToSearch.trim()) return;
+    const currentId = ++searchRequestIdRef.current;
+    
     setHasSearched(true);
     setIsSearching(true);
     setArtistSuggestions([]);
     setSongSuggestions([]);
     
     const results = await searchYouTube(queryToSearch, searchType);
+    
+    if (searchRequestIdRef.current !== currentId) {
+      logDebug(`Search aborted by newer request.`);
+      return;
+    }
+    
     setSearchResults(results);
     setIsSearching(false);
   };
+
+  useEffect(() => {
+    if (!songQuery.trim()) {
+      setHasSearched(false);
+      setSearchResults([]);
+      return;
+    }
+    const timeout = setTimeout(() => {
+      setSongSuggestions([]);
+      executeFullSearch(songQuery, "any");
+    }, 400); // 400ms debounce
+    return () => clearTimeout(timeout);
+  }, [songQuery]);
 
   const [playbackHistory, setPlaybackHistory] = useState<Song[]>([]);
   const [relatedSongs, setRelatedSongs] = useState<Song[]>([]);
@@ -733,45 +756,74 @@ useEffect(() => {
 
     try {
       logDebug(`Validating native source...`);
-      const res = await fetch(`/api/audio?v=${song.id}`, { method: 'HEAD', signal: AbortSignal.timeout(4000) });
-      
+      let res = await fetch(`/api/audio?v=${song.id}`, { method: 'HEAD', signal: AbortSignal.timeout(4000) });
+      let targetId = song.id;
+
+      if (!res.ok) {
+        logDebug(`Native source invalid (HTTP ${res.status}). Resolving alternative source...`);
+        const altId = await getAlternativeSourceId(song.title, song.artist);
+        if (altId) {
+           targetId = altId;
+           res = await fetch(`/api/audio?v=${targetId}`, { method: 'HEAD', signal: AbortSignal.timeout(4000) });
+        }
+      }
+
       if (playRequestIdRef.current !== currentId) {
         logDebug(`playSong aborted by newer request.`);
         return; 
       }
       
-      if (res.ok) {
-        // Source is perfectly valid!
-        logDebug(`Native source valid (HTTP \${res.status})`);
+      const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+      if (res.ok || isMobile) {
+        // Enforce Native Audio on mobile for true background playback!
+        logDebug(`Using native audio (Mobile enforced or valid source)`);
         setUseNativeAudio(true);
         if (audioRef.current) {
-          audioRef.current.src = `/api/audio?v=${song.id}`;
+          audioRef.current.src = `/api/audio?v=${targetId}`;
           audioRef.current.load();
           const playPromise = audioRef.current.play();
           if (playPromise !== undefined) {
-            await playPromise;
-            if (playRequestIdRef.current === currentId) {
-               setPlaybackState("playing");
-               setIsPlaying(true);
-            }
+            playPromise.then(() => {
+              if (shouldPlayRef.current) {
+                setPlaybackState("playing");
+                setIsPlaying(true);
+                if (playerRef.current) playerRef.current.pauseVideo();
+              } else {
+                audioRef.current?.pause();
+              }
+            }).catch((err) => {
+              logDebug(`Native play rejected after load: ${err.message}`);
+              setPlaybackState("error");
+            });
           }
         }
       } else {
-        // Source failed (e.g. 400 Bad Request)
-        logDebug(`Native source invalid (HTTP \${res.status}). Invoking YouTube fallback directly.`);
+        // Desktop fallback to YouTube IFrame if Invidious fails completely
+        logDebug(`Native source failed on Desktop. Invoking YouTube fallback.`);
         setUseNativeAudio(false);
         if (shouldPlayRef.current && playerRef.current) {
           playerRef.current.playVideo();
         }
       }
     } catch (err: any) {
-      // Network failure or timeout during validation
       if (playRequestIdRef.current !== currentId) return;
       
-      logDebug(`Validation failed/timed out (\${err.message}). Invoking YouTube fallback.`);
-      setUseNativeAudio(false);
-      if (shouldPlayRef.current && playerRef.current) {
-        playerRef.current.playVideo();
+      logDebug(`Validation failed/timed out (${err.message}).`);
+      const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+         setUseNativeAudio(true);
+         if (audioRef.current) {
+           audioRef.current.src = `/api/audio?v=${song.id}`;
+           audioRef.current.load();
+           audioRef.current.play().catch(()=>{});
+         }
+      } else {
+         setUseNativeAudio(false);
+         if (shouldPlayRef.current && playerRef.current) {
+           playerRef.current.playVideo();
+         }
       }
     }
     
@@ -1571,7 +1623,7 @@ useEffect(() => {
             <form 
               onSubmit={(e) => { 
                 e.preventDefault(); 
-                if(songQuery.trim()) { setSongSuggestions([]); executeFullSearch(songQuery, "song"); }
+                if(songQuery.trim()) { setSongSuggestions([]); executeFullSearch(songQuery, "any"); }
               }} 
               className="relative w-full group"
             >
@@ -1599,7 +1651,7 @@ useEffect(() => {
                     {songSuggestions.map((sug, i) => (
                       <li 
                         key={i} 
-                        onClick={() => { setSongQuery(sug); setSongSuggestions([]); executeFullSearch(sug, "song"); }}
+                        onClick={() => { setSongQuery(sug); setSongSuggestions([]); executeFullSearch(sug, "any"); }}
                         className="px-6 py-4 cursor-pointer text-2xl font-black uppercase tracking-tighter  tracking-tight text-white hover:bg-[#000000] hover:text-white transition-colors flex justify-between items-center group/item"
                       >
                         {sug}
@@ -2015,7 +2067,7 @@ useEffect(() => {
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       setSongSuggestions([]);
-                      executeFullSearch(songQuery, "song");
+                      executeFullSearch(songQuery, "any");
                     }
                   }}
                   className="w-full bg-white/10 text-white rounded-2xl py-4 pl-12 pr-4 font-medium outline-none focus:bg-white/15 transition-colors border border-white/5 placeholder:text-white/40"
@@ -2027,7 +2079,7 @@ useEffect(() => {
                   {songSuggestions.map((sug, i) => (
                     <div 
                       key={i} 
-                      onClick={() => { setSongQuery(sug); setSongSuggestions([]); executeFullSearch(sug, "song"); }}
+                      onClick={() => { setSongQuery(sug); setSongSuggestions([]); executeFullSearch(sug, "any"); }}
                       className="py-3 text-lg font-medium text-white/80 active:text-[#D4FF00] border-b border-white/5 flex items-center gap-3"
                     >
                       <Search className="w-4 h-4 text-white/30" />
