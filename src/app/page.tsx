@@ -1135,107 +1135,7 @@ useEffect(() => {
           </div>
         </header>
 
-        <div 
-          className={`flex flex-col justify-start gap-2 mt-2 transition-all duration-[1000ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${isInactive ? 'max-h-0 opacity-0 mb-0 pointer-events-none overflow-hidden' : 'max-h-[800px] opacity-100 mb-4 overflow-visible'}`}
-        >
-              <div className="flex flex-col gap-2 w-full relative z-[60] search-container">
-            
-            {/* Artist Box */}
-            <div className="flex items-start gap-2 px-1 mb-1 text-white/40">
-              <Info className="w-3 h-3 mt-0.5 shrink-0" />
-              <p className="text-[9px] font-bold  tracking-widest leading-tight">
-                Disclaimer: Exact spelling is required. Incorrect spelling sometimes may lead to no results.
-              </p>
-            </div>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (artistQuery.trim()) { setArtistSuggestions([]); executeFullSearch(artistQuery, "artist"); }
-          }}
-          className="relative w-full group"
-        >
-          <div className="border-2 border-white/40 bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white shadow-[2px_2px_0_0_rgba(255,255,255,0.3)] group-focus-within:translate-y-px group-focus-within:translate-x-px group-focus-within:shadow-[0px_0px_0_0_#024230] transition-all duration-200">
-            <div className="bg-black/50 text-white px-2 py-0.5 inline-block text-[10px] font-medium tracking-wide  tracking-widest border-r-2 border-b-2 border-white/40 backdrop-blur-xl">Artist</div>
-            <input
-              type="text"
-              placeholder="Who are you looking for?"
-              value={artistQuery}
-              onChange={(e) => setArtistQuery(e.target.value)}
-              className="w-full bg-transparent text-base font-bold px-3 py-1 outline-none placeholder:text-white/70 text-white"
-            />
-          </div>
-          <AnimatePresence>
-            {artistSuggestions.length > 0 && (
-              <motion.ul
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="md:absolute md:top-full md:left-0 w-full mt-2 md:mt-4 bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white border-2 border-white/30 shadow-[8px_8px_0_0_rgba(255,255,255,0.2)] z-50 flex flex-col divide-y-2 divide-white/20"
-              >
-                {artistSuggestions.map((sug, i) => (
-                  <li
-                    key={i}
-                    onClick={() => { setArtistQuery(sug); setArtistSuggestions([]); executeFullSearch(sug, "artist"); }}
-                    className="px-6 py-4 cursor-pointer text-2xl font-black uppercase tracking-tighter  tracking-tight text-white hover:bg-[#000000] hover:text-white transition-colors flex justify-between items-center group/item"
-                  >
-                    {sug}
-                    <ArrowRight className="w-6 h-6 opacity-0 group-hover/item:opacity-100 transition-opacity" />
-                  </li>
-                ))}
-              </motion.ul>
-            )}
-          </AnimatePresence>
-        </form>
-
-
-            {/* Song Box */}
-            <form 
-              onSubmit={(e) => { 
-                e.preventDefault(); 
-                if(songQuery.trim()) { setSongSuggestions([]); executeFullSearch(songQuery, "song"); }
-              }} 
-              className="relative w-full group"
-            >
-              <div className="border-2 border-white/40 bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white shadow-[2px_2px_0_0_rgba(255,255,255,0.3)] group-focus-within:translate-y-px group-focus-within:translate-x-px group-focus-within:shadow-[0px_0px_0_0_#024230] transition-all duration-200">
-                <div className="bg-black/50 text-white px-2 py-0.5 inline-block text-[10px] font-medium tracking-wide  tracking-widest border-r-2 border-b-2 border-white/40 backdrop-blur-xl">
-                  Track
-                </div>
-                <input
-                  type="text"
-                  placeholder="What is the song name?"
-                  value={songQuery}
-                  onChange={(e) => setSongQuery(e.target.value)}
-                  className="w-full bg-transparent text-base font-bold px-3 py-1 outline-none placeholder:text-white/70 text-white"
-                />
-              </div>
-
-              <AnimatePresence>
-                {songSuggestions.length > 0 && (
-                  <motion.ul 
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="md:absolute md:top-full md:left-0 w-full mt-2 md:mt-4 bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white border-2 border-white/30 shadow-[8px_8px_0_0_rgba(255,255,255,0.2)] z-50 flex flex-col divide-y-2 divide-white/20"
-                  >
-                    {songSuggestions.map((sug, i) => (
-                      <li 
-                        key={i} 
-                        onClick={() => { setSongQuery(sug); setSongSuggestions([]); executeFullSearch(sug, "song"); }}
-                        className="px-6 py-4 cursor-pointer text-2xl font-black uppercase tracking-tighter  tracking-tight text-white hover:bg-[#000000] hover:text-white transition-colors flex justify-between items-center group/item"
-                      >
-                        {sug}
-                        <ArrowRight className="w-6 h-6 opacity-0 group-hover/item:opacity-100 transition-opacity" />
-                      </li>
-                    ))}
-                  </motion.ul>
-                )}
-              </AnimatePresence>
-            </form>
-
-              </div>
-        </div>
-
-<AnimatePresence>
+        <AnimatePresence>
           {currentSong && (
             <motion.div
               key={currentSong.id}
@@ -1475,6 +1375,54 @@ useEffect(() => {
         <div 
           className={`relative z-10 flex-1 p-6 md:p-12 overflow-y-auto scroll-smooth will-change-transform transition-all duration-[1000ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${isInactive ? '-translate-y-16 scale-[1.02]' : 'translate-y-0 scale-100'}`}
         >
+
+              <div className="w-full flex flex-col gap-2 mb-8 z-[60] search-container">
+                {/* Song Box */}
+            <form 
+              onSubmit={(e) => { 
+                e.preventDefault(); 
+                if(songQuery.trim()) { setSongSuggestions([]); executeFullSearch(songQuery, "song"); }
+              }} 
+              className="relative w-full group"
+            >
+              <div className="border-2 border-white/40 bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white shadow-[2px_2px_0_0_rgba(255,255,255,0.3)] group-focus-within:translate-y-px group-focus-within:translate-x-px group-focus-within:shadow-[0px_0px_0_0_#024230] transition-all duration-200">
+                <div className="bg-black/50 text-white px-2 py-0.5 inline-block text-[10px] font-medium tracking-wide  tracking-widest border-r-2 border-b-2 border-white/40 backdrop-blur-xl">
+                  Track
+                </div>
+                <input
+                  type="text"
+                  placeholder="What is the song name?"
+                  value={songQuery}
+                  onChange={(e) => setSongQuery(e.target.value)}
+                  className="w-full bg-transparent text-base font-bold px-3 py-1 outline-none placeholder:text-white/70 text-white"
+                />
+              </div>
+
+              <AnimatePresence>
+                {songSuggestions.length > 0 && (
+                  <motion.ul 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="md:absolute md:top-full md:left-0 w-full mt-2 md:mt-4 bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white border-2 border-white/30 shadow-[8px_8px_0_0_rgba(255,255,255,0.2)] z-50 flex flex-col divide-y-2 divide-white/20"
+                  >
+                    {songSuggestions.map((sug, i) => (
+                      <li 
+                        key={i} 
+                        onClick={() => { setSongQuery(sug); setSongSuggestions([]); executeFullSearch(sug, "song"); }}
+                        className="px-6 py-4 cursor-pointer text-2xl font-black uppercase tracking-tighter  tracking-tight text-white hover:bg-[#000000] hover:text-white transition-colors flex justify-between items-center group/item"
+                      >
+                        {sug}
+                        <ArrowRight className="w-6 h-6 opacity-0 group-hover/item:opacity-100 transition-opacity" />
+                      </li>
+                    ))}
+                  </motion.ul>
+                )}
+              </AnimatePresence>
+            </form>
+              </div>
+
+
           {showPlaylist ? (() => {
             const activePlaylist = playlists.find(p => p.id === activePlaylistId);
             if (!activePlaylist) return null;
