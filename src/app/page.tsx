@@ -34,24 +34,41 @@ type Song = {
 const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite }: { song: Song, index: number, onPlay: (e: React.MouseEvent) => void, isFavorite: boolean, onToggleFavorite: (e: React.MouseEvent) => void }) => (
   <div 
     onClick={(e) => onPlay(e)}
-    className="flex items-center px-4 py-2 hover:bg-white/10 rounded-md cursor-pointer group gap-4 transition-colors w-full"
+    className="flex items-center px-3 py-2.5 hover:bg-white/10 rounded-xl cursor-pointer group gap-4 transition-all duration-200 w-full"
   >
-    <div className="w-8 flex justify-end items-center text-gray-400 shrink-0 relative pr-2">
-      <span className="group-hover:hidden text-base">{index + 1}</span>
-      <Play className="w-4 h-4 fill-white hidden group-hover:block" />
+    {/* Index / Play toggle */}
+    <div className="w-6 flex justify-center items-center text-gray-500 shrink-0 text-sm">
+      <span className="group-hover:hidden">{index + 1}</span>
+      <Play className="w-3.5 h-3.5 fill-white hidden group-hover:block" />
     </div>
-    <img src={song.image} className="w-10 h-10 rounded object-cover shrink-0" alt={song.title} />
-    <div className="flex flex-col flex-1 overflow-hidden">
-      <span className="text-white text-base font-normal truncate">
+
+    {/* Album Art Poster */}
+    <div className="relative shrink-0 w-12 h-12 rounded-lg overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
+      <img
+        src={song.image}
+        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+        alt={song.title}
+      />
+      {/* Hover overlay */}
+      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+        <Play className="w-4 h-4 fill-white" />
+      </div>
+    </div>
+
+    {/* Title & Artist */}
+    <div className="flex flex-col flex-1 overflow-hidden min-w-0">
+      <span className="text-white text-sm font-semibold truncate leading-tight">
         {song.title}
       </span>
-      <span className="text-white text-sm font-normal truncate hover:underline w-fit">
+      <span className="text-white/50 text-xs font-normal truncate mt-0.5">
         {song.artist}
       </span>
     </div>
+
+    {/* Favorite */}
     <button 
       onClick={(e) => { e.stopPropagation(); onToggleFavorite(e); }}
-      className={`ml-auto p-2 ${isFavorite ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} hover:scale-105 transition-all shrink-0`}
+      className={`p-2 shrink-0 transition-all duration-200 hover:scale-110 ${isFavorite ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
     >
       <Heart className={`w-4 h-4 ${isFavorite ? 'fill-[#1ED760] text-[#1ED760]' : 'text-gray-400 hover:text-white'}`} />
     </button>
