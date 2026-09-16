@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
-import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2, Trash2, Info, Home, Library, Compass, ChevronDown, MoreHorizontal, ListMusic, Quote, Check, Plus } from "lucide-react";
+import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2, Trash2, Info, Home, Library, Compass, ChevronDown, MoreHorizontal, ListMusic, Quote, Check, Plus , Shuffle, Repeat, Volume2, Share} from "lucide-react";
 import YouTube, { YouTubePlayer } from "react-youtube";
 import { searchYouTube, getArtistBackground, getSearchSuggestions, getSyncedLyrics, getTrendingWorldwide, getTrendingIndia, getRelatedSongs } from "./actions";
 import type { SyncedLyric } from "./actions";
@@ -34,30 +34,26 @@ type Song = {
 const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite }: { song: Song, index: number, onPlay: (e: React.MouseEvent) => void, isFavorite: boolean, onToggleFavorite: (e: React.MouseEvent) => void }) => (
   <div 
     onClick={(e) => onPlay(e)}
-    className="p-2 md:p-4 hover:bg-gray-100 rounded-xl md:rounded-2xl transition-all duration-300 transform hover:scale-[1.02] cursor-pointer flex flex-row items-center gap-3 md:gap-4 group"
+    className="flex items-center px-4 py-2 hover:bg-white/10 rounded-md cursor-pointer group gap-4 transition-colors w-full"
   >
-    <div className="w-8 shrink-0 text-sm md:text-xl font-bold md:font-semibold opacity-40 group-hover:opacity-100 group-hover:text-[#fa233b] transition-colors text-center">
-      {index + 1}
+    <div className="w-8 flex justify-end items-center text-gray-400 shrink-0 relative pr-2">
+      <span className="group-hover:hidden text-base">{index + 1}</span>
+      <Play className="w-4 h-4 fill-white hidden group-hover:block" />
     </div>
-    <div className="w-12 h-12 md:w-16 md:h-16 rounded-md md:rounded-xl border border-white/10 md:border-white/20 group-hover:border-white/50 shrink-0 relative overflow-hidden bg-black shadow-md md:shadow-lg">
-      <img src={song.image} className="w-full h-full object-cover opacity-90 md:opacity-80 group-hover:opacity-100 transition-opacity" alt={song.title} />
-      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/40 md:bg-[#fa233b]/80 transition-opacity">
-        <Play className="w-5 h-5 md:w-6 md:h-6 text-white fill-white ml-1" />
-      </div>
-    </div>
-    <div className="flex flex-col flex-1 overflow-hidden border-b border-white/5 md:border-transparent pb-2 md:pb-0 h-full justify-center">
-      <span className="text-sm md:text-base font-semibold md:font-semibold tracking-normal md: md:tracking-tighter line-clamp-2 leading-tight mb-1 transform transition-all duration-300 md:duration-500 group-hover:scale-105 group-hover:text-black">
+    <img src={song.image} className="w-10 h-10 rounded object-cover shrink-0" alt={song.title} />
+    <div className="flex flex-col flex-1 overflow-hidden">
+      <span className="text-white text-base font-normal truncate">
         {song.title}
       </span>
-      <span className="text-xs font-normal md:font-bold md:tracking-widest md: opacity-60 md:opacity-70 truncate">
+      <span className="text-white text-sm font-normal truncate hover:underline w-fit">
         {song.artist}
       </span>
     </div>
     <button 
-      onClick={onToggleFavorite}
-      className="ml-auto p-2 opacity-50 group-hover:opacity-100 transition-opacity md:hover:scale-110"
+      onClick={(e) => { e.stopPropagation(); onToggleFavorite(e); }}
+      className={`ml-auto p-2 ${isFavorite ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} hover:scale-105 transition-all shrink-0`}
     >
-      <Heart className={`w-5 h-5 md:w-8 md:h-8 ${isFavorite ? 'fill-[#fa233b] text-[#fa233b]' : 'text-current'}`} />
+      <Heart className={`w-4 h-4 ${isFavorite ? 'fill-[#1ED760] text-[#1ED760]' : 'text-gray-400 hover:text-white'}`} />
     </button>
   </div>
 );
@@ -814,13 +810,13 @@ useEffect(() => {
 
   if (!activeProfile) {
     return (
-      <div className="min-h-screen w-full bg-white flex flex-col items-center justify-center selection:bg-[#fa233b] selection:text-white relative overflow-hidden">
+      <div className="min-h-screen w-full bg-[#000000] flex flex-col items-center justify-center selection:bg-[#D4FF00] selection:text-white relative overflow-hidden">
         {/* Netflix style ambient background */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#111]/50 to-[#111] z-10 pointer-events-none" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#fa233b]/20 via-[#111]/50 to-[#111] z-0 pointer-events-none opacity-50" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#D4FF00]/20 via-[#111]/50 to-[#111] z-0 pointer-events-none opacity-50" />
         
         <div className="relative z-20 flex flex-col items-center">
-          <h1 className="text-4xl md:text-6xl font-semibold tracking-tight text-white mb-12 drop-shadow-xl">Who's listening?</h1>
+          <h1 className="text-4xl md:text-6xl font-medium tracking-wide tracking-tight text-white mb-12 drop-shadow-xl">Who's listening?</h1>
           
           <div className="flex flex-wrap justify-center gap-6 max-w-5xl px-4">
             {profiles.map(p => (
@@ -829,7 +825,7 @@ useEffect(() => {
                 localStorage.setItem("music_active_profile", JSON.stringify(p));
                 saveActiveProfileServer(p);
               }}>
-                <div className={`w-32 h-32 md:w-40 md:h-40 rounded-xl bg-gradient-to-br ${p.color} flex items-center justify-center text-6xl shadow-xl group-hover:scale-105 group-hover:ring-4 ring-white transition-all duration-300 relative overflow-hidden`}>
+                <div className={`w-32 h-32 md:w-40 md:h-40 rounded-[2rem] bg-gradient-to-br ${p.color} flex items-center justify-center text-6xl shadow-xl group-hover:scale-105 group-hover:ring-4 ring-white transition-all duration-300 relative overflow-hidden`}>
                   <span className="relative z-10">{p.emoji}</span>
                   <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
                   <button 
@@ -848,7 +844,7 @@ useEffect(() => {
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
-                <span className="text-gray-400 group-hover:text-black text-xl font-bold transition-colors">{p.name}</span>
+                <span className="text-gray-400 group-hover:text-white text-2xl font-black uppercase tracking-tighter transition-colors">{p.name}</span>
               </div>
             ))}
             
@@ -861,10 +857,10 @@ useEffect(() => {
                   setShowProfileModal(true);
                 }}
               >
-                <div className="w-32 h-32 md:w-40 md:h-40 rounded-xl border border-gray-200 flex items-center justify-center text-6xl text-gray-600 group-hover:border-white group-hover:text-black group-hover:scale-105 transition-all duration-300">
+                <div className="w-32 h-32 md:w-40 md:h-40 rounded-[2rem] border border-[#222222] flex items-center justify-center text-6xl text-gray-400 group-hover:border-white group-hover:text-white group-hover:scale-105 transition-all duration-300">
                   +
                 </div>
-                <span className="text-gray-400 group-hover:text-black text-xl font-bold transition-colors">Add Profile</span>
+                <span className="text-gray-400 group-hover:text-white text-2xl font-black uppercase tracking-tighter transition-colors">Add Profile</span>
               </div>
             )}
           </div>
@@ -872,8 +868,8 @@ useEffect(() => {
 
         {showProfileModal && (
           <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
-            <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl">
-              <h2 className="text-2xl font-bold text-white mb-4">
+            <div className="bg-[#1a1a1a] border border-white/10 rounded-none p-6 w-full max-w-md shadow-2xl">
+              <h2 className="text-3xl font-black uppercase tracking-tighter text-white mb-4">
                 {otpStep ? "Security Check" : "Create Profile"}
               </h2>
               <p className="text-gray-400 mb-6">
@@ -887,14 +883,14 @@ useEffect(() => {
                 value={modalInput}
                 onChange={(e) => setModalInput(e.target.value)}
                 placeholder={otpStep ? "Enter OTP" : "Profile Name"}
-                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-white/50 mb-6"
+                className="w-full bg-[#000000]/10 border border-white/20 rounded-[2rem] px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-white/50 mb-6"
                 autoFocus
               />
               
               <div className="flex justify-end gap-3">
                 <button 
                   onClick={() => setShowProfileModal(false)}
-                  className="px-5 py-2.5 rounded-xl font-semibold text-gray-300 hover:bg-black/5 transition-colors"
+                  className="px-5 py-2.5 rounded-[2rem] font-medium tracking-wide text-gray-300 hover:bg-black/5 transition-colors"
                 >
                   Cancel
                 </button>
@@ -926,7 +922,7 @@ useEffect(() => {
                       }
                     }
                   }}
-                  className="px-5 py-2.5 bg-white text-black rounded-xl font-bold hover:bg-gray-200 transition-colors"
+                  className="px-5 py-2.5 bg-[#D4FF00] text-[#000000] rounded-[2rem] font-bold hover:bg-gray-200 transition-colors"
                 >
                   {otpStep ? "Verify OTP" : "Create"}
                 </button>
@@ -939,19 +935,19 @@ useEffect(() => {
   }
 
   return (
-    <div className="min-h-screen w-full flex flex-col md:flex-row-reverse bg-white text-[#1d1d1f] font-sans selection:bg-[#fa233b] selection:text-white">
+    <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#000000] text-white font-sans selection:bg-[#D4FF00] selection:text-white">
       {playlistMenu && (
         <>
           <div className="fixed inset-0 z-[100]" onClick={() => setPlaylistMenu(null)} />
           {/* Desktop Context Menu */}
           <div 
-            className="hidden md:flex fixed z-[101] bg-white/90 shadow-xl border-gray-200 text-black backdrop-blur-xl border border-white/20 rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.8)] p-3 flex-col gap-2 min-w-[180px] origin-top"
+            className="hidden md:flex fixed z-[101] bg-[#000000]/90 shadow-xl border-[#222222] text-white backdrop-blur-xl border border-white/20 rounded-none shadow-[0_16px_48px_rgba(0,0,0,0.8)] p-3 flex-col gap-2 min-w-[180px] origin-top"
             style={{ 
               top: Math.min(playlistMenu.y, (typeof window !== 'undefined' ? window.innerHeight : 800) - (playlists.length * 40 + 50)), 
               left: Math.max(10, playlistMenu.x - 180) 
             }}
           >
-            <div className="text-[10px] font-semibold  text-white/50 px-2 pb-1 border-b border-white/10 tracking-widest">Add to Playlist</div>
+            <div className="text-[10px] font-medium tracking-wide  text-white/50 px-2 pb-1 border-b border-white/10 tracking-widest">Add to Playlist</div>
             {playlists.map(p => {
               const hasSong = p.songs.some(s => s.id === playlistMenu.song.id);
               return (
@@ -967,10 +963,10 @@ useEffect(() => {
                     savePlaylists(newPlaylists);
                     setPlaylistMenu(null);
                   }}
-                  className="flex items-center justify-between px-3 py-2 text-white hover:bg-black/5 rounded-xl text-sm font-bold transition-all hover:scale-105 active:scale-95"
+                  className="flex items-center justify-between px-3 py-2 text-white hover:bg-black/5 rounded-[2rem] text-sm font-bold transition-all hover:scale-105 active:scale-95"
                 >
                   <span className="truncate pr-4">{p.name}</span>
-                  {hasSong ? <Heart className="w-4 h-4 shrink-0 fill-[#fa233b] text-[#fa233b]" /> : <Heart className="w-4 h-4 shrink-0 text-white/30" />}
+                  {hasSong ? <Heart className="w-4 h-4 shrink-0 fill-[#D4FF00] text-[#D4FF00]" /> : <Heart className="w-4 h-4 shrink-0 text-white/30" />}
                 </button>
               );
             })}
@@ -983,7 +979,7 @@ useEffect(() => {
                   setPlaylistMenu(null);
                 }
               }}
-              className="flex items-center justify-between px-3 py-2 text-[#fa233b] hover:bg-[#fa233b]/10 rounded-xl text-sm font-bold transition-all hover:scale-105 active:scale-95 border-t border-white/5 mt-1 pt-3"
+              className="flex items-center justify-between px-3 py-2 text-[#D4FF00] hover:bg-[#D4FF00]/10 rounded-[2rem] text-sm font-bold transition-all hover:scale-105 active:scale-95 border-t border-white/5 mt-1 pt-3"
             >
               <span className="truncate pr-4">New Playlist</span>
               <Plus className="w-4 h-4 shrink-0" />
@@ -992,7 +988,7 @@ useEffect(() => {
 
           {/* Mobile Bottom Sheet */}
           <div className="md:hidden fixed bottom-0 left-0 right-0 z-[101] bg-[#1a1a1a]/95 backdrop-blur-md border-t border-white/20 rounded-t-3xl shadow-[0_-8px_32px_rgba(0,0,0,0.8)] p-6 flex flex-col gap-4 animate-in slide-in-from-bottom-full duration-300">
-            <div className="w-12 h-1.5 bg-white/20 rounded-full self-center mb-2" />
+            <div className="w-12 h-1.5 bg-[#000000]/20 rounded-full self-center mb-2" />
             <div className="text-sm font-bold text-white/70 px-2 text-center">Save to Library</div>
             <div className="flex flex-col gap-2 max-h-[50vh] overflow-y-auto scrollbar-hide">
               {playlists.map(p => {
@@ -1010,10 +1006,10 @@ useEffect(() => {
                       savePlaylists(newPlaylists);
                       setPlaylistMenu(null);
                     }}
-                    className="flex items-center justify-between p-4 bg-white/5 active:bg-white/10 rounded-2xl text-base font-semibold text-white transition-all"
+                    className="flex items-center justify-between p-4 bg-[#000000]/5 active:bg-[#000000]/10 rounded-none text-base font-medium tracking-wide text-white transition-all"
                   >
                     <span className="truncate pr-4">{p.name}</span>
-                    {hasSong ? <Heart className="w-6 h-6 shrink-0 fill-[#fa233b] text-[#fa233b]" /> : <Heart className="w-6 h-6 shrink-0 text-white/30" />}
+                    {hasSong ? <Heart className="w-6 h-6 shrink-0 fill-[#D4FF00] text-[#D4FF00]" /> : <Heart className="w-6 h-6 shrink-0 text-white/30" />}
                   </button>
                 );
               })}
@@ -1027,7 +1023,7 @@ useEffect(() => {
                   setPlaylistMenu(null);
                 }
               }}
-              className="flex items-center justify-center gap-2 p-4 mt-2 bg-[#fa233b]/10 active:bg-[#fa233b]/20 border border-[#fa233b]/30 rounded-2xl text-base font-bold text-[#fa233b] transition-all"
+              className="flex items-center justify-center gap-2 p-4 mt-2 bg-[#D4FF00]/10 active:bg-[#D4FF00]/20 border border-[#D4FF00]/30 rounded-none text-base font-bold text-[#D4FF00] transition-all"
             >
               <Plus className="w-5 h-5 shrink-0" />
               <span>New Library</span>
@@ -1116,32 +1112,13 @@ useEffect(() => {
       />
 
       {/* LEFT COLUMN - SEARCH & UI */}
-      <div id="left-column" className="hidden md:flex w-full md:w-[50%] lg:w-[40%] flex-col border-t-4 md:border-t-0 md:border-l-4 border-[#024230] relative z-20 bg-[#111] text-white overflow-visible drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
-  <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-pink-500 to-indigo-500 opacity-30 pointer-events-none bg-[length:200%_200%] animate-[gradientMove_15s_linear_infinite]" />
-  <style jsx>{`
-    @keyframes gradientMove {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-  `}</style>
-        {(!currentSong && !hasSearched) ? (
-          <div className="absolute inset-0 z-0 bg-black pointer-events-none" />
-        ) : currentSong ? (
-          <div className="absolute inset-0 w-full h-full z-0 bg-black overflow-hidden">
-            <img 
-              src={artistBg || currentSong.image} 
-              className="absolute inset-0 w-full h-full object-cover opacity-100 transition-all duration-1000" 
-              alt="Artist Background"
-            />
-          </div>
-        ) : null}
-        <div className="relative z-10 w-full h-full flex flex-col justify-start overflow-y-auto p-6 md:p-12 scroll-smooth">
+      <div id="left-column" className="hidden md:flex w-full md:w-[50%] lg:w-[40%] flex-col border-t-4 md:border-t-0 md:border-l-4 border-[#222222] relative z-20 bg-black text-white overflow-visible drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+        <div className="relative z-10 w-full h-full flex flex-col justify-start overflow-y-auto p-6 md:p-12 scroll-smooth bg-black">
           <header className="mb-6">
           <div className="flex justify-between items-center border-b-4 border-white/30 pb-4">
             <h1 
               onClick={() => { setHasSearched(false); setShowPlaylist(false); setArtistQuery(""); setSongQuery(""); setSearchResults([]); }}
-              className={`text-2xl font-semibold  tracking-[0.2em] leading-none cursor-pointer transition-colors ${isLightBg ? 'text-black drop-shadow-md hover:text-[#fa233b]' : 'text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] hover:text-[#fa233b]'}`}
+              className={`text-2xl font-medium tracking-wide  tracking-[0.2em] leading-none cursor-pointer transition-colors ${isLightBg ? 'text-white drop-shadow-md hover:text-[#D4FF00]' : 'text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] hover:text-[#D4FF00]'}`}
             >
               LISTEN WITH {activeProfile.name}
             </h1>
@@ -1150,7 +1127,7 @@ useEffect(() => {
                 setActiveProfile(null);
                 localStorage.removeItem("music_active_profile");
               }}
-              className={`w-10 h-10 rounded-md bg-gradient-to-br ${activeProfile.color} flex items-center justify-center text-xl shadow-lg hover:scale-110 transition-transform flex-shrink-0 border-2 border-white/20`}
+              className={`w-10 h-10 rounded-none bg-gradient-to-br ${activeProfile.color} flex items-center justify-center text-xl shadow-lg hover:scale-110 transition-transform flex-shrink-0 border-2 border-white/20`}
               title="Switch Profile"
             >
               {activeProfile.emoji}
@@ -1177,8 +1154,8 @@ useEffect(() => {
           }}
           className="relative w-full group"
         >
-          <div className="border-2 border-white/40 bg-white/70 backdrop-blur-xl border border-gray-200 text-black shadow-[2px_2px_0_0_rgba(255,255,255,0.3)] group-focus-within:translate-y-px group-focus-within:translate-x-px group-focus-within:shadow-[0px_0px_0_0_#024230] transition-all duration-200">
-            <div className="bg-black/50 text-white px-2 py-0.5 inline-block text-[10px] font-semibold  tracking-widest border-r-2 border-b-2 border-white/40 backdrop-blur-xl">Artist</div>
+          <div className="border-2 border-white/40 bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white shadow-[2px_2px_0_0_rgba(255,255,255,0.3)] group-focus-within:translate-y-px group-focus-within:translate-x-px group-focus-within:shadow-[0px_0px_0_0_#024230] transition-all duration-200">
+            <div className="bg-black/50 text-white px-2 py-0.5 inline-block text-[10px] font-medium tracking-wide  tracking-widest border-r-2 border-b-2 border-white/40 backdrop-blur-xl">Artist</div>
             <input
               type="text"
               placeholder="Who are you looking for?"
@@ -1193,13 +1170,13 @@ useEffect(() => {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="md:absolute md:top-full md:left-0 w-full mt-2 md:mt-4 bg-white/70 backdrop-blur-xl border border-gray-200 text-black border-2 border-white/30 shadow-[8px_8px_0_0_rgba(255,255,255,0.2)] z-50 flex flex-col divide-y-2 divide-white/20"
+                className="md:absolute md:top-full md:left-0 w-full mt-2 md:mt-4 bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white border-2 border-white/30 shadow-[8px_8px_0_0_rgba(255,255,255,0.2)] z-50 flex flex-col divide-y-2 divide-white/20"
               >
                 {artistSuggestions.map((sug, i) => (
                   <li
                     key={i}
                     onClick={() => { setArtistQuery(sug); setArtistSuggestions([]); executeFullSearch(sug, "artist"); }}
-                    className="px-6 py-4 cursor-pointer text-xl font-bold  tracking-tight text-white hover:bg-white hover:text-black transition-colors flex justify-between items-center group/item"
+                    className="px-6 py-4 cursor-pointer text-2xl font-black uppercase tracking-tighter  tracking-tight text-white hover:bg-[#000000] hover:text-white transition-colors flex justify-between items-center group/item"
                   >
                     {sug}
                     <ArrowRight className="w-6 h-6 opacity-0 group-hover/item:opacity-100 transition-opacity" />
@@ -1219,8 +1196,8 @@ useEffect(() => {
               }} 
               className="relative w-full group"
             >
-              <div className="border-2 border-white/40 bg-white/70 backdrop-blur-xl border border-gray-200 text-black shadow-[2px_2px_0_0_rgba(255,255,255,0.3)] group-focus-within:translate-y-px group-focus-within:translate-x-px group-focus-within:shadow-[0px_0px_0_0_#024230] transition-all duration-200">
-                <div className="bg-black/50 text-white px-2 py-0.5 inline-block text-[10px] font-semibold  tracking-widest border-r-2 border-b-2 border-white/40 backdrop-blur-xl">
+              <div className="border-2 border-white/40 bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white shadow-[2px_2px_0_0_rgba(255,255,255,0.3)] group-focus-within:translate-y-px group-focus-within:translate-x-px group-focus-within:shadow-[0px_0px_0_0_#024230] transition-all duration-200">
+                <div className="bg-black/50 text-white px-2 py-0.5 inline-block text-[10px] font-medium tracking-wide  tracking-widest border-r-2 border-b-2 border-white/40 backdrop-blur-xl">
                   Track
                 </div>
                 <input
@@ -1238,13 +1215,13 @@ useEffect(() => {
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="md:absolute md:top-full md:left-0 w-full mt-2 md:mt-4 bg-white/70 backdrop-blur-xl border border-gray-200 text-black border-2 border-white/30 shadow-[8px_8px_0_0_rgba(255,255,255,0.2)] z-50 flex flex-col divide-y-2 divide-white/20"
+                    className="md:absolute md:top-full md:left-0 w-full mt-2 md:mt-4 bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white border-2 border-white/30 shadow-[8px_8px_0_0_rgba(255,255,255,0.2)] z-50 flex flex-col divide-y-2 divide-white/20"
                   >
                     {songSuggestions.map((sug, i) => (
                       <li 
                         key={i} 
                         onClick={() => { setSongQuery(sug); setSongSuggestions([]); executeFullSearch(sug, "song"); }}
-                        className="px-6 py-4 cursor-pointer text-xl font-bold  tracking-tight text-white hover:bg-white hover:text-black transition-colors flex justify-between items-center group/item"
+                        className="px-6 py-4 cursor-pointer text-2xl font-black uppercase tracking-tighter  tracking-tight text-white hover:bg-[#000000] hover:text-white transition-colors flex justify-between items-center group/item"
                       >
                         {sug}
                         <ArrowRight className="w-6 h-6 opacity-0 group-hover/item:opacity-100 transition-opacity" />
@@ -1268,115 +1245,93 @@ useEffect(() => {
               transition={{ type: "spring", damping: 15, stiffness: 120, mass: 0.6 }}
               className="w-full flex flex-col gap-4 overflow-visible origin-center relative z-50"
             >
-               <div className={`border-2 border-white/40 bg-white/70 backdrop-blur-xl border border-gray-200 text-black p-4 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] flex flex-col gap-4 hover:scale-[1.02] hover:-translate-y-2 hover:-translate-x-2 hover:shadow-[0_16px_48px_0_rgba(0,0,0,0.6)] transition-all duration-300 relative text-white rounded-2xl`}>
-                 <div className="absolute top-3 right-3 bg-[#fa233b]/90 backdrop-blur-md text-white border border-white/30 px-3 py-1 rounded-full text-[9px] font-bold tracking-widest  shadow-lg z-20">
-                   Now Playing
-                 </div>
-                 <div className="flex gap-4">
-                    <div className="relative w-24 h-24 shrink-0 rounded-full">
-                       <motion.div 
-                         className="w-24 h-24 bg-black rounded-full overflow-hidden absolute top-0 left-0"
-                         animate={{ rotate: isPlaying ? 360 : 0 }}
-                         transition={{ repeat: Infinity, duration: 3, ease: "linear" }}
-                       >
-                         <img src={currentSong.image} className="w-full h-full object-cover scale-[1.35]" alt="album art" />
-                         <div className="absolute inset-0 m-auto w-3 h-3 bg-white border-2 border-[#024230] rounded-full z-10" />
-                       </motion.div>
-                    </div>
-                    <div className="flex flex-col justify-center overflow-hidden w-full relative">
-                       <div className="flex items-center gap-4">
-                         <span className="text-2xl font-semibold tracking-tight truncate">{currentSong.title}</span>
-                         {isPlaying && (
-                           <div className="flex items-end gap-1 h-6 shrink-0">
-                             {[0.6, 0.4, 0.8, 0.5].map((speed, i) => (
-                               <motion.div
-                                 key={i}
-                                 className="w-1.5 bg-[#fa233b] border border-[#024230]"
-                                 animate={{ height: ["20%", "100%", "40%", "80%", "20%"] }}
-                                 transition={{ repeat: Infinity, duration: speed, ease: "easeInOut" }}
-                               />
-                             ))}
-                           </div>
-                         )}
-                       </div>
-                       <span className="text-xs font-bold tracking-widest  opacity-90 truncate text-white">{currentSong.artist}</span>
-                    </div>
+               <div className="relative overflow-hidden rounded-[32px] bg-[#050505] p-10 shadow-[0_30px_60px_rgba(0,0,0,0.8)] border border-white/5 flex flex-col gap-8 transition-all duration-700">
+                 {/* Ambient Blur Background */}
+                 <div className="absolute inset-0 z-0 opacity-30 mix-blend-screen pointer-events-none">
+                   <img src={currentSong.image} className="w-full h-full object-cover blur-[100px] scale-150 transform translate-y-10" alt="" />
                  </div>
                  
-                 <div className="flex flex-col gap-4 w-full">
-                    <div className="w-full flex flex-col gap-1 cursor-pointer" onClick={handleProgressClick}>
-                       <div className="flex justify-between text-xs font-bold  text-gray-300">
-                         <span>{Math.floor(progress / 60)}:{(Math.floor(progress % 60)).toString().padStart(2, "0")}</span>
-                         <span>{Math.floor(duration / 60)}:{(Math.floor(duration % 60)).toString().padStart(2, "0")}</span>
-                       </div>
-                       <div className="h-2 w-full rounded-full bg-white/20 relative backdrop-blur-md overflow-hidden">
-                         <motion.div 
-                           className="absolute top-0 left-0 h-full bg-white rounded-full"
-                           style={{ width: `${duration ? (progress / duration) * 100 : 0}%` }}
-                         />
-                       </div>
-                    </div>
-                    <div className="flex items-center justify-center gap-4 w-full">
-                      <button 
-                        onClick={playPreviousSong}
-                        className={`w-10 h-10 shrink-0 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/20 text-white flex items-center justify-center transition-all shadow-md hover:scale-105 ${playbackHistory.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        disabled={playbackHistory.length === 0}
-                      >
-                        <SkipBack className="w-4 h-4 fill-current" />
-                      </button>
-
-                      <button 
-                        onClick={togglePlay}
-                        className={`w-12 h-12 shrink-0 rounded-full bg-[#fa233b]/90 hover:bg-[#fa233b] backdrop-blur-md border border-white/30 text-white flex items-center justify-center transition-all shadow-lg hover:scale-105 ${!isPlaying ? 'shadow-lg animate-pulse' : 'shadow-lg'}`}
-                      >
-                        {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-1" />}
-                      </button>
-
-                      <button 
-                        onClick={playNextSong}
-                        className={`w-10 h-10 shrink-0 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/20 text-white flex items-center justify-center transition-all shadow-md hover:scale-105 ${relatedSongs.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        disabled={relatedSongs.length === 0}
-                      >
-                        <SkipForward className="w-4 h-4 fill-current" />
-                      </button>
-                      
-                      <button 
-                        onClick={(e) => {
-                          togglePlaylistSong(currentSong, e);
-                        }}
-                        className="w-10 h-10 shrink-0 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/20 text-[#fa233b] flex items-center justify-center transition-all shadow-md hover:scale-105 group/fav"
-                      >
-                        <Heart className={`w-4 h-4 transition-colors ${playlists.some(p => p.songs.some(s => s.id === currentSong?.id)) ? 'fill-[#fa233b] text-[#fa233b]' : 'text-white group-hover/fav:text-[#fa233b]'}`} />
-                      </button>
-
-                      <AnimatePresence>
-                        {hasHeadphones && (
-                          <motion.div
-                            initial={{ scale: 0, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0, opacity: 0 }}
-                            className="w-10 h-10 shrink-0 rounded-full bg-blue-500/50 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-lg"
-                            title="Headphones Connected"
-                          >
-                            <Headphones className="w-4 h-4" />
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-
-                      <div className="flex items-center justify-between px-4 py-2 border-t-2 border-[#333]">
-  <h2 className="text-lg font-bold text-white">Lyrics</h2>
-  <button
-    onClick={() => setIsLyricsExpanded(!isLyricsExpanded)}
-    className="p-1 text-white hover:text-[#fa233b] transition-colors"
-    title="Toggle Lyrics Height"
-  >
-    {isLyricsExpanded ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
-  </button>
-</div>
-                    </div>
+                 <div className="relative z-10 flex flex-col items-center">
+                   {/* Large Square Artwork */}
+                   <motion.div 
+                     className="relative w-72 h-72 md:w-80 md:h-80 rounded-2xl overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.9)] mb-10 border border-white/10"
+                     layoutId="album-art-desktop"
+                   >
+                     <img src={currentSong.image} className="w-full h-full object-cover" alt="album art" />
+                   </motion.div>
+                   
+                   <div className="flex flex-col w-full text-center px-4 mb-10">
+                     <span className="text-[11px] font-bold tracking-widest text-white/30 uppercase mb-4">Now Playing</span>
+                     <span className="text-4xl font-black tracking-tight text-white mb-2 truncate">{currentSong.title}</span>
+                     <span className="text-lg font-medium text-white/50 truncate">{currentSong.artist}</span>
+                   </div>
+                   
+                   {/* Timeline */}
+                   <div className="w-full flex flex-col gap-3 cursor-pointer mb-10 px-2 group/timeline" onClick={handleProgressClick}>
+                     <div className="h-1.5 w-full rounded-full bg-white/10 relative overflow-hidden transition-all duration-200 group-hover/timeline:h-2">
+                       <motion.div 
+                         className="absolute top-0 left-0 h-full bg-white rounded-full transition-all ease-linear"
+                         style={{ width: `${duration ? (progress / duration) * 100 : 0}%` }}
+                       />
+                       {/* Thumb */}
+                       <div 
+                         className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg opacity-0 group-hover/timeline:opacity-100 transition-opacity"
+                         style={{ left: `calc(${duration ? (progress / duration) * 100 : 0}% - 8px)` }}
+                       />
+                     </div>
+                     <div className="flex justify-between text-xs font-medium text-white/40 tracking-wide">
+                       <span>{Math.floor(progress / 60)}:{(Math.floor(progress % 60)).toString().padStart(2, "0")}</span>
+                       <span>-{Math.floor((duration - progress) / 60)}:{(Math.floor((duration - progress) % 60)).toString().padStart(2, "0")}</span>
+                     </div>
+                   </div>
+                   
+                   {/* Main Controls Row */}
+                   <div className="flex items-center justify-center gap-10 w-full mb-8">
+                     <button onClick={() => setIsShuffleOn(!isShuffleOn)} className={`transition-colors ${isShuffleOn ? 'text-[#1ED760]' : 'text-white/30 hover:text-white'}`}><Shuffle className="w-6 h-6" /></button>
+                     <button 
+                       onClick={playPreviousSong}
+                       className={`text-white hover:text-white/80 transition-transform active:scale-90 ${playbackHistory.length === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                       disabled={playbackHistory.length === 0}
+                     >
+                       <SkipBack className="w-10 h-10 fill-current" />
+                     </button>
+                     
+                     <button 
+                       onClick={togglePlay}
+                       className="w-20 h-20 shrink-0 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_10px_30px_rgba(255,255,255,0.15)]"
+                     >
+                       {isPlaying ? <Pause className="w-10 h-10 fill-current" /> : <Play className="w-10 h-10 fill-current ml-2" />}
+                     </button>
+                     
+                     <button 
+                       onClick={playNextSong}
+                       className={`text-white hover:text-white/80 transition-transform active:scale-90 ${relatedSongs.length === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                       disabled={relatedSongs.length === 0}
+                     >
+                       <SkipForward className="w-10 h-10 fill-current" />
+                     </button>
+                     <button className="text-white/30 hover:text-white transition-colors"><Repeat className="w-6 h-6" /></button>
+                   </div>
+                   
+                   {/* Secondary Controls */}
+                   <div className="flex items-center justify-between w-full px-8 py-5 rounded-2xl bg-white/5 border border-white/5">
+                     <button className="text-white/40 hover:text-white transition-colors"><Volume2 className="w-6 h-6" /></button>
+                     <div className="flex items-center gap-8">
+                       <button 
+                         onClick={(e) => togglePlaylistSong(currentSong, e)}
+                         className="text-white/40 hover:text-white transition-transform active:scale-90"
+                       >
+                         <Heart className={`w-6 h-6 transition-colors ${playlists.some(p => p.songs.some(s => s.id === currentSong?.id)) ? 'fill-[#1ED760] text-[#1ED760]' : 'hover:text-white'}`} />
+                       </button>
+                       <button className="text-white/40 hover:text-white transition-transform active:scale-90"><Share className="w-6 h-6" /></button>
+                       {hasHeadphones && <Headphones className="w-6 h-6 text-white/40" />}
+                     </div>
+                     <button onClick={() => setIsLyricsExpanded(!isLyricsExpanded)} className={`transition-colors ${isLyricsExpanded ? 'text-white' : 'text-white/40 hover:text-white'}`}>
+                       <ListMusic className="w-6 h-6" />
+                     </button>
+                   </div>
                  </div>
-
-
+               </div>
                  {/* LYRICS BOX */}
                  <div 
                    ref={lyricsContainerRef}
@@ -1421,7 +1376,7 @@ useEffect(() => {
                                   letterSpacing: isActive ? '0.05em' : '-0.05em'
                                 }}
                                 transition={{ type: "spring", stiffness: 400, damping: 25, mass: 0.8 }}
-                                className="cursor-pointer font-semibold  origin-left transition-colors hover:opacity-100 flex flex-wrap text-xl md:text-3xl mb-4"
+                                className="cursor-pointer font-medium tracking-wide  origin-left transition-colors hover:opacity-100 flex flex-wrap text-xl md:text-3xl mb-4"
                               >
                                 {line.words ? line.words.map((w, wIdx) => {
                                   const isWordActive = isActive && progress >= w.time;
@@ -1430,7 +1385,7 @@ useEffect(() => {
                                       key={wIdx} 
                                       className="inline-block mr-2 md:mr-3 transition-all duration-150"
                                       style={{
-                                        color: isWordActive ? '#fa233b' : (isActive ? '#fff' : (isLyricsExpanded ? '#ccc' : '#999')),
+                                        color: isWordActive ? '#D4FF00' : (isActive ? '#fff' : (isLyricsExpanded ? '#ccc' : '#999')),
                                         textShadow: isLyricsExpanded 
                                           ? (isWordActive ? '2px 2px 0px #000, 0 0 10px rgba(0,0,0,0.8)' : '1px 1px 3px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.8)') 
                                           : (isWordActive ? '2px 2px 0px #000' : '0px 0px 0px transparent'),
@@ -1443,7 +1398,7 @@ useEffect(() => {
                                 }) : (
                                   <span 
                                     style={{ 
-                                      color: isActive ? '#fa233b' : (isLyricsExpanded ? '#ccc' : '#999'),
+                                      color: isActive ? '#D4FF00' : (isLyricsExpanded ? '#ccc' : '#999'),
                                       textShadow: isLyricsExpanded ? '1px 1px 3px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.8)' : 'none'
                                     }}
                                   >
@@ -1456,21 +1411,20 @@ useEffect(() => {
                        </div>
                     )}
                  </div>
-              </div>
             </motion.div>
           )}
         </AnimatePresence>
 
         <div className="flex flex-col mt-4">
 <div className="w-full flex flex-col gap-4">
-            <div className="border-2 border-white/40 bg-white/70 backdrop-blur-xl border border-gray-200 text-black shadow-[2px_2px_0_0_rgba(255,255,255,0.3)] p-3 mb-2 flex items-center justify-center">
-              <h3 className="text-xl font-semibold  tracking-widest text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]">Playlists</h3>
+            <div className="border-2 border-white/40 bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white shadow-[2px_2px_0_0_rgba(255,255,255,0.3)] p-3 mb-2 flex items-center justify-center">
+              <h3 className="text-xl font-medium tracking-wide  tracking-widest text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]">Playlists</h3>
             </div>
             {playlists.map(p => (
               <button 
                 key={p.id}
                 onClick={() => { setActivePlaylistId(p.id); setShowPlaylist(true); setHasSearched(false); setIsEditingPlaylist(false); }}
-                className={`w-full border-2 border-white/40 p-4 text-2xl font-semibold tracking-tight transition-all flex justify-between items-center ${showPlaylist && activePlaylistId === p.id ? 'bg-[#fa233b] text-white shadow-none translate-y-1 translate-x-1' : 'bg-white/70 backdrop-blur-xl border border-gray-200 text-black shadow-sm hover:translate-y-1 hover:translate-x-1 hover:shadow-sm'}`}
+                className={`w-full border-2 border-white/40 p-4 text-2xl font-medium tracking-wide tracking-tight transition-all flex justify-between items-center ${showPlaylist && activePlaylistId === p.id ? 'bg-[#D4FF00] text-[#000000] shadow-none translate-y-1 translate-x-1' : 'bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white shadow-sm hover:translate-y-1 hover:translate-x-1 hover:shadow-sm'}`}
               >
                 <span className="truncate pr-4 text-left">{p.name}</span>
                 <span className="bg-[#1d1d1f] text-white px-3 py-1 rounded-full text-sm shrink-0">{p.songs.length}</span>
@@ -1484,7 +1438,7 @@ useEffect(() => {
                   savePlaylists([...playlists, newP]);
                 }
               }}
-              className="w-full border border-gray-200 border-dashed p-4 text-xl font-semibold tracking-tight bg-white/70 backdrop-blur-xl border border-gray-200 text-black text-white hover:bg-white hover:text-black transition-colors"
+              className="w-full border border-[#222222] border-dashed p-4 text-xl font-medium tracking-wide tracking-tight bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white text-white hover:bg-[#000000] hover:text-white transition-colors"
             >
               + New Playlist
             </button>
@@ -1494,14 +1448,14 @@ useEffect(() => {
       </div>
 
       {/* RIGHT COLUMN - RESULTS & PLAYER */}
-      <div className="hidden md:flex w-full md:w-[50%] lg:w-[60%] relative bg-white/80 backdrop-blur-md border-l border-gray-200 text-[#1d1d1f] overflow-hidden flex-col min-h-[50vh] md:min-h-screen">
+      <div className="hidden md:flex w-full md:w-[50%] lg:w-[60%] relative bg-[#000000]/80 backdrop-blur-md border-l border-[#222222] text-[#F5F5F5] overflow-hidden flex-col min-h-[50vh] md:min-h-screen">
         
 
 
         {/* Animated Background Orbs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
           <motion.div 
-            className="absolute -top-[10%] -left-[10%] w-[500px] h-[500px] rounded-full bg-[#fa233b]/40 blur-[100px]"
+            className="absolute -top-[10%] -left-[10%] w-[500px] h-[500px] rounded-full bg-[#D4FF00]/40 blur-[100px]"
             animate={{ y: [0, -120, 50, 0], x: [0, 50, -50, 0], scale: [1, 1.2, 0.9, 1] }}
             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
           />
@@ -1526,10 +1480,10 @@ useEffect(() => {
             if (!activePlaylist) return null;
             return (
             <div className="flex flex-col gap-8 w-full max-w-4xl mx-auto pb-32">
-              <div className="flex flex-col gap-4 border-b-4 border-gray-200 pb-4">
+              <div className="flex flex-col gap-4 border-b-4 border-[#222222] pb-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-4xl font-semibold tracking-tight text-[#fa233b] truncate">{activePlaylist.name}</h3>
-                  <div className="flex gap-4 shrink-0">
+                  <h3 className="text-6xl md:text-8xl font-black tracking-tighter uppercase text-white truncate leading-none pb-2">{activePlaylist.name}</h3>
+                  <div className="flex flex-wrap gap-4 shrink-0 mt-4 md:mt-0">
                     <button 
                       onClick={() => {
                         const newName = prompt("Rename playlist:", activePlaylist.name);
@@ -1537,15 +1491,15 @@ useEffect(() => {
                           savePlaylists(playlists.map(p => p.id === activePlaylistId ? { ...p, name: newName } : p));
                         }
                       }}
-                      className="px-3 py-2 border-2 border-transparent hover:border-[#fa233b] transition-colors  font-bold text-sm"
+                      className="px-4 py-2 border-2 border-white/20 hover:border-[#D4FF00] hover:text-[#D4FF00] uppercase font-black text-xs tracking-widest transition-all"
                     >Rename</button>
                     <button 
                       onClick={() => setIsShuffleOn(!isShuffleOn)}
-                      className={`px-3 py-2 border-2 transition-colors  font-bold text-sm ${isShuffleOn ? 'border-[#fa233b] bg-[#fa233b] text-white' : 'border-transparent hover:border-[#fa233b]'}`}
+                      className={`px-4 py-2 border-2 uppercase font-black text-xs tracking-widest transition-all ${isShuffleOn ? 'border-[#D4FF00] bg-[#D4FF00] text-black shadow-[4px_4px_0_0_#FFF]' : 'border-white/20 hover:border-[#D4FF00] hover:text-[#D4FF00]'}`}
                     >Shuffle: {isShuffleOn ? 'ON' : 'OFF'}</button>
                     <button 
                       onClick={() => setIsEditingPlaylist(!isEditingPlaylist)}
-                      className={`px-3 py-2 border-2 transition-colors  font-bold text-sm ${isEditingPlaylist ? 'border-[#fa233b] bg-[#fa233b] text-white' : 'border-transparent hover:border-[#fa233b]'}`}
+                      className={`px-4 py-2 border-2 uppercase font-black text-xs tracking-widest transition-all ${isEditingPlaylist ? 'border-[#D4FF00] bg-[#D4FF00] text-black shadow-[4px_4px_0_0_#FFF]' : 'border-white/20 hover:border-[#D4FF00] hover:text-[#D4FF00]'}`}
                     >{isEditingPlaylist ? 'Done' : 'Edit'}</button>
                     <button 
                       onClick={() => {
@@ -1562,9 +1516,9 @@ useEffect(() => {
               </div>
               
               {activePlaylist.songs.length === 0 ? (
-                <p className="text-2xl font-bold  opacity-50">This playlist is empty. Add songs by clicking the heart icon!</p>
+                <p className="text-3xl font-black uppercase tracking-tighter  opacity-50">This playlist is empty. Add songs by clicking the heart icon!</p>
               ) : (
-                <div className="flex flex-col bg-white/70 backdrop-blur-xl border border-gray-200 text-black border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] overflow-hidden mb-6">
+                <div className="flex flex-col bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] overflow-hidden mb-6">
                   <div className="flex flex-col divide-y divide-white/10 p-2">
                     {activePlaylist.songs.map((song, index) => (
                       <div 
@@ -1610,12 +1564,12 @@ useEffect(() => {
               <div className="mt-8 flex flex-col gap-4 mb-24">
                 <button 
                   onClick={() => setShowInlineSearch(!showInlineSearch)}
-                  className="flex items-center gap-2 self-start hover:text-[#fa233b] transition-colors group"
+                  className="flex items-center gap-2 self-start hover:text-[#D4FF00] transition-colors group"
                 >
-                  <div className="w-8 h-8 rounded-full bg-white/20 group-hover:bg-[#fa233b] text-white flex items-center justify-center transition-colors">
-                    <span className="text-xl font-bold mb-1">+</span>
+                  <div className="w-8 h-8 rounded-full bg-[#000000]/20 group-hover:bg-[#D4FF00] text-[#000000] flex items-center justify-center transition-colors">
+                    <span className="text-2xl font-black uppercase tracking-tighter mb-1">+</span>
                   </div>
-                  <span className="text-lg font-semibold  tracking-widest drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] text-white group-hover:text-[#fa233b]">Add more songs</span>
+                  <span className="text-lg font-medium tracking-wide  tracking-widest drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] text-white group-hover:text-[#D4FF00]">Add more songs</span>
                 </button>
                 
                 <AnimatePresence>
@@ -1637,8 +1591,8 @@ useEffect(() => {
                         }}
                         className="w-full mt-2 group"
                       >
-                        <div className="border-2 border-white/40 bg-white/70 backdrop-blur-xl border border-gray-200 text-black shadow-[2px_2px_0_0_rgba(255,255,255,0.3)] group-focus-within:translate-y-px group-focus-within:translate-x-px group-focus-within:shadow-[0px_0px_0_0_#024230] transition-all duration-200">
-                           <div className="bg-black/50 text-white px-2 py-0.5 inline-block text-[10px] font-semibold  tracking-widest border-r-2 border-b-2 border-white/40 backdrop-blur-xl">Search</div>
+                        <div className="border-2 border-white/40 bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white shadow-[2px_2px_0_0_rgba(255,255,255,0.3)] group-focus-within:translate-y-px group-focus-within:translate-x-px group-focus-within:shadow-[0px_0px_0_0_#024230] transition-all duration-200">
+                           <div className="bg-black/50 text-white px-2 py-0.5 inline-block text-[10px] font-medium tracking-wide  tracking-widest border-r-2 border-b-2 border-white/40 backdrop-blur-xl">Search</div>
                            <input
                              type="text"
                              autoFocus
@@ -1658,7 +1612,7 @@ useEffect(() => {
                       )}
 
                       {inlineSearchResults.length > 0 && !isInlineSearching && (
-                        <div className="flex flex-col bg-white/70 backdrop-blur-xl border border-gray-200 text-black border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] overflow-hidden mb-6">
+                        <div className="flex flex-col bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] overflow-hidden mb-6">
                           <div className="flex flex-col divide-y divide-white/10 p-2">
                             {inlineSearchResults.map((song, i) => {
                               const alreadyInPlaylist = activePlaylist.songs.some(s => s.id === song.id);
@@ -1678,9 +1632,9 @@ useEffect(() => {
                                       if (alreadyInPlaylist) return;
                                       savePlaylists(playlists.map(p => p.id === activePlaylistId ? { ...p, songs: [...p.songs, song] } : p));
                                     }}
-                                    className={`shrink-0 mx-4 w-10 h-10 rounded-full flex items-center justify-center transition-all ${alreadyInPlaylist ? 'bg-[#fa233b]/20 text-[#fa233b] cursor-not-allowed' : 'bg-white/20 hover:bg-[#fa233b] text-white hover:scale-110 shadow-md'}`}
+                                    className={`shrink-0 mx-4 w-10 h-10 rounded-full flex items-center justify-center transition-all ${alreadyInPlaylist ? 'bg-[#D4FF00]/20 text-[#D4FF00] cursor-not-allowed' : 'bg-[#000000]/20 hover:bg-[#D4FF00] text-[#000000] hover:scale-110 shadow-md'}`}
                                   >
-                                    <span className="text-xl font-bold mb-1">{alreadyInPlaylist ? '✓' : '+'}</span>
+                                    <span className="text-2xl font-black uppercase tracking-tighter mb-1">{alreadyInPlaylist ? '✓' : '+'}</span>
                                   </button>
                                 </div>
                               );
@@ -1700,12 +1654,12 @@ useEffect(() => {
               
               {/* Worldwide Section */}
               <div className="flex flex-col gap-8">
-                <div className="flex items-center justify-between border-b-4 border-gray-200 pb-4 overflow-hidden">
+                <div className="flex items-center justify-between border-b-4 border-[#222222] pb-4 overflow-hidden">
                   <motion.h3 
                     initial={{ opacity: 0, x: -30 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
-                    className="text-3xl font-semibold tracking-tight text-white drop-shadow-xl"
+                    className="text-3xl font-medium tracking-wide tracking-tight text-white drop-shadow-xl"
                   >
                     Trending Worldwide
                   </motion.h3>
@@ -1716,7 +1670,7 @@ useEffect(() => {
                     <Loader2 className="w-12 h-12 animate-spin opacity-50" />
                   </div>
                 ) : (
-                  <div className="flex flex-col bg-white/70 backdrop-blur-xl border border-gray-200 text-black border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] overflow-hidden mb-6">
+                  <div className="flex flex-col bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] overflow-hidden mb-6">
                     <div className="flex flex-col divide-y divide-white/10 p-2">
                       {trendingWorldwide.map((song, index) => (
                       <SongBox 
@@ -1735,12 +1689,12 @@ useEffect(() => {
 
               {/* India Section */}
               <div className="flex flex-col gap-8">
-                <div className="flex items-center justify-between border-b-4 border-gray-200 pb-4 overflow-hidden">
+                <div className="flex items-center justify-between border-b-4 border-[#222222] pb-4 overflow-hidden">
                   <motion.h3 
                     initial={{ opacity: 0, x: -30 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.7, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
-                    className="text-3xl font-semibold tracking-tight text-white drop-shadow-xl"
+                    className="text-3xl font-medium tracking-wide tracking-tight text-white drop-shadow-xl"
                   >
                     Trending in India
                   </motion.h3>
@@ -1751,7 +1705,7 @@ useEffect(() => {
                     <Loader2 className="w-12 h-12 animate-spin opacity-50" />
                   </div>
                 ) : (
-                  <div className="flex flex-col bg-white/70 backdrop-blur-xl border border-gray-200 text-black border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] overflow-hidden mb-6">
+                  <div className="flex flex-col bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] overflow-hidden mb-6">
                     <div className="flex flex-col divide-y divide-white/10 p-2">
                       {trendingIndia.map((song, index) => (
                       <SongBox 
@@ -1771,17 +1725,17 @@ useEffect(() => {
             </div>
           ) : (
             <div className="flex flex-col gap-8 w-full max-w-2xl mx-auto pb-32">
-              <div className="flex items-center justify-between border-b-4 border-gray-200 pb-4">
-                <h3 className="text-3xl font-semibold tracking-tight">Results</h3>
+              <div className="flex items-center justify-between border-b-4 border-[#222222] pb-4">
+                <h3 className="text-3xl font-medium tracking-wide tracking-tight">Results</h3>
                 {isSearching && <Loader2 className="w-8 h-8 animate-spin" />}
               </div>
               
               {!isSearching && searchResults.length === 0 && (
-                <p className="text-2xl font-bold  opacity-50">No matches found.</p>
+                <p className="text-3xl font-black uppercase tracking-tighter  opacity-50">No matches found.</p>
               )}
 
               {!isSearching && searchResults.length > 0 && (
-                <div className="flex flex-col bg-white/70 backdrop-blur-xl border border-gray-200 text-black border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] overflow-hidden mb-6">
+                <div className="flex flex-col bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] overflow-hidden mb-6">
                   <div className="flex flex-col divide-y divide-white/10 p-2">
                     {searchResults.map((song, index) => (
                       <SongBox 
@@ -1800,7 +1754,7 @@ useEffect(() => {
           )}
           
           <div className="w-full flex justify-center pt-12 pb-24 mt-auto opacity-30 hover:opacity-100 transition-opacity">
-            <span className="text-xs font-semibold tracking-[0.4em]  text-white drop-shadow-md">
+            <span className="text-xs font-medium tracking-wide tracking-[0.4em]  text-white drop-shadow-md">
               Developed by Sarthak Avhad
             </span>
           </div>
@@ -1815,27 +1769,27 @@ useEffect(() => {
         <div className="flex-1 overflow-y-auto pb-48 px-4 scrollbar-hide pt-12">
           {mobileTab === "home" && (
             <div className="flex flex-col gap-8">
-              <h1 className="text-3xl font-bold tracking-tight">Listen Now</h1>
+              <h1 className="text-5xl font-black uppercase tracking-tighter tracking-tight">Listen Now</h1>
               
               {/* Trending Worldwide */}
               <div className="flex flex-col gap-4">
-                <h2 className="text-xl font-bold">Trending Worldwide</h2>
+                <h2 className="text-2xl font-black uppercase tracking-tighter">Trending Worldwide</h2>
                 <div className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide snap-x">
                   {trendingWorldwide.length === 0 ? (
-                     <div className="flex justify-center py-8 w-full"><Loader2 className="w-8 h-8 animate-spin text-[#fa233b]" /></div>
+                     <div className="flex justify-center py-8 w-full"><Loader2 className="w-8 h-8 animate-spin text-[#D4FF00]" /></div>
                   ) : trendingWorldwide.map(song => (
                     <div key={song.id} className="min-w-[150px] max-w-[150px] flex flex-col gap-2 snap-start relative" onClick={() => playSong(song)}>
                       <div className="relative w-[150px] h-[150px]">
-                        <img src={song.image} className="w-full h-full rounded-xl object-cover shadow-sm" />
+                        <img src={song.image} className="w-full h-full rounded-[2rem] object-cover shadow-sm" />
                         <button 
                           onClick={(e) => { e.stopPropagation(); togglePlaylistSong(song, e); }}
                           className="absolute top-2 right-2 p-1.5 bg-black/40 backdrop-blur-md rounded-full text-white z-10"
                         >
-                          <Heart className={`w-4 h-4 ${playlists.some(p => p.songs.some(s => s.id === song.id)) ? 'fill-[#fa233b] text-[#fa233b]' : 'text-white'}`} />
+                          <Heart className={`w-4 h-4 ${playlists.some(p => p.songs.some(s => s.id === song.id)) ? 'fill-[#D4FF00] text-[#D4FF00]' : 'text-white'}`} />
                         </button>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-sm font-semibold line-clamp-2 leading-tight">{song.title}</span>
+                        <span className="text-sm font-medium tracking-wide line-clamp-2 leading-tight">{song.title}</span>
                         <span className="text-xs text-white/60 line-clamp-2 leading-tight">{song.artist}</span>
                       </div>
                     </div>
@@ -1845,23 +1799,23 @@ useEffect(() => {
 
               {/* Trending India */}
               <div className="flex flex-col gap-4">
-                <h2 className="text-xl font-bold">Trending in India</h2>
+                <h2 className="text-2xl font-black uppercase tracking-tighter">Trending in India</h2>
                 <div className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide snap-x">
                   {trendingIndia.length === 0 ? (
-                     <div className="flex justify-center py-8 w-full"><Loader2 className="w-8 h-8 animate-spin text-[#fa233b]" /></div>
+                     <div className="flex justify-center py-8 w-full"><Loader2 className="w-8 h-8 animate-spin text-[#D4FF00]" /></div>
                   ) : trendingIndia.map(song => (
                     <div key={song.id} className="min-w-[150px] max-w-[150px] flex flex-col gap-2 snap-start relative" onClick={() => playSong(song)}>
                       <div className="relative w-[150px] h-[150px]">
-                        <img src={song.image} className="w-full h-full rounded-xl object-cover shadow-sm" />
+                        <img src={song.image} className="w-full h-full rounded-[2rem] object-cover shadow-sm" />
                         <button 
                           onClick={(e) => { e.stopPropagation(); togglePlaylistSong(song, e); }}
                           className="absolute top-2 right-2 p-1.5 bg-black/40 backdrop-blur-md rounded-full text-white z-10"
                         >
-                          <Heart className={`w-4 h-4 ${playlists.some(p => p.songs.some(s => s.id === song.id)) ? 'fill-[#fa233b] text-[#fa233b]' : 'text-white'}`} />
+                          <Heart className={`w-4 h-4 ${playlists.some(p => p.songs.some(s => s.id === song.id)) ? 'fill-[#D4FF00] text-[#D4FF00]' : 'text-white'}`} />
                         </button>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-sm font-semibold line-clamp-2 leading-tight">{song.title}</span>
+                        <span className="text-sm font-medium tracking-wide line-clamp-2 leading-tight">{song.title}</span>
                         <span className="text-xs text-white/60 line-clamp-2 leading-tight">{song.artist}</span>
                       </div>
                     </div>
@@ -1873,7 +1827,7 @@ useEffect(() => {
 
           {mobileTab === "search" && (
             <div className="flex flex-col gap-6">
-              <h1 className="text-3xl font-bold tracking-tight">Search</h1>
+              <h1 className="text-5xl font-black uppercase tracking-tighter tracking-tight">Search</h1>
               <div className="relative">
                 <Search className="absolute left-3 top-3.5 w-5 h-5 text-white/50" />
                 <input 
@@ -1906,14 +1860,14 @@ useEffect(() => {
                       executeFullSearch();
                     }
                   }}
-                  className="w-full bg-[#1C1C1E] rounded-xl py-3 pl-10 pr-4 text-base font-semibold outline-none focus:bg-[#2C2C2E] transition-colors"
+                  className="w-full bg-[#111111] rounded-[2rem] py-3 pl-10 pr-4 text-base font-medium tracking-wide outline-none focus:bg-[#1A1A1A] transition-colors"
                 />
                 {songSuggestions.length > 0 && !hasSearched && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-[#2C2C2E]/95 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden z-50 shadow-2xl max-h-[40vh] overflow-y-auto">
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-[#1A1A1A]/95 backdrop-blur-md border border-white/10 rounded-[2rem] overflow-hidden z-50 shadow-2xl max-h-[40vh] overflow-y-auto">
                     {songSuggestions.map((s, i) => (
                       <div 
                         key={i} 
-                        className="px-4 py-3 flex items-center gap-3 border-b border-white/5 last:border-none active:bg-white/10"
+                        className="px-4 py-3 flex items-center gap-3 border-b border-white/5 last:border-none active:bg-[#000000]/10"
                         onClick={() => {
                           setSongQuery(s);
                           setSongSuggestions([]);
@@ -1934,19 +1888,19 @@ useEffect(() => {
               </div>
               
               {isSearching ? (
-                <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-[#fa233b]" /></div>
+                <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-[#D4FF00]" /></div>
               ) : searchResults.length > 0 ? (
                 <div className="flex flex-col gap-2 mt-4">
-                  <h2 className="text-xl font-bold mb-2">Results</h2>
+                  <h2 className="text-2xl font-black uppercase tracking-tighter mb-2">Results</h2>
                   {searchResults.map((song, i) => (
-                    <div key={song.id} className="flex items-center gap-3 active:bg-white/10 p-2 rounded-lg" onClick={(e) => playSong(song, true, "radio", undefined, e)}>
-                      <img src={song.image} className="w-12 h-12 rounded-md object-cover" />
+                    <div key={song.id} className="flex items-center gap-3 active:bg-[#000000]/10 p-2 rounded-[1rem]" onClick={(e) => playSong(song, true, "radio", undefined, e)}>
+                      <img src={song.image} className="w-12 h-12 rounded-none object-cover" />
                       <div className="flex flex-col flex-1 overflow-hidden">
-                        <span className="text-base font-semibold truncate">{song.title}</span>
+                        <span className="text-base font-medium tracking-wide truncate">{song.title}</span>
                         <span className="text-sm text-white/50 truncate">{song.artist}</span>
                       </div>
                       <button onClick={(e) => { e.stopPropagation(); togglePlaylistSong(song, e); }} className="p-2">
-                        <Heart className={`w-5 h-5 ${playlists.some(p => p.songs.some(s => s.id === song.id)) ? 'fill-[#fa233b] text-[#fa233b]' : 'text-white/50'}`} />
+                        <Heart className={`w-5 h-5 ${playlists.some(p => p.songs.some(s => s.id === song.id)) ? 'fill-[#D4FF00] text-[#D4FF00]' : 'text-white/50'}`} />
                       </button>
                     </div>
                   ))}
@@ -1957,19 +1911,19 @@ useEffect(() => {
 
           {mobileTab === "library" && (
             <div className="flex flex-col gap-6">
-              <h1 className="text-3xl font-bold tracking-tight">Library</h1>
-              <div className="flex flex-col bg-[#1C1C1E] rounded-xl overflow-hidden">
+              <h1 className="text-5xl font-black uppercase tracking-tighter tracking-tight">Library</h1>
+              <div className="flex flex-col bg-[#111111] rounded-[2rem] overflow-hidden">
                 {playlists.map(p => (
-                  <div key={p.id} className="flex items-center gap-4 p-4 border-b border-white/5 active:bg-white/10" onClick={() => { setActivePlaylistId(p.id); setShowPlaylist(true); }}>
-                    <ListMusic className="w-6 h-6 text-[#fa233b]" />
+                  <div key={p.id} className="flex items-center gap-4 p-4 border-b border-white/5 active:bg-[#000000]/10" onClick={() => { setActivePlaylistId(p.id); setShowPlaylist(true); }}>
+                    <ListMusic className="w-6 h-6 text-[#D4FF00]" />
                     <div className="flex flex-col">
-                      <span className="text-lg font-semibold">{p.name}</span>
+                      <span className="text-lg font-medium tracking-wide">{p.name}</span>
                       <span className="text-xs text-white/50">{p.songs.length} songs</span>
                     </div>
                   </div>
                 ))}
                 <div 
-                  className="flex items-center gap-4 p-4 active:bg-white/10 text-[#fa233b] cursor-pointer" 
+                  className="flex items-center gap-4 p-4 active:bg-[#000000]/10 text-[#D4FF00] cursor-pointer" 
                   onClick={() => {
                     const name = prompt("Enter library name:");
                     if (name) {
@@ -1978,17 +1932,17 @@ useEffect(() => {
                   }}
                 >
                   <div className="w-6 h-6 flex items-center justify-center font-bold text-xl">+</div>
-                  <span className="text-lg font-semibold">New Library</span>
+                  <span className="text-lg font-medium tracking-wide">New Library</span>
                 </div>
               </div>
               
               {showPlaylist && playlists.find(p => p.id === activePlaylistId) && (
                 <div className="flex flex-col gap-2 mt-4">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold">{playlists.find(p => p.id === activePlaylistId)?.name}</h2>
+                    <h2 className="text-2xl font-black uppercase tracking-tighter">{playlists.find(p => p.id === activePlaylistId)?.name}</h2>
                     <button 
                       onClick={() => setShowInlineSearch(!showInlineSearch)}
-                      className="px-3 py-1 bg-[#fa233b] text-white rounded-full text-sm font-bold"
+                      className="px-3 py-1 bg-[#D4FF00] text-[#000000] rounded-full text-sm font-bold"
                     >
                       {showInlineSearch ? "Close" : "+ Add Songs"}
                     </button>
@@ -2011,7 +1965,7 @@ useEffect(() => {
                           placeholder="Search for songs to add..."
                           value={inlineSearchQuery}
                           onChange={(e) => setInlineSearchQuery(e.target.value)}
-                          className="w-full bg-[#1C1C1E] text-white px-4 py-3 rounded-xl outline-none"
+                          className="w-full bg-[#111111] text-white px-4 py-3 rounded-[2rem] outline-none"
                         />
                       </form>
 
@@ -2026,10 +1980,10 @@ useEffect(() => {
                            {inlineSearchResults.map((song) => {
                              const alreadyInPlaylist = playlists.find(p => p.id === activePlaylistId)?.songs.some(s => s.id === song.id);
                              return (
-                               <div key={song.id} className="flex items-center gap-3 bg-[#1C1C1E] p-2 rounded-lg">
-                                 <img src={song.image} className="w-12 h-12 rounded-md object-cover" />
+                               <div key={song.id} className="flex items-center gap-3 bg-[#111111] p-2 rounded-[1rem]">
+                                 <img src={song.image} className="w-12 h-12 rounded-none object-cover" />
                                  <div className="flex flex-col flex-1 overflow-hidden">
-                                   <span className="text-sm font-semibold truncate">{song.title}</span>
+                                   <span className="text-sm font-medium tracking-wide truncate">{song.title}</span>
                                    <span className="text-xs text-white/50 truncate">{song.artist}</span>
                                  </div>
                                  <button 
@@ -2037,7 +1991,7 @@ useEffect(() => {
                                      if (alreadyInPlaylist) return;
                                      savePlaylists(playlists.map(p => p.id === activePlaylistId ? { ...p, songs: [...p.songs, song] } : p));
                                    }}
-                                   className={`p-2 rounded-full shrink-0 ${alreadyInPlaylist ? 'bg-[#fa233b]/20 text-[#fa233b]' : 'bg-white/10 text-white hover:bg-[#fa233b]'}`}
+                                   className={`p-2 rounded-full shrink-0 ${alreadyInPlaylist ? 'bg-[#D4FF00]/20 text-[#D4FF00]' : 'bg-[#000000]/10 text-white hover:bg-[#D4FF00]'}`}
                                  >
                                    {alreadyInPlaylist ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                                  </button>
@@ -2050,14 +2004,14 @@ useEffect(() => {
                   )}
 
                   {playlists.find(p => p.id === activePlaylistId)?.songs.map((song, i) => (
-                    <div key={song.id} className="flex items-center gap-3 active:bg-white/10 p-2 rounded-lg" onClick={(e) => playSong(song, true, "playlist", undefined, e)}>
-                      <img src={song.image} className="w-12 h-12 rounded-md object-cover" />
+                    <div key={song.id} className="flex items-center gap-3 active:bg-[#000000]/10 p-2 rounded-[1rem]" onClick={(e) => playSong(song, true, "playlist", undefined, e)}>
+                      <img src={song.image} className="w-12 h-12 rounded-none object-cover" />
                       <div className="flex flex-col flex-1 overflow-hidden">
-                        <span className="text-base font-semibold truncate">{song.title}</span>
+                        <span className="text-base font-medium tracking-wide truncate">{song.title}</span>
                         <span className="text-sm text-white/50 truncate">{song.artist}</span>
                       </div>
                       <button onClick={(e) => { e.stopPropagation(); togglePlaylistSong(song, e); }} className="p-2">
-                        <Heart className={`w-5 h-5 ${playlists.some(p => p.songs.some(s => s.id === song.id)) ? 'fill-[#fa233b] text-[#fa233b]' : 'text-white/50'}`} />
+                        <Heart className={`w-5 h-5 ${playlists.some(p => p.songs.some(s => s.id === song.id)) ? 'fill-[#D4FF00] text-[#D4FF00]' : 'text-white/50'}`} />
                       </button>
                     </div>
                   ))}
@@ -2069,36 +2023,57 @@ useEffect(() => {
 
         {/* Mini Player */}
         {currentSong && (
-          <div className="absolute bottom-[88px] left-2 right-2 bg-[#2C2C2E]/90 backdrop-blur-md rounded-xl p-2 flex items-center gap-3 shadow-lg z-40 border border-white/5" onClick={() => setShowMobilePlayer(true)}>
-            <img src={currentSong.image} className="w-12 h-12 rounded-lg object-cover shadow-sm" />
+          <div className="absolute bottom-[100px] left-4 right-4 bg-[#0A0A0A] backdrop-blur-2xl p-2 flex items-center gap-3 shadow-[4px_4px_0_0_#D4FF00] z-40 border-l-2 border-b-2 border-t border-r border-[#D4FF00] rounded-none transition-all active:translate-y-1 active:translate-x-1 active:shadow-[2px_2px_0_0_#D4FF00]" onClick={() => setShowMobilePlayer(true)}>
+            <img src={currentSong.image} className="w-12 h-12 rounded-none object-cover shadow-sm border border-white/20" />
             <div className="flex flex-col flex-1 overflow-hidden">
-              <span className="text-sm font-semibold truncate">{currentSong.title}</span>
-              <span className="text-xs text-white/60 truncate">{currentSong.artist}</span>
+              <span className="text-sm font-black uppercase tracking-widest truncate text-white">{currentSong.title}</span>
+              <span className="text-[10px] uppercase font-bold text-white/50 truncate">{currentSong.artist}</span>
             </div>
             <div className="flex items-center gap-4 pr-2" onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => togglePlay()}>
-                {isPlaying ? <Pause className="w-6 h-6 fill-white text-white" /> : <Play className="w-6 h-6 fill-white text-white" />}
+              <button onClick={() => togglePlay()} className="relative w-6 h-6 flex items-center justify-center transition-transform duration-200 active:scale-75">
+                <AnimatePresence initial={false}>
+                  {isPlaying ? (
+                    <motion.div
+                      key="pause"
+                      initial={{ opacity: 0, scale: 0.2, rotate: -90 }}
+                      animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                      exit={{ opacity: 0, scale: 0.2, rotate: 90 }}
+                      transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 20 }}
+                      className="absolute inset-0 flex items-center justify-center"
+                    >
+                      <Pause className="w-6 h-6 fill-white text-white" />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="play"
+                      initial={{ opacity: 0, scale: 0.2, rotate: -90 }}
+                      animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                      exit={{ opacity: 0, scale: 0.2, rotate: 90 }}
+                      transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 20 }}
+                      className="absolute inset-0 flex items-center justify-center"
+                    >
+                      <Play className="w-6 h-6 fill-white text-white" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </button>
-              <button onClick={() => playNextSong()}>
-                <SkipForward className="w-6 h-6 fill-white text-white" />
+              <button onClick={() => playNextSong()} className="transition-transform duration-200 active:scale-75">
+                <SkipForward className="w-6 h-6 fill-white text-white transition-all duration-300" />
               </button>
             </div>
           </div>
         )}
 
-        {/* Bottom Tab Bar */}
-        <div className="absolute bottom-0 left-0 right-0 h-[84px] bg-[#1C1C1E]/80 backdrop-blur-md border-t border-white/10 flex justify-around items-start pt-3 pb-8 z-30">
-          <button aria-label="Listen Now" onClick={() => setMobileTab("home")} className={`flex flex-col items-center gap-1 w-20 ${mobileTab === "home" ? "text-[#fa233b]" : "text-white/50"}`}>
-            <Home className={`w-6 h-6 ${mobileTab === "home" ? "fill-[#fa233b]" : ""}`} />
-            
+        {/* Floating Bottom Dock */}
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm h-16 bg-[#000000]/90 backdrop-blur-2xl border border-[#222] rounded-none shadow-[6px_6px_0_0_#D4FF00] flex justify-around items-center px-4 z-30">
+          <button aria-label="Listen Now" onClick={() => setMobileTab("home")} className={`flex flex-col items-center justify-center w-12 h-12 transition-all duration-300 ease-out active:scale-90 ${mobileTab === "home" ? "bg-[#D4FF00] text-[#000]" : "text-white/50 hover:text-white"}`}>
+            <Home className={`w-5 h-5 transition-colors duration-300 ${mobileTab === "home" ? "fill-[#000]" : ""}`} />
           </button>
-          <button aria-label="Search" onClick={() => setMobileTab("search")} className={`flex flex-col items-center gap-1 w-20 ${mobileTab === "search" ? "text-[#fa233b]" : "text-white/50"}`}>
-            <Search className="w-6 h-6" />
-            
+          <button aria-label="Search" onClick={() => setMobileTab("search")} className={`flex flex-col items-center justify-center w-12 h-12 transition-all duration-300 ease-out active:scale-90 ${mobileTab === "search" ? "bg-[#D4FF00] text-[#000]" : "text-white/50 hover:text-white"}`}>
+            <Search className={`w-5 h-5 transition-colors duration-300`} />
           </button>
-          <button aria-label="Library" onClick={() => setMobileTab("library")} className={`flex flex-col items-center gap-1 w-20 ${mobileTab === "library" ? "text-[#fa233b]" : "text-white/50"}`}>
-            <ListMusic className={`w-6 h-6 ${mobileTab === "library" ? "fill-[#fa233b]" : ""}`} />
-            
+          <button aria-label="Library" onClick={() => setMobileTab("library")} className={`flex flex-col items-center justify-center w-12 h-12 transition-all duration-300 ease-out active:scale-90 ${mobileTab === "library" ? "bg-[#D4FF00] text-[#000]" : "text-white/50 hover:text-white"}`}>
+            <ListMusic className={`w-5 h-5 transition-colors duration-300 ${mobileTab === "library" ? "fill-[#000]" : ""}`} />
           </button>
         </div>
 
@@ -2122,18 +2097,18 @@ useEffect(() => {
               }}
               className="fixed inset-0 z-50 flex flex-col bg-black overflow-hidden"
             >
-              {/* Animated Blurred Background matching current song */}
-              <div className="absolute inset-0 z-0">
-                <img src={currentSong.image} className="w-full h-full object-cover opacity-60 blur-3xl scale-125 saturate-150" />
-                <div className="absolute inset-0 bg-black/60" />
+              {/* Cinematic Blurred Ambient Background */}
+              <div className="absolute inset-0 z-0 opacity-40 mix-blend-screen pointer-events-none transition-all duration-1000">
+                <img src={currentSong.image} className="w-full h-full object-cover blur-[80px] scale-150 transform translate-y-10" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
               </div>
               
-              <div className="relative z-10 flex flex-col h-full px-6 pt-4 pb-12 overflow-y-auto scrollbar-hide">
+              <div className="relative z-10 flex flex-col h-full px-8 pt-4 pb-12 overflow-y-auto scrollbar-hide">
                 <div 
-                  className="flex justify-center mb-6 touch-none"
+                  className="flex justify-center mb-8 touch-none"
                   onPointerDown={(e) => dragControls.start(e)}
                 >
-                  <div className="w-10 h-1.5 bg-white/30 rounded-full cursor-grab active:cursor-grabbing" />
+                  <div className="w-12 h-1.5 bg-white/20 rounded-full cursor-grab active:cursor-grabbing" />
                 </div>
                 
                 {/* Album Art OR Lyrics */}
@@ -2143,19 +2118,19 @@ useEffect(() => {
                     onWheel={handleUserInteraction}
                     onTouchMove={handleUserInteraction}
                     onMouseDown={handleUserInteraction}
-                    className="flex-1 overflow-y-auto overflow-x-hidden relative scrollbar-hide scroll-smooth mt-2 mb-6 [mask-image:linear-gradient(to_bottom,transparent,black_10%,black_90%,transparent)]"
+                    className="flex-1 overflow-y-auto overflow-x-hidden relative scrollbar-hide scroll-smooth mt-2 mb-8 [mask-image:linear-gradient(to_bottom,transparent,black_10%,black_90%,transparent)]"
                   >
                     {lyricsLoading ? (
-                       <div className="w-full h-full flex items-center justify-center">
-                         <Loader2 className="w-8 h-8 animate-spin text-white" />
+                       <div className="w-full h-full flex items-center justify-center opacity-50">
+                         <Loader2 className="w-10 h-10 animate-spin text-white" />
                        </div>
                     ) : lyrics.length === 0 ? (
-                       <div className="w-full h-full flex flex-col items-center justify-center opacity-50 text-center px-4">
-                         <Info className="w-12 h-12 mb-4" />
-                         <span className="text-lg font-bold">No Lyrics Available</span>
+                       <div className="w-full h-full flex flex-col items-center justify-center opacity-40 text-center px-4">
+                         <Info className="w-16 h-16 mb-4" />
+                         <span className="text-xl font-medium tracking-wide">No Lyrics Available</span>
                        </div>
                     ) : (
-                       <div className="flex flex-col gap-6 w-full px-2 py-[40vh]">
+                       <div className="flex flex-col gap-8 w-full px-4 py-[40vh]">
                          {lyrics.map((line, i) => {
                             const activeIndex = lyrics.reduce((acc, l, idx) => (progress >= l.time ? idx : acc), 0);
                             const isActive = i === activeIndex;
@@ -2172,12 +2147,12 @@ useEffect(() => {
                                   }
                                 }}
                                 animate={{ 
-                                  opacity: isActive ? 1 : (isPast ? 0.3 : 0.5), 
+                                  opacity: isActive ? 1 : (isPast ? 0.3 : 0.4), 
                                   scale: isActive ? 1.05 : 1,
-                                  filter: isActive ? 'blur(0px)' : 'blur(1px)'
+                                  filter: isActive ? 'blur(0px)' : 'blur(2px)'
                                 }}
                                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                className="cursor-pointer font-bold text-2xl md:text-3xl origin-left leading-tight"
+                                className="cursor-pointer font-bold text-3xl md:text-4xl origin-left leading-snug tracking-tight"
                               >
                                 {line.words ? line.words.map((w, wIdx) => {
                                   const isWordActive = isActive && progress >= w.time;
@@ -2202,102 +2177,118 @@ useEffect(() => {
                     )}
                   </div>
                 ) : (
-                  <div 
-                    className="w-full aspect-square shrink-0 rounded-xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.5)] mb-8 mt-2 transition-all duration-500 ease-out touch-none cursor-grab active:cursor-grabbing"
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    className="w-full aspect-square shrink-0 rounded-3xl overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] border border-white/10 mb-10 mt-2 transition-all duration-500 ease-out touch-none cursor-grab active:cursor-grabbing"
                     onPointerDown={(e) => dragControls.start(e)}
                   >
-                    <img src={currentSong.image} className="w-full h-full object-cover pointer-events-none" />
-                  </div>
+                    <img src={currentSong.image} className="w-full h-full object-cover pointer-events-none" alt="Album Art" />
+                  </motion.div>
                 )}
                 
-                <div className={`flex justify-between items-end mb-6 ${isLyricsExpanded ? 'shrink-0' : ''}`}>
+                <div className={`flex justify-between items-end mb-8 ${isLyricsExpanded ? 'shrink-0' : ''}`}>
                   <div className="flex flex-col flex-1 overflow-hidden pr-4">
-                    <span className="text-2xl font-bold truncate text-white">{currentSong.title}</span>
-                    <span className="text-lg text-white/70 truncate">{currentSong.artist}</span>
+                    <span className="text-3xl font-bold tracking-tight truncate text-white mb-1">{currentSong.title}</span>
+                    <span className="text-lg font-medium text-white/50 truncate">{currentSong.artist}</span>
                   </div>
-                  <div className="flex items-center gap-4">
-                     <button onClick={(e) => togglePlaylistSong(currentSong, e)}>
-                       <Heart className={`w-7 h-7 ${playlists.some(p => p.songs.some(s => s.id === currentSong.id)) ? 'fill-[#fa233b] text-[#fa233b]' : 'text-white'}`} />
+                  <div className="flex items-center gap-4 shrink-0">
+                     <button onClick={(e) => togglePlaylistSong(currentSong, e)} className="active:scale-90 transition-transform p-2">
+                       <Heart className={`w-7 h-7 ${playlists.some(p => p.songs.some(s => s.id === currentSong.id)) ? 'fill-[#1ED760] text-[#1ED760]' : 'text-white'}`} />
                      </button>
                   </div>
                 </div>
                 
-                {/* Progress Bar */}
-                <div className="flex flex-col gap-2 mb-8 mt-4">
-                  <input
-                    type="range"
-                    min="0"
-                    max={duration || 100}
-                    step="0.01"
-                    value={progress || 0}
-                    onChange={(e) => {
-                      if (!currentSong || duration === 0) return;
-                      const newTime = parseFloat(e.target.value);
-                      setProgress(newTime);
-                      if (useNativeAudio && audioRef.current) {
-                        audioRef.current.currentTime = newTime;
-                      }
-                      if (playerRef.current) {
-                        playerRef.current.seekTo(newTime, true);
-                      }
-                    }}
-                    className="w-full h-1.5 rounded-full appearance-none outline-none bg-white/20 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
-                    style={{
-                      background: `linear-gradient(to right, rgba(255,255,255,0.8) ${duration ? (progress / duration) * 100 : 0}%, rgba(255,255,255,0.2) ${duration ? (progress / duration) * 100 : 0}%)`
-                    }}
-                  />
-                  <div className="flex justify-between text-xs text-white/50 font-medium">
+                {/* Premium Progress Bar */}
+                <div className="flex flex-col gap-3 mb-10 group/timeline">
+                  <div className="relative w-full h-1.5 bg-white/10 rounded-full overflow-hidden cursor-pointer">
+                    <input
+                      type="range"
+                      min="0"
+                      max={duration || 100}
+                      step="0.01"
+                      value={progress || 0}
+                      onChange={(e) => {
+                        if (!currentSong || duration === 0) return;
+                        const newTime = parseFloat(e.target.value);
+                        setProgress(newTime);
+                        if (useNativeAudio && audioRef.current) {
+                          audioRef.current.currentTime = newTime;
+                        }
+                        if (playerRef.current) {
+                          playerRef.current.seekTo(newTime, true);
+                        }
+                      }}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                    />
+                    <motion.div 
+                      className="absolute top-0 left-0 h-full bg-white rounded-full transition-all ease-linear z-10 pointer-events-none"
+                      style={{ width: `${duration ? (progress / duration) * 100 : 0}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[11px] font-medium tracking-widest text-white/40 uppercase">
                     <span>{Math.floor(progress / 60)}:{(Math.floor(progress % 60)).toString().padStart(2, '0')}</span>
                     <span>-{Math.floor((duration - progress) / 60)}:{(Math.floor((duration - progress) % 60)).toString().padStart(2, '0')}</span>
                   </div>
                 </div>
                 
-                {/* Controls */}
-                <div className="flex justify-between items-center px-2 mb-4">
-                  <button className="text-white/50"><ListMusic className="w-5 h-5" /></button>
-                  <div className="flex items-center gap-8">
-                    <button onClick={() => playPreviousSong()}><SkipBack className="w-10 h-10 fill-white text-white" /></button>
-                    <button onClick={() => togglePlay()}>
-                      {isPlaying ? <Pause className="w-14 h-14 fill-white text-white" /> : <Play className="w-14 h-14 fill-white text-white ml-2" />}
+                {/* Main Controls */}
+                <div className="flex justify-between items-center px-2 mb-10">
+                  <button onClick={() => setIsShuffleOn(!isShuffleOn)} className={`transition-colors active:scale-90 p-2 ${isShuffleOn ? 'text-[#1ED760]' : 'text-white/40 hover:text-white'}`}><Shuffle className="w-6 h-6" /></button>
+                  <div className="flex items-center gap-6">
+                    <button onClick={() => playPreviousSong()} className={`transition-transform duration-200 active:scale-90 p-2 ${playbackHistory.length === 0 ? 'opacity-30 cursor-not-allowed' : ''}`} disabled={playbackHistory.length === 0}>
+                      <SkipBack className="w-10 h-10 fill-white text-white" />
                     </button>
-                    <button onClick={() => playNextSong()}><SkipForward className="w-10 h-10 fill-white text-white" /></button>
+                    <button onClick={() => togglePlay()} className="relative w-20 h-20 flex items-center justify-center transition-transform duration-200 active:scale-95 bg-white rounded-full text-black shadow-[0_10px_30px_rgba(255,255,255,0.2)]">
+                      <AnimatePresence initial={false}>
+                        {isPlaying ? (
+                          <motion.div
+                            key="pause"
+                            initial={{ opacity: 0, scale: 0.2, rotate: -90 }}
+                            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                            exit={{ opacity: 0, scale: 0.2, rotate: 90 }}
+                            transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 20 }}
+                            className="absolute inset-0 flex items-center justify-center"
+                          >
+                            <Pause className="w-8 h-8 fill-black" />
+                          </motion.div>
+                        ) : (
+                          <motion.div
+                            key="play"
+                            initial={{ opacity: 0, scale: 0.2, rotate: -90 }}
+                            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                            exit={{ opacity: 0, scale: 0.2, rotate: 90 }}
+                            transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 20 }}
+                            className="absolute inset-0 flex items-center justify-center pl-2"
+                          >
+                            <Play className="w-8 h-8 fill-black" />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </button>
+                    <button onClick={() => playNextSong()} className={`transition-transform duration-200 active:scale-90 p-2 ${relatedSongs.length === 0 ? 'opacity-30 cursor-not-allowed' : ''}`} disabled={relatedSongs.length === 0}>
+                      <SkipForward className="w-10 h-10 fill-white text-white" />
+                    </button>
                   </div>
-                  <button onClick={() => setIsLyricsExpanded(!isLyricsExpanded)} className={isLyricsExpanded ? 'text-[#fa233b]' : 'text-white/50'}>
-                    <Quote className="w-5 h-5 fill-current" />
-                  </button>
+                  <button className="text-white/40 hover:text-white transition-colors active:scale-90 p-2"><Repeat className="w-6 h-6" /></button>
                 </div>
 
-                {/* Mini Lyrics Preview (When not expanded) */}
-                {!isLyricsExpanded && lyrics.length > 0 && (
-                  <div 
-                    onClick={() => setIsLyricsExpanded(true)}
-                    className="mt-2 bg-[#2C2C2E]/60 backdrop-blur-md rounded-2xl p-4 flex flex-col gap-1 relative cursor-pointer shadow-lg active:scale-95 transition-transform"
-                  >
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs font-bold  tracking-widest text-white/70">Lyrics</span>
-                      <div className="bg-black/20 p-1.5 rounded-full">
-                         <Maximize2 className="w-3 h-3 text-white/70" />
-                      </div>
-                    </div>
-                    <div className="flex flex-col min-h-[60px] justify-start mask-image:linear-gradient(to_bottom,black_60%,transparent)]">
-                      {(() => {
-                        const activeIndex = lyrics.reduce((acc, l, idx) => (progress >= l.time ? idx : acc), 0);
-                        const currentLine = lyrics[activeIndex];
-                        const nextLine = lyrics[activeIndex + 1];
-                        return (
-                          <>
-                            <span className="text-white font-bold text-lg leading-tight line-clamp-2">
-                              {currentLine ? currentLine.text : "♪"}
-                            </span>
-                            <span className="text-white/50 font-semibold text-base leading-tight truncate mt-1">
-                              {nextLine ? nextLine.text : ""}
-                            </span>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                )}
+                {/* Secondary / Tabs */}
+                <div className="flex items-center justify-center gap-12 border-t border-white/10 pt-8 mt-auto">
+                  <button className="flex flex-col items-center gap-2 text-white/40 hover:text-white transition-colors">
+                    <ListMusic className="w-5 h-5" />
+                    <span className="text-[10px] uppercase tracking-widest font-bold">Up Next</span>
+                  </button>
+                  <button onClick={() => setIsLyricsExpanded(!isLyricsExpanded)} className={`flex flex-col items-center gap-2 transition-colors ${isLyricsExpanded ? 'text-white' : 'text-white/40 hover:text-white'}`}>
+                    <Quote className="w-5 h-5" />
+                    <span className="text-[10px] uppercase tracking-widest font-bold">Lyrics</span>
+                  </button>
+                  <button className="flex flex-col items-center gap-2 text-white/40 hover:text-white transition-colors">
+                    <Share className="w-5 h-5" />
+                    <span className="text-[10px] uppercase tracking-widest font-bold">Related</span>
+                  </button>
+                </div>
 
               </div>
             </motion.div>
