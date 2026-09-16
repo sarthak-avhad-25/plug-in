@@ -1729,9 +1729,9 @@ useEffect(() => {
       </div>
 
       {/* MOBILE VIEW (Apple Music Style) */}
-      <div className="flex md:hidden w-full h-[100dvh] flex-col bg-black text-white relative overflow-hidden">
+      <div className="flex md:hidden w-full h-[100dvh] flex-col bg-black text-white relative">
         {/* Scrollable Main Content */}
-        <div className="flex-1 overflow-y-auto pb-48 px-4 scrollbar-hide pt-12">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pb-48 px-4 scrollbar-hide pt-12" style={{ WebkitOverflowScrolling: 'touch' }}>
           {mobileTab === "home" && (
             <div className="flex flex-col gap-8">
               <h1 className="text-5xl font-black uppercase tracking-tighter tracking-tight">Listen Now</h1>
@@ -2068,7 +2068,7 @@ useEffect(() => {
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
               </div>
               
-              <div className="relative z-10 flex flex-col h-full px-8 pt-4 pb-12 overflow-y-auto scrollbar-hide">
+              <div className="relative z-10 flex flex-col h-full px-8 pt-4 pb-12 overflow-y-auto overscroll-y-contain scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
                 <div 
                   className="flex justify-center mb-8 touch-none"
                   onPointerDown={(e) => dragControls.start(e)}
