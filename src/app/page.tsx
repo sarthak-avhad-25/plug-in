@@ -1731,7 +1731,7 @@ useEffect(() => {
       {/* MOBILE VIEW (Apple Music Style) */}
       <div className="flex md:hidden w-full h-[100dvh] flex-col bg-black text-white relative">
         {/* Scrollable Main Content */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pb-48 px-4 scrollbar-hide pt-12" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pb-48 px-4 scrollbar-hide pt-12" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
           {mobileTab === "home" && (
             <div className="flex flex-col gap-8">
               <h1 className="text-5xl font-black uppercase tracking-tighter tracking-tight">Listen Now</h1>
@@ -1988,7 +1988,7 @@ useEffect(() => {
 
         {/* Mini Player */}
         {currentSong && (
-          <div className="absolute bottom-[100px] left-4 right-4 bg-[#0A0A0A] backdrop-blur-2xl p-2 flex items-center gap-3 shadow-[4px_4px_0_0_#D4FF00] z-40 border-l-2 border-b-2 border-t border-r border-[#D4FF00] rounded-none transition-all active:translate-y-1 active:translate-x-1 active:shadow-[2px_2px_0_0_#D4FF00]" onClick={() => setShowMobilePlayer(true)}>
+          <div className="fixed bottom-[100px] left-4 right-4 bg-[#0A0A0A] backdrop-blur-2xl p-2 flex items-center gap-3 shadow-[4px_4px_0_0_#D4FF00] z-40 border-l-2 border-b-2 border-t border-r border-[#D4FF00] rounded-none transition-all active:translate-y-1 active:translate-x-1 active:shadow-[2px_2px_0_0_#D4FF00]" onClick={() => setShowMobilePlayer(true)}>
             <img src={currentSong.image} className="w-12 h-12 rounded-none object-cover shadow-sm border border-white/20" />
             <div className="flex flex-col flex-1 overflow-hidden">
               <span className="text-sm font-black uppercase tracking-widest truncate text-white">{currentSong.title}</span>
@@ -2030,7 +2030,7 @@ useEffect(() => {
         )}
 
         {/* Floating Bottom Dock */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm h-16 bg-[#000000]/90 backdrop-blur-2xl border border-[#222] rounded-none shadow-[6px_6px_0_0_#D4FF00] flex justify-around items-center px-4 z-30">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm h-16 bg-[#000000]/90 backdrop-blur-2xl border border-[#222] rounded-none shadow-[6px_6px_0_0_#D4FF00] flex justify-around items-center px-4 z-30">
           <button aria-label="Listen Now" onClick={() => setMobileTab("home")} className={`flex flex-col items-center justify-center w-12 h-12 transition-all duration-300 ease-out active:scale-90 ${mobileTab === "home" ? "bg-[#D4FF00] text-[#000]" : "text-white/50 hover:text-white"}`}>
             <Home className={`w-5 h-5 transition-colors duration-300 ${mobileTab === "home" ? "fill-[#000]" : ""}`} />
           </button>
