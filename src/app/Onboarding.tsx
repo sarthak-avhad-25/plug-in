@@ -132,13 +132,13 @@ export function Onboarding({ onComplete }: { onComplete: (profile: any) => void 
 
               <form onSubmit={handleSubmit} className="flex flex-col gap-4" autoComplete="off">
                 <div className="flex justify-center mb-4 w-full overflow-hidden">
-                  <div className="grid grid-cols-5 md:grid-cols-10 gap-3 md:gap-4 max-h-[16rem] overflow-y-auto custom-scrollbar pr-2 py-2 w-full justify-items-center">
+                  <div className="grid grid-cols-5 gap-4 md:gap-6 max-h-[24rem] overflow-y-auto custom-scrollbar pr-2 py-4 w-full justify-items-center">
                     {AVATARS.map(avatar => (
                       <button
                         key={avatar.id}
                         type="button"
                         onClick={() => setSelectedAvatarId(avatar.id)}
-                        className={`w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden transition-all shadow-xl
+                        className={`w-20 h-20 md:w-28 md:h-28 rounded-full overflow-hidden transition-all shadow-xl
                           ${selectedAvatarId === avatar.id ? 'scale-110 ring-4 ring-[#D4FF00] z-10 shadow-[0_0_20px_rgba(212,255,0,0.5)]' : 'scale-95 opacity-60 hover:scale-100 hover:opacity-100'}
                         `}
                       >
