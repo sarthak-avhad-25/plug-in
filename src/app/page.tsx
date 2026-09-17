@@ -746,8 +746,12 @@ useEffect(() => {
 
     logDebug(`playSong: ${song.title}`, audioRef.current);
 
-    // STEP 3: INSTANT GESTURE PRIMING
-    if (playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
+    const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    // STEP 3: INSTANT GESTURE PRIMING (DESKTOP ONLY)
+    // On Mobile, priming the YouTube iframe consumes the strict 1-time user gesture, 
+    // causing the native audio.play() to instantly reject with NotAllowedError!
+    if (!isMobile && playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
       playerRef.current.unMute?.();
       playerRef.current.setVolume(100);
       playerRef.current.loadVideoById(song.id);
@@ -755,10 +759,6 @@ useEffect(() => {
       playerRef.current.pauseVideo(); // Prime synchronously, NO setTimeout delay!
       logDebug(`YouTube iframe primed instantly.`);
     }
-    
-
-
-    const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     
     if (isMobile) {
       console.log(`[SOURCE_RESOLVED] url=/api/audio?v=${song.id}`);
@@ -1381,6 +1381,16 @@ useEffect(() => {
           console.log(`[AUDIO_PAUSE_EVENT]`);
           logDebug(`[AUDIO_PAUSE_EVENT]`);
           logDebug(`Native onPause fired!`, e.currentTarget);
+          
+          // CRITICAL FIX: When audio.src is changed, the browser asynchronously fires a 'pause' event 
+          // for the PREVIOUS track. This overrides the "loading" state of the NEW track, causing 
+          // the UI to incorrectly show the Play button, forcing the user to tap again.
+          // By ignoring onPause when readyState === 0 and we WANT to play, we prevent this race condition!
+          if (e.currentTarget.readyState === 0 && shouldPlayRef.current) {
+            logDebug(`Ignoring onPause because readyState is 0 (src change artifact)`);
+            return;
+          }
+          
           setIsPlaying(false);
           setPlaybackState("paused");
         }}
