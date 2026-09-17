@@ -838,10 +838,6 @@ useEffect(() => {
         logDebug(`[AUDIO_SRC_SET] currentSrc=/api/audio?v=${song.id}`);
         audioRef.current.src = `/api/audio?v=${song.id}`;
         
-        console.log(`[CALLING_AUDIO_LOAD]`);
-        logDebug(`[CALLING_AUDIO_LOAD]`);
-        audioRef.current.load();
-        
         console.log(`[PLAY_CALL] paused=${audioRef.current.paused} readyState=${audioRef.current.readyState} networkState=${audioRef.current.networkState}`);
         logDebug(`[PLAY_CALL] paused=${audioRef.current.paused} readyState=${audioRef.current.readyState} networkState=${audioRef.current.networkState}`);
         const playPromise = audioRef.current.play();
@@ -1466,12 +1462,7 @@ useEffect(() => {
           setIsPlaying(false);
           setPlaybackState("paused");
         }}
-        onEnded={() => {
-          if (useNativeAudio) {
-            setPlaybackState("idle");
-            playNextSong();
-          }
-        }}
+/* Native ended listener attached via useEffect */
         onLoadedMetadata={(e) => {
           if (useNativeAudio && e.currentTarget.duration) {
             setDuration(e.currentTarget.duration);
