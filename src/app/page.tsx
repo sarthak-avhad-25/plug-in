@@ -98,14 +98,15 @@ export default function FransHalsMusicApp() {
   
   // STEP 11 - Temporary Debug Mode
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  const [showDebug, setShowDebug] = useState(false);
   const logDebug = (msg: string, audio?: HTMLAudioElement | null) => {
     let audioState = "";
     if (audio) {
-      audioState = ` [RS:${audio.readyState} NS:${audio.networkState} P:${audio.paused} CT:${audio.currentTime.toFixed(1)} DUR:${audio.duration} SRC:${audio.currentSrc.substring(0, 30)}]`;
+      audioState = `\n  paused: ${audio.paused}\n  readyState: ${audio.readyState}\n  networkState: ${audio.networkState}\n  currentSrc: ${audio.currentSrc}\n  src: ${audio.src}\n  error: ${audio.error ? audio.error.message : 'null'}`;
     }
     const fullMsg = `[${new Date().toLocaleTimeString()}] ${msg}${audioState}`;
-    console.log("[AUDIO DEBUG]", fullMsg);
-    setDebugLogs(prev => [...prev.slice(-9), fullMsg]);
+    console.log(fullMsg);
+    setDebugLogs(prev => [...prev, fullMsg]);
   };
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
@@ -527,9 +528,12 @@ useEffect(() => {
       } else {
         shouldPlayRef.current = true;
         console.log(`[CALLING_AUDIO_PLAY] from togglePlay`);
+        logDebug(`[AUDIO_STATE_BEFORE] (togglePlay)`, audioRef.current);
         logDebug(`[CALLING_AUDIO_PLAY] from togglePlay`);
-        audioRef.current.play().catch((err: any) => {
-          logDebug(`togglePlay native play rejected: ${err.message}`);
+        audioRef.current.play().then(() => {
+          logDebug(`[PLAY_PROMISE_RESOLVED] from togglePlay`);
+        }).catch((err: any) => {
+          logDebug(`[PLAY_PROMISE_REJECTED] from togglePlay\n  error.name: ${err.name}\n  error.message: ${err.message}`);
           setIsPlaying(false);
           setPlaybackState("paused");
         });
@@ -780,8 +784,8 @@ useEffect(() => {
         
         if (playPromise !== undefined) {
            playPromise.then(() => {
-              console.log(`[PLAY_PROMISE_RESOLVED]`);
-              logDebug(`[PLAY_PROMISE_RESOLVED]`);
+              console.log(`[PLAY_PROMISE_RESOLVED] from playSong`);
+              logDebug(`[PLAY_PROMISE_RESOLVED] from playSong`);
            }).catch((err) => {
              console.log(`[PLAY_PROMISE_REJECTED] name=${err.name} message=${err.message}`);
              logDebug(`[PLAY_PROMISE_REJECTED] name=${err.name} message=${err.message}`);
@@ -821,6 +825,8 @@ useEffect(() => {
           if (audioRef.current) {
             audioRef.current.src = `/api/audio?v=${targetId}`;
             audioRef.current.load();
+            logDebug(`[AUDIO_STATE_BEFORE] (Desktop playSong)`, audioRef.current);
+            logDebug(`[CALLING_AUDIO_PLAY] from Desktop playSong`);
             const playPromise = audioRef.current.play();
             if (playPromise !== undefined) {
               playPromise.then(() => {
@@ -832,10 +838,11 @@ useEffect(() => {
                   setIsPlaying(true);
                   if (playerRef.current) playerRef.current.pauseVideo();
                 } else {
+                  logDebug(`[CALLING_AUDIO_PAUSE] from Desktop playPromise resolve`);
                   audioRef.current?.pause();
                 }
-              }).catch((err) => {
-                logDebug(`Native play rejected after load: ${err.message}`);
+              }).catch((err: any) => {
+                logDebug(`[PLAY_PROMISE_REJECTED] from Desktop playSong\n  error.name: ${err.name}\n  error.message: ${err.message}`);
                 setPlaybackState("error");
                 setIsPlaying(false);
               });
@@ -988,6 +995,7 @@ useEffect(() => {
       navigator.mediaSession.setActionHandler('pause', () => {
         shouldPlayRef.current = false;
         if (useNativeAudio && audioRef.current) {
+          logDebug(`[CALLING_AUDIO_PAUSE] from mediaSession`);
           audioRef.current.pause();
         }
         if (playerRef.current) playerRef.current.pauseVideo();
