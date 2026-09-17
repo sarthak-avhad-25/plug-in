@@ -11,21 +11,37 @@ export function Onboarding({ onComplete }: { onComplete: (profile: any) => void 
   const [step, setStep] = useState<"welcome" | "transition_to_profile" | "create_profile" | "transition_to_app">("welcome");
   const [username, setUsername] = useState("");
   const [selectedAvatarId, setSelectedAvatarId] = useState(AVATARS[0].id);
+  const [fastForward, setFastForward] = useState(false);
   
+  const timer1 = useRef<NodeJS.Timeout | null>(null);
+  const timer2 = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
-    // Wait on welcome screen, then trigger heavy cinematic transition
-    const timer = setTimeout(() => {
+    if (fastForward) {
+      if (timer1.current) clearTimeout(timer1.current);
+      if (timer2.current) clearTimeout(timer2.current);
+      setStep("create_profile");
+      return;
+    }
+
+    timer1.current = setTimeout(() => {
       setStep("transition_to_profile");
-      
-      // Let transition play for a moment before switching to create profile
-      setTimeout(() => {
+      timer2.current = setTimeout(() => {
         setStep("create_profile");
-      }, 2500); // Heavy transition duration
-      
-    }, 4000); // Welcome text duration
+      }, 2500);
+    }, 4000);
     
-    return () => clearTimeout(timer);
-  }, []);
+    return () => {
+      if (timer1.current) clearTimeout(timer1.current);
+      if (timer2.current) clearTimeout(timer2.current);
+    };
+  }, [fastForward]);
+
+  const handleScreenClick = () => {
+    if (step === "welcome" || step === "transition_to_profile") {
+      setFastForward(true);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +61,10 @@ export function Onboarding({ onComplete }: { onComplete: (profile: any) => void 
   };
 
   return (
-    <div className="fixed inset-0 bg-[#020005] z-[9999] flex flex-col items-center justify-center overflow-hidden">
+    <div 
+      onClick={handleScreenClick}
+      className={`fixed inset-0 bg-[#020005] z-[9999] flex flex-col items-center justify-center overflow-hidden ${(step === "welcome" || step === "transition_to_profile") ? 'cursor-pointer' : ''}`}
+    >
       
       {/* Dynamic Background */}
       <div className="absolute inset-0 pointer-events-none">
@@ -55,7 +74,7 @@ export function Onboarding({ onComplete }: { onComplete: (profile: any) => void 
               ? { scale: [1, 2, 1.5], opacity: [0.3, 0.9, 0.5], rotate: 90 } 
               : { scale: [1, 1.2, 0.9, 1], opacity: [0.3, 0.6, 0.3], rotate: 0 }
           }
-          transition={{ duration: step.includes("transition") ? 2.5 : 8, repeat: step.includes("transition") ? 0 : Infinity, ease: "easeInOut" }}
+          transition={{ duration: fastForward ? 0.2 : (step.includes("transition") ? 2.5 : 8), repeat: step.includes("transition") ? 0 : Infinity, ease: "easeInOut" }}
           className="absolute top-[20%] left-[20%] w-[60%] h-[60%] bg-purple-600/30 rounded-full blur-[120px] mix-blend-screen"
         />
         <motion.div
@@ -64,7 +83,7 @@ export function Onboarding({ onComplete }: { onComplete: (profile: any) => void 
               ? { scale: [1, 2.5, 1.2], opacity: [0.2, 0.8, 0.4], rotate: -90 } 
               : { scale: [1, 1.3, 0.8, 1], opacity: [0.2, 0.5, 0.2], rotate: 0 }
           }
-          transition={{ duration: step.includes("transition") ? 2.5 : 10, repeat: step.includes("transition") ? 0 : Infinity, ease: "easeInOut" }}
+          transition={{ duration: fastForward ? 0.2 : (step.includes("transition") ? 2.5 : 10), repeat: step.includes("transition") ? 0 : Infinity, ease: "easeInOut" }}
           className="absolute bottom-[20%] right-[20%] w-[50%] h-[50%] bg-[#D4FF00]/20 rounded-full blur-[100px] mix-blend-screen"
         />
         
@@ -75,7 +94,7 @@ export function Onboarding({ onComplete }: { onComplete: (profile: any) => void 
               initial={{ x: "-100%", opacity: 0 }}
               animate={{ x: "100%", opacity: [0, 1, 0] }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 1.5, ease: "easeInOut" }}
+              transition={{ duration: fastForward ? 0.15 : 1.5, ease: "easeInOut" }}
               className="absolute inset-0 w-[200%] h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12 blur-3xl mix-blend-overlay"
             />
           )}
@@ -99,14 +118,14 @@ export function Onboarding({ onComplete }: { onComplete: (profile: any) => void 
             <motion.h1 
               className="text-5xl md:text-7xl font-black text-white tracking-widest mb-6 drop-shadow-[0_0_30px_rgba(255,255,255,0.3)]"
               animate={{ letterSpacing: ["10px", "15px", "10px"] }}
-              transition={{ duration: 4, ease: "easeInOut" }}
+              transition={{ duration: fastForward ? 0.4 : 4, ease: "easeInOut" }}
             >
               PLUGIN
             </motion.h1>
             <motion.p 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1, duration: 1 }}
+              transition={{ delay: fastForward ? 0.1 : 1, duration: fastForward ? 0.1 : 1 }}
               className="text-lg md:text-2xl text-white/70 font-medium tracking-wide"
             >
               Your music. Your sound. Your space.
