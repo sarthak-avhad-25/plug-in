@@ -520,10 +520,14 @@ useEffect(() => {
     if (useNativeAudio && audioRef.current) {
       if (isPlaying) {
         shouldPlayRef.current = false;
+        console.log(`[CALLING_AUDIO_PAUSE] from togglePlay`);
+        logDebug(`[CALLING_AUDIO_PAUSE] from togglePlay`);
         audioRef.current.pause();
         // UI updates via onPause event
       } else {
         shouldPlayRef.current = true;
+        console.log(`[CALLING_AUDIO_PLAY] from togglePlay`);
+        logDebug(`[CALLING_AUDIO_PLAY] from togglePlay`);
         audioRef.current.play().catch((err: any) => {
           logDebug(`togglePlay native play rejected: ${err.message}`);
           setIsPlaying(false);
@@ -711,6 +715,10 @@ useEffect(() => {
 
   const playSong = async (song: Song, addToHistory: boolean = true, context: "radio" | "playlist" = "radio", overridePlaylistSongs?: Song[], e?: React.MouseEvent) => {
     const currentId = ++playRequestIdRef.current;
+    console.log(`[TAP] trackId=${song.id}`);
+    logDebug(`[TAP] trackId=${song.id}`);
+    console.log(`[SELECT_TRACK] trackId=${song.id}`);
+    logDebug(`[SELECT_TRACK] trackId=${song.id}`);
     
     if (e) {
       setClickOrigin({ x: e.clientX, y: e.clientY });
@@ -753,14 +761,30 @@ useEffect(() => {
     const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     
     if (isMobile) {
+      console.log(`[SOURCE_RESOLVED] url=/api/audio?v=${song.id}`);
+      logDebug(`[SOURCE_RESOLVED] url=/api/audio?v=${song.id}`);
       logDebug(`Mobile fast-path: setting src instantly to retain user gesture.`);
       setUseNativeAudio(true);
       if (audioRef.current) {
+        console.log(`[AUDIO_SRC_SET] currentSrc=/api/audio?v=${song.id}`);
+        logDebug(`[AUDIO_SRC_SET] currentSrc=/api/audio?v=${song.id}`);
         audioRef.current.src = `/api/audio?v=${song.id}`;
+        
+        console.log(`[CALLING_AUDIO_LOAD]`);
+        logDebug(`[CALLING_AUDIO_LOAD]`);
         audioRef.current.load();
+        
+        console.log(`[PLAY_CALL] paused=${audioRef.current.paused} readyState=${audioRef.current.readyState} networkState=${audioRef.current.networkState}`);
+        logDebug(`[PLAY_CALL] paused=${audioRef.current.paused} readyState=${audioRef.current.readyState} networkState=${audioRef.current.networkState}`);
         const playPromise = audioRef.current.play();
+        
         if (playPromise !== undefined) {
-           playPromise.catch((err) => {
+           playPromise.then(() => {
+              console.log(`[PLAY_PROMISE_RESOLVED]`);
+              logDebug(`[PLAY_PROMISE_RESOLVED]`);
+           }).catch((err) => {
+             console.log(`[PLAY_PROMISE_REJECTED] name=${err.name} message=${err.message}`);
+             logDebug(`[PLAY_PROMISE_REJECTED] name=${err.name} message=${err.message}`);
              logDebug(`Native play rejected: ${err.message}`);
              if (playRequestIdRef.current === currentId) {
                setIsPlaying(false);
@@ -771,7 +795,9 @@ useEffect(() => {
       }
     } else {
       try {
-        logDebug(`Validating native source...`);
+        console.log(`[RESOLVE_SOURCE_START] trackId=${song.id}`);
+      logDebug(`[RESOLVE_SOURCE_START] trackId=${song.id}`);
+      logDebug(`Validating native source...`);
         let res = await fetch(`/api/audio?v=${song.id}`, { method: 'HEAD', signal: AbortSignal.timeout(4000) });
         let targetId = song.id;
 
@@ -847,6 +873,8 @@ useEffect(() => {
   };
 
   const playNextSong = () => {
+    console.log(`[NEXT_TRACK] triggered`);
+    logDebug(`[NEXT_TRACK] triggered`);
     if (playbackContext.type === "playlist") {
       let actualSongs = playbackContext.playlistSongs || [];
       if (playbackContext.playlistId) {
@@ -1297,6 +1325,8 @@ useEffect(() => {
         style={{display:"none"}} 
         onError={(e) => {
           const err = e.currentTarget.error;
+          console.log(`[AUDIO_ERROR_EVENT]`);
+          logDebug(`[AUDIO_ERROR_EVENT]`);
           logDebug(`Native audio error event! Code: ${err?.code} Msg: ${err?.message}`, e.currentTarget);
           setPlaybackState("error");
           setUseNativeAudio(false);
@@ -1317,6 +1347,8 @@ useEffect(() => {
           }
         }}
         onPlay={(e) => {
+          console.log(`[AUDIO_PLAY_EVENT]`);
+          logDebug(`[AUDIO_PLAY_EVENT]`);
           logDebug(`Native onPlay fired!`, e.currentTarget);
           setIsPlaying(true);
           setPlaybackState("playing");
@@ -1325,6 +1357,8 @@ useEffect(() => {
           }
         }}
         onWaiting={(e) => {
+          console.log(`[AUDIO_WAITING_EVENT]`);
+          logDebug(`[AUDIO_WAITING_EVENT]`);
           logDebug(`Native onWaiting (buffering) fired!`, e.currentTarget);
           setPlaybackState("buffering");
         }}
@@ -1333,6 +1367,8 @@ useEffect(() => {
           setPlaybackState("buffering");
         }}
         onPlaying={(e) => {
+          console.log(`[AUDIO_PLAYING_EVENT]`);
+          logDebug(`[AUDIO_PLAYING_EVENT]`);
           logDebug(`Native onPlaying fired!`, e.currentTarget);
           setPlaybackState("playing");
         }}
@@ -1342,6 +1378,8 @@ useEffect(() => {
           }
         }}
         onPause={(e) => {
+          console.log(`[AUDIO_PAUSE_EVENT]`);
+          logDebug(`[AUDIO_PAUSE_EVENT]`);
           logDebug(`Native onPause fired!`, e.currentTarget);
           setIsPlaying(false);
           setPlaybackState("paused");
