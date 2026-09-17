@@ -23,11 +23,19 @@ function hashPassword(password: string, salt: string) {
 
 export async function createAccount(name: string, email: string, password: string) {
   const redis = getRedis();
-  if (!redis) return { error: "Authentication system not configured (Redis missing)." };
+  if (!redis) {
+    console.error("[Auth Error] Redis configuration missing for createAccount");
+    return { error: "Sign up is temporarily unavailable. Please try again later." };
+  }
   
   const emailKey = "auth:email:" + email.toLowerCase();
-  const existing = await redis.get(emailKey);
-  if (existing) return { error: "Account already exists for this email." };
+  try {
+    const existing = await redis.get(emailKey);
+    if (existing) return { error: "An account with this email already exists." };
+  } catch (err) {
+    console.error("[Auth Error] Redis connection failed in createAccount", err);
+    return { error: "Sign up is temporarily unavailable. Please try again later." };
+  }
   
   const id = crypto.randomUUID();
   const salt = crypto.randomBytes(16).toString("hex");
@@ -35,26 +43,46 @@ export async function createAccount(name: string, email: string, password: strin
   
   const user = { id, name, email: email.toLowerCase(), hash: hashed, salt };
   
-  await redis.set(emailKey, id);
-  await redis.set("auth:user:" + id, user);
-  
-  return await createSession(id);
+  try {
+    await redis.set(emailKey, id);
+    await redis.set("auth:user:" + id, user);
+    return await createSession(id);
+  } catch (err) {
+    console.error("[Auth Error] Failed to persist new user", err);
+    return { error: "Sign up is temporarily unavailable. Please try again later." };
+  }
 }
 
 export async function signIn(email: string, password: string) {
   const redis = getRedis();
-  if (!redis) return { error: "Authentication system not configured." };
+  if (!redis) {
+    console.error("[Auth Error] Redis configuration missing for signIn");
+    return { error: "Sign in is temporarily unavailable. Please try again later." };
+  }
   
   const emailKey = "auth:email:" + email.toLowerCase();
-  const userId = await redis.get<string>(emailKey);
+  let userId;
+  try {
+    userId = await redis.get<string>(emailKey);
+  } catch (err) {
+    console.error("[Auth Error] Redis connection failed in signIn", err);
+    return { error: "Sign in is temporarily unavailable. Please try again later." };
+  }
   
-  if (!userId) return { error: "Invalid email or password." };
+  if (!userId) return { error: "Incorrect email or password." };
   
-  const user = await redis.get<any>("auth:user:" + userId);
-  if (!user) return { error: "Invalid email or password." };
+  let user;
+  try {
+    user = await redis.get<any>("auth:user:" + userId);
+  } catch(err) {
+    console.error("[Auth Error] Failed to retrieve user data", err);
+    return { error: "Sign in is temporarily unavailable. Please try again later." };
+  }
+  
+  if (!user) return { error: "Incorrect email or password." };
   
   const hashed = hashPassword(password, user.salt);
-  if (hashed !== user.hash) return { error: "Invalid email or password." };
+  if (hashed !== user.hash) return { error: "Incorrect email or password." };
   
   return await createSession(userId);
 }
@@ -64,7 +92,12 @@ async function createSession(userId: string) {
   const sessionId = crypto.randomBytes(32).toString("hex");
   
   // Expiry in 7 days
-  await redis?.set("auth:session:" + sessionId, userId, { ex: 604800 });
+  try {
+    await redis?.set("auth:session:" + sessionId, userId, { ex: 604800 });
+  } catch(err) {
+    console.error("[Auth Error] Failed to save session to Redis", err);
+    // Continue anyway to set cookie, though session might fail verification later if redis is totally down
+  }
   
   const cookieStore = await cookies();
   cookieStore.set("plugin_session", sessionId, {

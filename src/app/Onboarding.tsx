@@ -5,15 +5,16 @@ import { createAccount, signIn, getSessionUser, checkGoogleAuth, getGoogleAuthUr
 import { Loader2, ArrowLeft, Eye, EyeOff } from "lucide-react";
 
 export function Onboarding({ onComplete }: { onComplete: (user: AuthUser) => void }) {
-  const [step, setStep] = useState<"loading" | "welcome" | "auth_options" | "email_auth">("loading");
-  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
+  const [step, setStep] = useState<"loading" | "welcome" | "auth_options" | "signin" | "signup">("loading");
   
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [googleError, setGoogleError] = useState("");
   const [googleConfigured, setGoogleConfigured] = useState<boolean | null>(null);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -58,31 +59,75 @@ export function Onboarding({ onComplete }: { onComplete: (user: AuthUser) => voi
     }
   };
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
+  const validateEmail = (email: string) => {
+    return email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
+  };
+
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setIsSubmitting(true);
     
+    if (!validateEmail(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    
+    if (!password) {
+      setError("Please enter your password.");
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
-      if (authMode === "signup") {
-        if (password !== confirmPassword) {
-          setError("Passwords do not match.");
-          setIsSubmitting(false);
-          return;
-        }
-        const res = await createAccount(name, email, password);
-        if (res && "error" in res) setError(res.error);
-        else onComplete(await getSessionUser() as AuthUser);
-      } else {
-        const res = await signIn(email, password);
-        if (res && "error" in res) setError(res.error);
-        else onComplete(await getSessionUser() as AuthUser);
-      }
+      const res = await signIn(email, password);
+      if (res && "error" in res) setError(res.error);
+      else onComplete(await getSessionUser() as AuthUser);
     } catch (err) {
-      setError("An unexpected error occurred. Please try again.");
+      setError("Sign in is temporarily unavailable. Please try again later.");
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    
+    if (!name.trim() || name.length < 2) {
+      setError("Please enter a valid full name.");
+      return;
+    }
+    
+    if (!validateEmail(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      return;
+    }
+    
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await createAccount(name, email, password);
+      if (res && "error" in res) setError(res.error);
+      else onComplete(await getSessionUser() as AuthUser);
+    } catch (err) {
+      setError("Sign up is temporarily unavailable. Please try again later.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const navigateTo = (newStep: "auth_options" | "signin" | "signup") => {
+    setError("");
+    setStep(newStep);
   };
 
   if (step === "loading") {
@@ -187,7 +232,7 @@ export function Onboarding({ onComplete }: { onComplete: (user: AuthUser) => voi
               </div>
               
               <button
-                onClick={() => setStep("email_auth")}
+                onClick={() => navigateTo("signin")}
                 className="w-full bg-transparent border-2 border-white/20 text-white font-bold text-lg rounded-xl py-4 hover:border-white/50 active:scale-95 transition-all flex items-center justify-center"
               >
                 Continue with Email
@@ -196,9 +241,103 @@ export function Onboarding({ onComplete }: { onComplete: (user: AuthUser) => voi
           </motion.div>
         )}
 
-        {step === "email_auth" && (
+        {step === "signin" && (
           <motion.div
-            key="email_auth"
+            key="signin"
+            initial={{ opacity: 0, x: 40, filter: "blur(10px)" }}
+            animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+            exit={{ opacity: 0, x: -40, filter: "blur(10px)" }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="relative z-10 w-full max-w-md px-6"
+          >
+            <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-[0_30px_60px_rgba(0,0,0,0.5)]">
+              
+              <button 
+                type="button"
+                onClick={() => navigateTo("auth_options")}
+                className="flex items-center gap-2 text-white/50 hover:text-white transition-colors mb-6 font-medium"
+              >
+                <ArrowLeft className="w-5 h-5" /> Back
+              </button>
+
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold text-white mb-2">Welcome back</h2>
+                <p className="text-white/50">Sign in to continue listening.</p>
+              </div>
+
+              <form onSubmit={handleSignIn} className="flex flex-col gap-4" autoComplete="off">
+                <div>
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Email address"
+                    value={email}
+                    onChange={e => { setEmail(e.target.value); setError(""); }}
+                    className="w-full bg-black/50 border border-white/10 rounded-xl px-5 py-4 text-white placeholder:text-white/30 focus:outline-none focus:border-[#D4FF00] transition-colors"
+                    autoComplete="off"
+                  />
+                </div>
+                
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={e => { setPassword(e.target.value); setError(""); }}
+                    className="w-full bg-black/50 border border-white/10 rounded-xl px-5 py-4 pr-12 text-white placeholder:text-white/30 focus:outline-none focus:border-[#D4FF00] transition-colors"
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                
+                {error && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
+                    className="text-red-400 text-sm font-medium px-2"
+                  >
+                    {error}
+                  </motion.div>
+                )}
+
+                <div className="text-right mt-1">
+                  <button type="button" className="text-sm text-white/40 hover:text-white transition-colors">
+                    Forgot password?
+                  </button>
+                </div>
+                
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-[#D4FF00] text-black font-bold text-lg rounded-xl py-4 mt-2 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center shadow-[0_0_20px_rgba(212,255,0,0.3)] disabled:opacity-70 disabled:hover:scale-100"
+                >
+                  {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Signing in...</> : "Sign In"}
+                </button>
+              </form>
+
+              <div className="mt-8 text-center">
+                <button
+                  type="button"
+                  onClick={() => navigateTo("signup")}
+                  className="text-white/50 hover:text-white transition-colors text-sm font-medium"
+                >
+                  Don't have an account? Create account
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {step === "signup" && (
+          <motion.div
+            key="signup"
             initial={{ opacity: 0, x: 40, filter: "blur(10px)" }}
             animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
             exit={{ opacity: 0, x: 40, filter: "blur(10px)" }}
@@ -209,82 +348,81 @@ export function Onboarding({ onComplete }: { onComplete: (user: AuthUser) => voi
               
               <button 
                 type="button"
-                onClick={() => setStep("auth_options")}
+                onClick={() => navigateTo("signin")}
                 className="flex items-center gap-2 text-white/50 hover:text-white transition-colors mb-6 font-medium"
               >
-                <ArrowLeft className="w-5 h-5" /> Back
+                <ArrowLeft className="w-5 h-5" /> Back to Sign In
               </button>
 
               <div className="mb-8">
-                <h2 className="text-3xl font-bold text-white mb-2">
-                  {authMode === "signin" ? "Email Sign In" : "Create account"}
-                </h2>
-                <p className="text-white/50">
-                  {authMode === "signin" ? "Sign in to continue listening." : "Join the ultimate music experience."}
-                </p>
+                <h2 className="text-3xl font-bold text-white mb-2">Create account</h2>
+                <p className="text-white/50">Join the ultimate music experience.</p>
               </div>
 
-              {error && (
-                <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium">
-                  {error}
-                </div>
-              )}
-
-              <form onSubmit={handleEmailSubmit} className="flex flex-col gap-4">
-                {authMode === "signup" && (
+              <form onSubmit={handleSignUp} className="flex flex-col gap-4" autoComplete="off">
+                <div>
                   <input
                     type="text"
-                    required
-                    placeholder="Your Name"
+                    name="name"
+                    placeholder="Full name"
                     value={name}
-                    onChange={e => setName(e.target.value)}
+                    onChange={e => { setName(e.target.value); setError(""); }}
                     className="w-full bg-black/50 border border-white/10 rounded-xl px-5 py-4 text-white placeholder:text-white/30 focus:outline-none focus:border-[#D4FF00] transition-colors"
+                    autoComplete="off"
                   />
-                )}
-                <input
-                  type="email"
-                  required
-                  placeholder="Email address"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  className="w-full bg-black/50 border border-white/10 rounded-xl px-5 py-4 text-white placeholder:text-white/30 focus:outline-none focus:border-[#D4FF00] transition-colors"
-                />
+                </div>
+                
+                <div>
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Email address"
+                    value={email}
+                    onChange={e => { setEmail(e.target.value); setError(""); }}
+                    className="w-full bg-black/50 border border-white/10 rounded-xl px-5 py-4 text-white placeholder:text-white/30 focus:outline-none focus:border-[#D4FF00] transition-colors"
+                    autoComplete="off"
+                  />
+                </div>
+                
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
-                    required
+                    name="password"
                     placeholder="Password"
                     value={password}
-                    onChange={e => setPassword(e.target.value)}
+                    onChange={e => { setPassword(e.target.value); setError(""); }}
                     className="w-full bg-black/50 border border-white/10 rounded-xl px-5 py-4 pr-12 text-white placeholder:text-white/30 focus:outline-none focus:border-[#D4FF00] transition-colors"
+                    autoComplete="new-password"
                   />
                   <button
                     type="button"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
-                {authMode === "signup" && (
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      required
-                      placeholder="Confirm Password"
-                      value={confirmPassword}
-                      onChange={e => setConfirmPassword(e.target.value)}
-                      className="w-full bg-black/50 border border-white/10 rounded-xl px-5 py-4 pr-12 text-white placeholder:text-white/30 focus:outline-none focus:border-[#D4FF00] transition-colors"
-                    />
-                  </div>
-                )}
+
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="confirmPassword"
+                    placeholder="Confirm password"
+                    value={confirmPassword}
+                    onChange={e => { setConfirmPassword(e.target.value); setError(""); }}
+                    className="w-full bg-black/50 border border-white/10 rounded-xl px-5 py-4 pr-12 text-white placeholder:text-white/30 focus:outline-none focus:border-[#D4FF00] transition-colors"
+                    autoComplete="new-password"
+                  />
+                </div>
                 
-                {authMode === "signin" && (
-                  <div className="text-right mt-1">
-                    <button type="button" className="text-sm text-white/40 hover:text-white transition-colors">
-                      Forgot password?
-                    </button>
-                  </div>
+                {error && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
+                    className="text-red-400 text-sm font-medium px-2"
+                  >
+                    {error}
+                  </motion.div>
                 )}
                 
                 <button
@@ -292,19 +430,9 @@ export function Onboarding({ onComplete }: { onComplete: (user: AuthUser) => voi
                   disabled={isSubmitting}
                   className="w-full bg-[#D4FF00] text-black font-bold text-lg rounded-xl py-4 mt-2 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center shadow-[0_0_20px_rgba(212,255,0,0.3)] disabled:opacity-70 disabled:hover:scale-100"
                 >
-                  {isSubmitting ? <Loader2 className="w-6 h-6 animate-spin" /> : (authMode === "signin" ? "Sign In" : "Create Account")}
+                  {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Creating account...</> : "Create Account"}
                 </button>
               </form>
-
-              <div className="mt-8 text-center">
-                <button
-                  type="button"
-                  onClick={() => { setAuthMode(authMode === "signin" ? "signup" : "signin"); setError(""); }}
-                  className="text-white/50 hover:text-white transition-colors text-sm font-medium"
-                >
-                  {authMode === "signin" ? "Don't have an account? Create account" : "Already have an account? Sign in"}
-                </button>
-              </div>
             </div>
           </motion.div>
         )}
