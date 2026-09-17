@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { NeonBackground } from "./NeonBackground";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2, Trash2, Info, Home, Library, Compass, ChevronDown, MoreHorizontal, ListMusic, Quote, Check, Plus , Shuffle, Repeat, Volume2, Volume1, VolumeX, Share, Power, ArrowDownToLine, CheckCircle2, XCircle, WifiOff } from "lucide-react";
 import { saveDownload, getDownload, removeDownload, getAllDownloads, type DownloadedSong } from "./offlineDb";
@@ -233,6 +234,7 @@ export default function FransHalsMusicApp() {
   const [isInlineSearching, setIsInlineSearching] = useState(false);
   const [isLyricsExpanded, setIsLyricsExpanded] = useState(false);
   const [isQueueExpanded, setIsQueueExpanded] = useState(false);
+  const [playerTab, setPlayerTab] = useState<"queue" | "lyrics" | "related" | null>(null);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
@@ -1671,76 +1673,163 @@ useEffect(() => {
               transition={{ type: "spring", damping: 15, stiffness: 120, mass: 0.6 }}
               className="w-full flex flex-col gap-4 overflow-visible origin-center relative z-50"
             >
-               <div className="relative overflow-hidden rounded-[32px] bg-[#050505] p-10 shadow-[0_30px_60px_rgba(0,0,0,0.8)] border border-white/5 flex flex-col gap-8 transition-all duration-700">
-                 {/* Ambient Blur Background */}
-                 <div className="absolute inset-0 z-0 opacity-30 mix-blend-screen pointer-events-none">
-                   <img src={currentSong.image} className="w-full h-full object-cover blur-[100px] scale-150 transform translate-y-10" alt="" />
+               <div className="relative overflow-hidden rounded-[32px] bg-[#020202] p-8 md:p-10 shadow-[0_40px_80px_rgba(0,0,0,0.9)] border border-white/5 flex flex-col gap-10 transition-all duration-700 group/player">
+                 
+                 {/* Cinematic Gradient Base */}
+                 <div className="absolute inset-0 z-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+                 
+                 {/* Extremely subtle artwork glow */}
+                 <div className="absolute -top-[20%] -left-[20%] w-[140%] h-[140%] z-0 opacity-10 mix-blend-screen pointer-events-none">
+                   <img src={currentSong.image} className="w-full h-full object-cover blur-[150px] opacity-60" alt="" />
                  </div>
                  
-                 <div className="relative z-10 flex flex-col items-center">
-                   {/* Large Square Artwork */}
+                 <div className="relative z-10 flex flex-col w-full h-full">
+                   
+                   {/* Massive Cinematic Artwork */}
                    <motion.div 
-                     className="relative w-72 h-72 md:w-80 md:h-80 rounded-2xl overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.9)] mb-10 border border-white/10"
+                     className="relative w-full aspect-square rounded-2xl overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,1)] border border-white/10 mb-8"
                      layoutId="album-art-desktop"
+                     initial={{ opacity: 0, scale: 0.95 }}
+                     animate={{ opacity: 1, scale: 1 }}
+                     transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
                    >
-                     <img src={currentSong.image} className="w-full h-full object-cover" alt="album art" />
+                     <img src={currentSong.image} className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-[2s] ease-out" alt="album art" />
+                     
+                     {/* Artwork Inner Shadow */}
+                     <div className="absolute inset-0 rounded-2xl border border-white/10 mix-blend-overlay pointer-events-none" />
+                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 pointer-events-none" />
                    </motion.div>
                    
-                   <div className="flex flex-col w-full text-center px-4 mb-10">
-                     <span className="text-[11px] font-bold tracking-widest text-white/30 uppercase mb-4">Now Playing</span>
-                     <span className="text-4xl font-black tracking-tight text-white mb-2 truncate">{currentSong.title}</span>
-                     <span className="text-lg font-medium text-white/50 truncate">{currentSong.artist}</span>
+                   {/* Info Section (Left-aligned for a modern magazine feel) */}
+                   <div className="flex items-end justify-between w-full mb-8">
+                     <div className="flex flex-col flex-1 pr-6 min-w-0">
+                       <motion.span 
+                         key={`title-${currentSong.id}`}
+                         initial={{ opacity: 0, y: 10 }}
+                         animate={{ opacity: 1, y: 0 }}
+                         transition={{ duration: 0.5, delay: 0.1 }}
+                         className="text-3xl md:text-4xl font-black tracking-tight text-white mb-1 truncate"
+                       >
+                         {currentSong.title}
+                       </motion.span>
+                       <motion.span 
+                         key={`artist-${currentSong.id}`}
+                         initial={{ opacity: 0, y: 10 }}
+                         animate={{ opacity: 1, y: 0 }}
+                         transition={{ duration: 0.5, delay: 0.2 }}
+                         className="text-lg md:text-xl font-medium text-white/50 truncate tracking-wide"
+                       >
+                         {currentSong.artist}
+                       </motion.span>
+                     </div>
+                     <button 
+                       onClick={(e) => toggleLike(currentSong, e)}
+                       className="shrink-0 p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors"
+                     >
+                       <Heart className={`w-6 h-6 transition-colors ${playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === currentSong?.id) ? 'fill-[#D4FF00] text-[#D4FF00]' : 'text-white'}`} />
+                     </button>
                    </div>
                    
-                   {/* Timeline */}
-                   <div className="w-full flex flex-col gap-3 cursor-pointer mb-10 px-2 group/timeline" onClick={handleProgressClick}>
-                     <div className="h-1.5 w-full rounded-full bg-white/10 relative overflow-hidden transition-all duration-200 group-hover/timeline:h-2">
+                   {/* Futuristic Timeline */}
+                   <div className="w-full flex flex-col gap-4 cursor-pointer mb-10 px-1 group/timeline" onClick={handleProgressClick}>
+                     <div className="h-1.5 w-full rounded-full bg-white/5 relative overflow-hidden transition-all duration-300 hover:h-2 hover:bg-white/10">
                        <motion.div 
-                         className="absolute top-0 left-0 h-full bg-white rounded-full transition-all ease-linear"
+                         className="absolute top-0 left-0 h-full bg-[#D4FF00] rounded-full transition-all ease-linear"
                          style={{ width: `${duration ? (progress / duration) * 100 : 0}%` }}
                        />
-                       {/* Thumb */}
+                       {/* Glowing thumb (only visible on hover for minimalism) */}
                        <div 
-                         className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg opacity-0 group-hover/timeline:opacity-100 transition-opacity"
+                         className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-[0_0_10px_#D4FF00] opacity-0 group-hover/timeline:opacity-100 transition-opacity"
                          style={{ left: `calc(${duration ? (progress / duration) * 100 : 0}% - 8px)` }}
                        />
                      </div>
-                     <div className="flex justify-between text-xs font-medium text-white/40 tracking-wide">
+                     <div className="flex justify-between text-[11px] font-bold text-white/40 tracking-widest tabular-nums">
                        <span>{Math.floor(progress / 60)}:{(Math.floor(progress % 60)).toString().padStart(2, "0")}</span>
                        <span>-{Math.floor((duration - progress) / 60)}:{(Math.floor((duration - progress) % 60)).toString().padStart(2, "0")}</span>
                      </div>
                    </div>
                    
-                   {/* Main Controls Row */}
-                   <div className="flex items-center justify-center gap-10 w-full mb-8">
-                     <button onClick={() => setIsShuffleOn(!isShuffleOn)} className={`transition-colors ${isShuffleOn ? 'text-[#1ED760]' : 'text-white/30 hover:text-white'}`}><Shuffle className="w-6 h-6" /></button>
-                     <button 
-                       onClick={playPreviousSong}
-                       className={`text-white hover:text-white/80 transition-transform active:scale-90 ${playbackHistory.length === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
-                       disabled={playbackHistory.length === 0}
-                     >
-                       <SkipBack className="w-10 h-10 fill-current" />
+                   {/* Playback Controls */}
+                   <div className="flex items-center justify-between w-full mb-8">
+                     <button aria-label="Shuffle" onClick={() => setIsShuffleOn(!isShuffleOn)} className={`transition-colors p-2 rounded-full hover:bg-white/5 ${isShuffleOn ? 'text-[#D4FF00]' : 'text-white/30 hover:text-white'}`}>
+                       <Shuffle className="w-5 h-5" />
                      </button>
                      
-                     <button 
-                       onClick={togglePlay}
-                       className="w-20 h-20 shrink-0 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_10px_30px_rgba(255,255,255,0.15)]"
-                     >
-                       {isPlaying ? <Pause className="w-10 h-10 fill-current" /> : <Play className="w-10 h-10 fill-current ml-2" />}
+                     <div className="flex items-center gap-6 md:gap-8">
+                       <button 
+                         aria-label="Previous song"
+                         onClick={playPreviousSong}
+                         className={`text-white hover:text-white/80 transition-transform active:scale-90 ${playbackHistory.length === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                         disabled={playbackHistory.length === 0}
+                       >
+                         <SkipBack className="w-8 h-8 md:w-10 md:h-10 fill-current" />
+                       </button>
+                       
+                       <button 
+                         aria-label={isPlaying ? "Pause" : "Play"}
+                         onClick={togglePlay}
+                         className="w-20 h-20 md:w-24 md:h-24 shrink-0 rounded-full bg-[#D4FF00] text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-[0_10px_30px_rgba(212,255,0,0.2)]"
+                       >
+                         {playbackState === "loading" || playbackState === "buffering" ? (
+                           <Loader2 className="w-10 h-10 animate-spin" />
+                         ) : isPlaying ? (
+                           <Pause className="w-10 h-10 md:w-12 md:h-12 fill-current" />
+                         ) : (
+                           <Play className="w-10 h-10 md:w-12 md:h-12 fill-current ml-2" />
+                         )}
+                       </button>
+                       
+                       <button 
+                         aria-label="Next song"
+                         onClick={playNextSong}
+                         className={`text-white hover:text-white/80 transition-transform active:scale-90 ${relatedSongs.length === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                         disabled={relatedSongs.length === 0}
+                       >
+                         <SkipForward className="w-8 h-8 md:w-10 md:h-10 fill-current" />
+                       </button>
+                     </div>
+
+                     <button aria-label="Repeat" className="text-white/30 hover:text-white hover:bg-white/5 p-2 rounded-full transition-colors">
+                       <Repeat className="w-5 h-5" />
                      </button>
-                     
-                     <button 
-                       onClick={playNextSong}
-                       className={`text-white hover:text-white/80 transition-transform active:scale-90 ${relatedSongs.length === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
-                       disabled={relatedSongs.length === 0}
-                     >
-                       <SkipForward className="w-10 h-10 fill-current" />
-                     </button>
-                     <button className="text-white/30 hover:text-white transition-colors"><Repeat className="w-6 h-6" /></button>
                    </div>
                    
-                   {/* Secondary Controls */}
-                   <div className="flex items-center justify-between w-full px-8 py-5 rounded-2xl bg-white/5 border border-white/5">
+                   {/* Clean Navigation Section */}
+                   <div className="flex items-center justify-between w-full border-t border-white/10 pt-6">
+                     <div className="flex items-center gap-6">
+                       <button onClick={() => setPlayerTab(playerTab === 'queue' ? null : 'queue')} className={`text-xs font-bold uppercase tracking-widest transition-colors ${playerTab === 'queue' ? 'text-[#D4FF00]' : 'text-white/50 hover:text-white'}`}>Up Next</button>
+                       <button onClick={() => setPlayerTab(playerTab === 'lyrics' ? null : 'lyrics')} className={`text-xs font-bold uppercase tracking-widest transition-colors ${playerTab === 'lyrics' ? 'text-[#D4FF00]' : 'text-white/50 hover:text-white'}`}>Lyrics</button>
+                       <button onClick={() => setPlayerTab(playerTab === 'related' ? null : 'related')} className={`text-xs font-bold uppercase tracking-widest transition-colors ${playerTab === 'related' ? 'text-[#D4FF00]' : 'text-white/50 hover:text-white'}`}>Related</button>
+                     </div>
+                     <div className="flex items-center gap-6">
+                       <div className="relative" onMouseLeave={() => setShowVolumeSlider(false)}>
+                         <button onMouseEnter={() => setShowVolumeSlider(true)} onClick={() => setIsMuted(!isMuted)} className="text-white/40 hover:text-white transition-colors" title="Volume" aria-label="Volume">
+                           {isMuted || volume === 0 ? <VolumeX className="w-5 h-5" /> : volume < 0.5 ? <Volume1 className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                         </button>
+                         <AnimatePresence>
+                           {showVolumeSlider && (
+                             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 bg-[#1a1a1a] border border-white/10 rounded-xl p-4 shadow-xl z-50 flex items-center justify-center h-32 w-10">
+                               <div className="relative w-full h-full flex items-center justify-center">
+                                 <input type="range" min="0" max="1" step="0.01" value={isMuted ? 0 : volume} onChange={(e) => { setIsMuted(false); setVolume(parseFloat(e.target.value)); }} className="appearance-none bg-white/20 h-1 w-24 rounded-full outline-none transform -rotate-90 origin-center cursor-pointer absolute" style={{ WebkitAppearance: 'none', background: `linear-gradient(to right, #D4FF00 0%, #D4FF00 ${(isMuted ? 0 : volume)*100}%, rgba(255,255,255,0.2) ${(isMuted ? 0 : volume)*100}%, rgba(255,255,255,0.2) 100%)` }} />
+                               </div>
+                             </motion.div>
+                           )}
+                         </AnimatePresence>
+                       </div>
+                       <div className="relative">
+                         <button onClick={(e) => handleShare(currentSong, e)} className="text-white/40 hover:text-white transition-colors" aria-label="Share">
+                           <Share className="w-5 h-5" />
+                         </button>
+                         {copiedLink && (
+                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-[#D4FF00] text-black text-[10px] font-bold px-2 py-1 rounded whitespace-nowrap z-50 animate-in fade-in slide-in-from-bottom-2">
+                             Copied
+                           </div>
+                         )}
+                       </div>
+                     </div>
+                   </div>
+                   {/* Hidden Old Secondary Controls Wrapper to avoid regex breakage */}
+                   <div className="hidden flex items-center justify-between w-full px-8 py-5 rounded-2xl bg-white/5 border border-white/5">
                      <div className="relative" onMouseLeave={() => setShowVolumeSlider(false)}>
                        <button 
                          onMouseEnter={() => setShowVolumeSlider(true)}
@@ -1802,16 +1891,24 @@ useEffect(() => {
                    </div>
                  </div>
                </div>
-                 {/* QUEUE / LYRICS BOX */}
-                 <div 
-                   ref={lyricsContainerRef}
-                   onWheel={handleUserInteraction}
-                   onTouchMove={handleUserInteraction}
-                   onMouseDown={handleUserInteraction}
-                   className={`mt-4 border-t-2 border-[#333] pt-4 overflow-y-auto overflow-x-hidden relative scrollbar-hide scroll-smooth transition-all duration-500 ${(isLyricsExpanded || isQueueExpanded) ? 'bg-black/40 backdrop-blur-sm -mx-6 px-6 rounded-3xl' : 'bg-transparent'}`} 
-                   style={{ height: (isLyricsExpanded || isQueueExpanded) ? '70vh' : '180px' }}
-                 >
-                   {isQueueExpanded ? (
+                 {/* TAB CONTENT BOX */}
+                 <AnimatePresence mode="wait">
+                   {playerTab && (
+                     <motion.div 
+                       initial={{ opacity: 0, height: 0, y: -20 }}
+                       animate={{ opacity: 1, height: "60vh", y: 0 }}
+                       exit={{ opacity: 0, height: 0, y: -20 }}
+                       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                       className="w-full mt-2 relative overflow-hidden bg-white/[0.02] rounded-2xl border border-white/5"
+                     >
+                       <div 
+                         ref={lyricsContainerRef}
+                         onWheel={handleUserInteraction}
+                         onTouchMove={handleUserInteraction}
+                         onMouseDown={handleUserInteraction}
+                         className="w-full h-full overflow-y-auto overflow-x-hidden relative scrollbar-hide scroll-smooth"
+                       >
+                         {playerTab === 'queue' ? (
                      <div className="flex flex-col gap-4 w-full px-4 pb-8">
                        {playbackHistory.length > 0 && (
                          <div className="flex flex-col gap-2">
@@ -1838,7 +1935,7 @@ useEffect(() => {
                          </div>
                        )}
                      </div>
-                   ) : (
+                   ) : playerTab === 'lyrics' ? (
                      <>
                     {lyricsLoading ? (
                        <div className="w-full h-full flex flex-col items-center justify-center opacity-50">
@@ -1910,8 +2007,18 @@ useEffect(() => {
                        </div>
                     )}
                      </>
-                   )}
-                 </div>
+                   ) : playerTab === 'related' ? (
+                     <div className="flex flex-col gap-4 w-full px-4 py-8">
+                       <h3 className="text-sm font-bold text-white/50 uppercase tracking-widest px-2">Related Songs</h3>
+                       {relatedSongs.map((song, i) => (
+                         <SongBox key={song.id} song={song} index={i} onPlay={() => playSong(song)} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} isDownloaded={downloads.some(d => d.id === song.id)} downloadProgress={downloadProgress[song.id]} onDownload={(e) => handleDownload(song, e)} onRemoveDownload={(e) => handleRemoveDownload(song.id, e)} />
+                       ))}
+                     </div>
+                   ) : null}
+                   </div>
+                 </motion.div>
+                 )}
+                 </AnimatePresence>
             </motion.div>
           )}
         </AnimatePresence>
@@ -1963,24 +2070,8 @@ useEffect(() => {
         
 
 
-        {/* Animated Background Orbs */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-          <motion.div 
-            className="absolute -top-[10%] -left-[10%] w-[500px] h-[500px] rounded-full bg-[#D4FF00]/40 blur-[100px]"
-            animate={{ y: [0, -120, 50, 0], x: [0, 50, -50, 0], scale: [1, 1.2, 0.9, 1] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <motion.div 
-            className="absolute top-[30%] -right-[10%] w-[600px] h-[600px] rounded-full bg-purple-600/30 blur-[120px]"
-            animate={{ y: [0, -120, 50, 0], x: [0, 50, -50, 0], scale: [1, 1.2, 0.9, 1] }}
-            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", repeatType: "reverse" }}
-          />
-          <motion.div 
-            className="absolute -bottom-[20%] left-[20%] w-[700px] h-[700px] rounded-full bg-indigo-500/30 blur-[100px]"
-            animate={{ y: [0, -120, 50, 0], x: [0, 50, -50, 0], scale: [1, 1.2, 0.9, 1] }}
-            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-          />
-        </div>
+        {/* Heavily Animated Neon Background */}
+        <NeonBackground />
 
         {/* Content Area */}
         <div 
@@ -2845,10 +2936,12 @@ useEffect(() => {
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="fixed inset-0 z-[100] bg-[#050505] flex flex-col pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]"
             >
-              {/* Blurred Ambient Background */}
-              <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-                <img src={currentSong.image} className="w-full h-full object-cover blur-[100px] opacity-40 scale-150" />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-[#050505]/80 to-[#050505]" />
+              {/* Ambient Background */}
+              <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none bg-[#020005]">
+                <div className="absolute -top-[10%] -right-[10%] w-[120%] h-[120%] bg-blue-700/30 rounded-full blur-[100px] mix-blend-screen opacity-60" />
+                <div className="absolute top-[20%] right-[5%] w-[80%] h-[80%] bg-fuchsia-600/30 rounded-full blur-[120px] mix-blend-screen opacity-70" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
+                <img src={currentSong.image} className="absolute inset-0 w-full h-full object-cover blur-[150px] opacity-30 scale-150 mix-blend-screen" />
               </div>
 
               {/* Header */}
@@ -2892,17 +2985,32 @@ useEffect(() => {
               </div>
 
               {/* Controls & Info */}
-              <div className="relative z-10 flex flex-col gap-6 p-8 pb-12">
-                <div className="flex items-center justify-between">
+              <div className="relative z-10 flex flex-col gap-8 p-8 pb-12">
+                <div className="flex items-end justify-between">
                   <div className="flex flex-col min-w-0 flex-1 pr-4">
-                    <span className="text-2xl font-black text-white truncate">{currentSong.title}</span>
-                    <span className="text-lg text-[#D4FF00] truncate">{currentSong.artist}</span>
+                    <motion.span 
+                      key={`m-title-${currentSong.id}`}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-3xl font-black text-white truncate mb-1"
+                    >
+                      {currentSong.title}
+                    </motion.span>
+                    <motion.span 
+                      key={`m-artist-${currentSong.id}`}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                      className="text-lg font-medium text-white/50 truncate"
+                    >
+                      {currentSong.artist}
+                    </motion.span>
                   </div>
                   <button 
                     onClick={(e) => toggleLike(currentSong, e)}
-                    className="p-2 shrink-0"
+                    className="p-3 shrink-0 bg-white/5 rounded-full"
                   >
-                    <Heart className={`w-7 h-7 ${playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === currentSong.id) ? 'fill-[#D4FF00] text-[#D4FF00]' : 'text-white'}`} />
+                    <Heart className={`w-6 h-6 ${playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === currentSong.id) ? 'fill-[#D4FF00] text-[#D4FF00]' : 'text-white'}`} />
                   </button>
                 </div>
                 {/* Timeline */}
@@ -2933,14 +3041,20 @@ useEffect(() => {
                     }}
                     onPointerCancel={() => setIsDraggingTimeline(false)}
                   >
-                    <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden relative pointer-events-none">
+                    <div className="w-full h-1.5 bg-white/10 rounded-full relative pointer-events-none transition-all duration-200">
+                      <div className="absolute inset-0 rounded-full overflow-hidden">
+                        <div 
+                          className="absolute top-0 left-0 h-full bg-[#D4FF00] transition-none"
+                          style={{ width: `${duration ? ((isDraggingTimeline ? dragProgress : progress) / duration) * 100 : 0}%` }}
+                        />
+                      </div>
                       <div 
-                        className="absolute top-0 left-0 h-full bg-[#D4FF00] transition-none"
-                        style={{ width: `${duration ? ((isDraggingTimeline ? dragProgress : progress) / duration) * 100 : 0}%` }}
+                        className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-[0_0_10px_#D4FF00] transition-opacity ${isDraggingTimeline ? 'opacity-100' : 'opacity-0'}`}
+                        style={{ left: `calc(${duration ? ((isDraggingTimeline ? dragProgress : progress) / duration) * 100 : 0}% - 8px)` }}
                       />
                     </div>
                   </div>
-                  <div className="flex justify-between text-xs font-medium text-white/50 tabular-nums">
+                  <div className="flex justify-between text-[11px] font-bold text-white/40 tracking-widest tabular-nums">
                     <span>{Math.floor((isDraggingTimeline ? dragProgress : progress) / 60)}:{(Math.floor((isDraggingTimeline ? dragProgress : progress) % 60)).toString().padStart(2, "0")}</span>
                     <span>-{Math.floor((duration - (isDraggingTimeline ? dragProgress : progress)) / 60)}:{(Math.floor((duration - (isDraggingTimeline ? dragProgress : progress)) % 60)).toString().padStart(2, "0")}</span>
                   </div>
@@ -2948,29 +3062,32 @@ useEffect(() => {
 
                 {/* Main Controls */}
                 <div className="flex items-center justify-between w-full">
-                  <button onClick={() => setIsShuffleOn(!isShuffleOn)} className={`p-2 ${isShuffleOn ? 'text-[#D4FF00]' : 'text-white/40'}`}>
-                    <Shuffle className="w-6 h-6" />
+                  <button onClick={() => setIsShuffleOn(!isShuffleOn)} className={`p-3 rounded-full bg-white/5 active:bg-white/10 transition-colors ${isShuffleOn ? 'text-[#D4FF00]' : 'text-white/40'}`} aria-label="Shuffle">
+                    <Shuffle className="w-5 h-5" />
                   </button>
-                  <button onClick={playPreviousSong} className="p-2 text-white active:scale-90 transition-transform">
-                    <SkipBack className="w-10 h-10 fill-current" />
-                  </button>
-                  <button 
-                    onClick={togglePlay}
-                    className="w-20 h-20 bg-white text-black rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.3)] active:scale-95 transition-transform"
-                  >
-                    {playbackState === "loading" || playbackState === "buffering" ? (
-                      <Loader2 className="w-10 h-10 animate-spin" />
-                    ) : isPlaying ? (
-                      <Pause className="w-10 h-10 fill-current" />
-                    ) : (
-                      <Play className="w-10 h-10 fill-current ml-2" />
-                    )}
-                  </button>
-                  <button onClick={playNextSong} className="p-2 text-white active:scale-90 transition-transform">
-                    <SkipForward className="w-10 h-10 fill-current" />
-                  </button>
-                  <button className="p-2 text-white/40">
-                    <Repeat className="w-6 h-6" />
+                  <div className="flex items-center gap-6">
+                    <button onClick={playPreviousSong} className="text-white active:text-white/70 active:scale-90 transition-transform" aria-label="Previous song">
+                      <SkipBack className="w-10 h-10 fill-current" />
+                    </button>
+                    <button 
+                      onClick={togglePlay}
+                      className="w-20 h-20 bg-[#D4FF00] text-black rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(212,255,0,0.2)] active:scale-95 transition-transform"
+                      aria-label={isPlaying ? "Pause" : "Play"}
+                    >
+                      {playbackState === "loading" || playbackState === "buffering" ? (
+                        <Loader2 className="w-8 h-8 animate-spin" />
+                      ) : isPlaying ? (
+                        <Pause className="w-10 h-10 fill-current" />
+                      ) : (
+                        <Play className="w-10 h-10 fill-current ml-1" />
+                      )}
+                    </button>
+                    <button onClick={playNextSong} className="text-white active:text-white/70 active:scale-90 transition-transform" aria-label="Next song">
+                      <SkipForward className="w-10 h-10 fill-current" />
+                    </button>
+                  </div>
+                  <button className="p-3 rounded-full bg-white/5 active:bg-white/10 transition-colors text-white/40" aria-label="Repeat">
+                    <Repeat className="w-5 h-5" />
                   </button>
                 </div>
 
