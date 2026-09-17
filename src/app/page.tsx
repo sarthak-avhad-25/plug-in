@@ -10,7 +10,6 @@ import { searchYouTube, getArtistBackground, getSearchSuggestions, getSyncedLyri
 import type { SyncedLyric } from "./actions";
 import { loadProfiles, saveProfilesServer, loadActiveProfile, saveActiveProfileServer, loadPlaylistsServer, savePlaylistsServer, deletePlaylistsServer } from "./storage";
 import { Onboarding } from "./Onboarding";
-import { logout, type AuthUser, getSessionUser } from "./auth";
 
 type Profile = {
   id: string;
@@ -198,19 +197,21 @@ export default function FransHalsMusicApp() {
   };
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
-  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [showGreeting, setShowGreeting] = useState(false);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
-  
+  const [isProfileChecking, setIsProfileChecking] = useState(true);
+
   useEffect(() => {
-    getSessionUser().then(user => {
-      if (user) {
-        setAuthUser(user);
-        const profile = { id: user.id, name: user.name, color: "from-blue-600 to-purple-700", emoji: "🎧" };
-        setActiveProfile(profile);
+    const saved = localStorage.getItem("music_active_profile");
+    if (saved) {
+      try {
+        setActiveProfile(JSON.parse(saved));
+        setShowGreeting(true);
+        setTimeout(() => setShowGreeting(false), 4000);
+      } catch (e) {
+        console.error("Failed to parse saved profile");
       }
-      setIsAuthLoading(false);
-    });
+    }
+    setIsProfileChecking(false);
   }, []);
 
   const [artistQuery, setArtistQuery] = useState("");
@@ -1278,151 +1279,15 @@ useEffect(() => {
 
   if (!isClient) return null; // Hydration mismatch prevention
 
-  if (isAuthLoading) return <div className="fixed inset-0 bg-[#020005]" />;
-  if (!authUser) {
+  if (isProfileChecking) return <div className="fixed inset-0 bg-[#020005]" />;
+  if (!activeProfile) {
     return (
-      <Onboarding onComplete={(user) => {
-        setAuthUser(user);
-        const profile = { id: user.id, name: user.name, color: "from-blue-600 to-purple-700", emoji: "🎧" };
+      <Onboarding onComplete={(profile) => {
         setActiveProfile(profile);
+        localStorage.setItem("music_active_profile", JSON.stringify(profile));
         setShowGreeting(true);
         setTimeout(() => setShowGreeting(false), 4000);
       }} />
-    );
-  }
-  // Fallback for types
-  if (!activeProfile) {
-    return (
-      <div className="min-h-screen w-full bg-[#000000] flex flex-col items-center justify-center selection:bg-[#D4FF00] selection:text-white relative overflow-hidden">
-        {/* Netflix style ambient background */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#111]/50 to-[#111] z-10 pointer-events-none" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#D4FF00]/20 via-[#111]/50 to-[#111] z-0 pointer-events-none opacity-50" />
-        
-        <div className="relative z-20 flex flex-col items-center">
-          <h1 className="text-4xl md:text-6xl font-medium tracking-wide tracking-tight text-white mb-12 drop-shadow-xl">Who's listening?</h1>
-          
-          <div className="flex flex-wrap justify-center gap-6 max-w-5xl px-4">
-            {profiles.map(p => (
-              <div key={p.id} className="flex flex-col items-center gap-4 group cursor-pointer" onClick={() => {
-                setActiveProfile(p);
-                localStorage.setItem("music_active_profile", JSON.stringify(p));
-                saveActiveProfileServer(p);
-              }}>
-                <div className={`w-32 h-32 md:w-40 md:h-40 rounded-[2rem] bg-gradient-to-br ${p.color} flex items-center justify-center text-6xl shadow-xl group-hover:scale-105 group-hover:ring-4 ring-white transition-all duration-300 relative overflow-hidden`}>
-                  <span className="relative z-10">{p.emoji}</span>
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (confirm(`Are you sure you want to completely delete the profile "${p.name}"? This will permanently delete all of their playlists too!`)) {
-                        const newProfiles = profiles.filter(prof => prof.id !== p.id);
-                        saveProfiles(newProfiles);
-                        localStorage.removeItem(`frans_hals_playlists_${p.id}`); // Clean up their private playlists
-                        deletePlaylistsServer(p.id); // Clean up from Redis too
-                      }
-                    }}
-                    className="absolute top-2 right-2 bg-black/60 hover:bg-red-600 text-white w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-20"
-                    title="Delete Profile"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-                <span className="text-gray-400 group-hover:text-white text-2xl font-black uppercase tracking-tighter transition-colors">{p.name}</span>
-              </div>
-            ))}
-            
-            {profiles.length < 10 && (
-              <div 
-                className="flex flex-col items-center gap-4 group cursor-pointer"
-                onClick={() => {
-                  setModalInput("");
-                  setShowProfileModal(true);
-                }}
-              >
-                <div className="w-32 h-32 md:w-40 md:h-40 rounded-[2rem] border border-[#222222] flex items-center justify-center text-6xl text-gray-400 group-hover:border-white group-hover:text-white group-hover:scale-105 transition-all duration-300">
-                  +
-                </div>
-                <span className="text-gray-400 group-hover:text-white text-2xl font-black uppercase tracking-tighter transition-colors">Add Profile</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {showProfileModal && (
-          <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
-            <div className="bg-[#1a1a1a] border border-white/10 rounded-none p-6 w-full max-w-md shadow-2xl">
-              <h2 className="text-3xl font-black uppercase tracking-tighter text-white mb-4">
-                Create Profile
-              </h2>
-              <p className="text-gray-400 mb-6">
-                Enter new profile name:
-              </p>
-              
-              <input 
-                type="text"
-                value={modalInput}
-                onChange={(e) => setModalInput(e.target.value)}
-                placeholder="Profile Name"
-                className="w-full bg-[#000000]/10 border border-white/20 rounded-[2rem] px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-white/50 mb-6"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    if (modalInput.trim()) {
-                      const colors = [
-                        "from-red-500 to-orange-500", "from-green-400 to-emerald-600", "from-pink-500 to-rose-500", 
-                        "from-blue-400 to-indigo-600", "from-yellow-400 to-orange-500", "from-purple-500 to-fuchsia-600",
-                        "from-teal-400 to-cyan-600", "from-rose-400 to-red-500"
-                      ];
-                      const emojis = ["🎸", "🥁", "🎹", "🎤", "🎷", "🎺", "🎧", "🎵", "👾", "🦊", "🐯", "🐼", "😎", "🚀", "🌟"];
-                      const newP = { 
-                        id: Date.now().toString(), 
-                        name: modalInput.trim(), 
-                        color: colors[Math.floor(Math.random() * colors.length)],
-                        emoji: emojis[Math.floor(Math.random() * emojis.length)]
-                      };
-                      saveProfiles([...profiles, newP]);
-                      setShowProfileModal(false);
-                    }
-                  }
-                }}
-              />
-              
-              <div className="flex justify-end gap-3">
-                <button 
-                  onClick={() => setShowProfileModal(false)}
-                  className="px-5 py-2.5 rounded-[2rem] font-medium tracking-wide text-gray-300 hover:bg-black/5 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={() => {
-                    if (modalInput.trim()) {
-                      const colors = [
-                        "from-red-500 to-orange-500", "from-green-400 to-emerald-600", "from-pink-500 to-rose-500", 
-                        "from-blue-400 to-indigo-600", "from-yellow-400 to-orange-500", "from-purple-500 to-fuchsia-600",
-                        "from-teal-400 to-cyan-600", "from-rose-400 to-red-500"
-                      ];
-                      const emojis = ["🎸", "🥁", "🎹", "🎤",
-                        "🎷", "🎺", "🎧", "🎵", "👾", "🦊", "🐯", "🐼", "😎", "🚀", "🌟"];
-                      const newP = { 
-                        id: Date.now().toString(), 
-                        name: modalInput.trim(), 
-                        color: colors[Math.floor(Math.random() * colors.length)],
-                        emoji: emojis[Math.floor(Math.random() * emojis.length)]
-                      };
-                      saveProfiles([...profiles, newP]);
-                      setShowProfileModal(false);
-                    }
-                  }}
-                  className="px-5 py-2.5 bg-[#D4FF00] text-[#000000] rounded-[2rem] font-bold hover:bg-gray-200 transition-colors"
-                >
-                  Create
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
     );
   }
 
@@ -1673,7 +1538,7 @@ useEffect(() => {
         
         {/* Subtle Welcome Greeting */}
         <AnimatePresence>
-          {showGreeting && authUser && (
+          {showGreeting && activeProfile && (
             <motion.div 
               initial={{ opacity: 0, y: -50 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1681,7 +1546,7 @@ useEffect(() => {
               className="absolute top-6 left-1/2 -translate-x-1/2 z-[100] bg-white/10 backdrop-blur-md border border-white/20 px-6 py-3 rounded-full shadow-2xl flex items-center gap-3"
             >
               <div className="w-2 h-2 rounded-full bg-[#D4FF00] animate-pulse" />
-              <span className="text-white font-medium">Welcome back, {authUser.name.split(' ')[0]}</span>
+              <span className="text-white font-medium">Welcome back, {activeProfile.name.split(' ')[0]}</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -1704,14 +1569,13 @@ useEffect(() => {
               
               <div className="absolute top-full right-0 mt-2 opacity-0 pointer-events-none group-hover/profile:opacity-100 group-hover/profile:pointer-events-auto transition-all duration-200 z-50">
                 <button 
-                  onClick={async () => {
-                    await logout();
-                    setAuthUser(null);
+                  onClick={() => {
+                    localStorage.removeItem("music_active_profile");
                     setActiveProfile(null);
                   }}
                   className="bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 hover:border-red-500 px-4 py-2 rounded-xl text-sm font-bold shadow-xl backdrop-blur-md transition-colors whitespace-nowrap flex items-center gap-2"
                 >
-                  <Power className="w-4 h-4" /> Sign Out
+                  <Power className="w-4 h-4" /> Switch Profile
                 </button>
               </div>
             </div>
