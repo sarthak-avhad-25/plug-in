@@ -228,7 +228,6 @@ export default function FransHalsMusicApp() {
   const [showInlineSearch, setShowInlineSearch] = useState(false);
   const [inlineSearchQuery, setInlineSearchQuery] = useState("");
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [otpStep, setOtpStep] = useState(true);
   const [modalInput, setModalInput] = useState("");
   const [inlineSearchResults, setInlineSearchResults] = useState<Song[]>([]);
   const [isInlineSearching, setIsInlineSearching] = useState(false);
@@ -1279,7 +1278,6 @@ useEffect(() => {
               <div 
                 className="flex flex-col items-center gap-4 group cursor-pointer"
                 onClick={() => {
-                  setOtpStep(true);
                   setModalInput("");
                   setShowProfileModal(true);
                 }}
@@ -1297,21 +1295,39 @@ useEffect(() => {
           <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
             <div className="bg-[#1a1a1a] border border-white/10 rounded-none p-6 w-full max-w-md shadow-2xl">
               <h2 className="text-3xl font-black uppercase tracking-tighter text-white mb-4">
-                {otpStep ? "Security Check" : "Create Profile"}
+                Create Profile
               </h2>
               <p className="text-gray-400 mb-6">
-                {otpStep 
-                  ? "To create a new profile, please enter the Admin OTP sent to 7972143404." 
-                  : "OTP Verified! Enter new profile name:"}
+                Enter new profile name:
               </p>
               
               <input 
-                type={otpStep ? "number" : "text"}
+                type="text"
                 value={modalInput}
                 onChange={(e) => setModalInput(e.target.value)}
-                placeholder={otpStep ? "Enter OTP" : "Profile Name"}
+                placeholder="Profile Name"
                 className="w-full bg-[#000000]/10 border border-white/20 rounded-[2rem] px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-white/50 mb-6"
                 autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (modalInput.trim()) {
+                      const colors = [
+                        "from-red-500 to-orange-500", "from-green-400 to-emerald-600", "from-pink-500 to-rose-500", 
+                        "from-blue-400 to-indigo-600", "from-yellow-400 to-orange-500", "from-purple-500 to-fuchsia-600",
+                        "from-teal-400 to-cyan-600", "from-rose-400 to-red-500"
+                      ];
+                      const emojis = ["🎸", "🥁", "🎹", "🎤", "🎷", "🎺", "🎧", "🎵", "👾", "🦊", "🐯", "🐼", "😎", "🚀", "🌟"];
+                      const newP = { 
+                        id: Date.now().toString(), 
+                        name: modalInput.trim(), 
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        emoji: emojis[Math.floor(Math.random() * emojis.length)]
+                      };
+                      saveProfiles([...profiles, newP]);
+                      setShowProfileModal(false);
+                    }
+                  }
+                }}
               />
               
               <div className="flex justify-end gap-3">
@@ -1323,35 +1339,26 @@ useEffect(() => {
                 </button>
                 <button 
                   onClick={() => {
-                    if (otpStep) {
-                      if (modalInput === "2525") {
-                        setOtpStep(false);
-                        setModalInput("");
-                      } else {
-                        alert("Incorrect OTP! Profile creation blocked.");
-                      }
-                    } else {
-                      if (modalInput.trim()) {
-                        const colors = [
-                          "from-red-500 to-orange-500", "from-green-400 to-emerald-600", "from-pink-500 to-rose-500", 
-                          "from-blue-400 to-indigo-600", "from-yellow-400 to-orange-500", "from-purple-500 to-fuchsia-600",
-                          "from-teal-400 to-cyan-600", "from-rose-400 to-red-500"
-                        ];
-                        const emojis = ["🎸", "🥁", "🎹", "🎤", "🎷", "🎺", "🎧", "🎵", "👾", "🦊", "🐯", "🐼", "😎", "🚀", "🌟"];
-                        const newP = { 
-                          id: Date.now().toString(), 
-                          name: modalInput.trim(), 
-                          color: colors[Math.floor(Math.random() * colors.length)],
-                          emoji: emojis[Math.floor(Math.random() * emojis.length)]
-                        };
-                        saveProfiles([...profiles, newP]);
-                        setShowProfileModal(false);
-                      }
+                    if (modalInput.trim()) {
+                      const colors = [
+                        "from-red-500 to-orange-500", "from-green-400 to-emerald-600", "from-pink-500 to-rose-500", 
+                        "from-blue-400 to-indigo-600", "from-yellow-400 to-orange-500", "from-purple-500 to-fuchsia-600",
+                        "from-teal-400 to-cyan-600", "from-rose-400 to-red-500"
+                      ];
+                      const emojis = ["🎸", "🥁", "🎹", "🎤", "🎷", "🎺", "🎧", "🎵", "👾", "🦊", "🐯", "🐼", "😎", "🚀", "🌟"];
+                      const newP = { 
+                        id: Date.now().toString(), 
+                        name: modalInput.trim(), 
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        emoji: emojis[Math.floor(Math.random() * emojis.length)]
+                      };
+                      saveProfiles([...profiles, newP]);
+                      setShowProfileModal(false);
                     }
                   }}
                   className="px-5 py-2.5 bg-[#D4FF00] text-[#000000] rounded-[2rem] font-bold hover:bg-gray-200 transition-colors"
                 >
-                  {otpStep ? "Verify OTP" : "Create"}
+                  Create
                 </button>
               </div>
             </div>
