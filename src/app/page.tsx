@@ -58,10 +58,10 @@ const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite, onOpenMenu
 
     {/* Title & Artist */}
     <div className="flex flex-col flex-1 overflow-hidden min-w-0">
-      <span className="text-white text-sm font-semibold whitespace-normal break-words leading-tight">
+      <span className="text-white text-sm font-semibold truncate leading-tight">
         {song.title}
       </span>
-      <span className="text-gray-400 text-xs whitespace-normal break-words mt-0.5 group-hover:text-white transition-colors duration-200">
+      <span className="text-gray-400 text-xs truncate mt-0.5 group-hover:text-white transition-colors duration-200">
         {song.artist}
       </span>
     </div>
@@ -2165,7 +2165,7 @@ useEffect(() => {
                 ) : (
                   <div className="flex flex-col bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] overflow-hidden mb-6">
                     <div className="flex flex-col divide-y divide-white/10 p-2">
-                      {trendingWorldwide.map((song, index) => (
+                      {trendingWorldwide.slice(0, 10).map((song, index) => (
                       <SongBox 
                         key={song.id} 
                         song={song} 
@@ -2204,7 +2204,7 @@ useEffect(() => {
                 ) : (
                   <div className="flex flex-col bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] overflow-hidden mb-6">
                     <div className="flex flex-col divide-y divide-white/10 p-2">
-                      {trendingIndia.map((song, index) => (
+                      {trendingIndia.slice(0, 10).map((song, index) => (
                       <SongBox 
                         key={song.id} 
                         song={song} 
