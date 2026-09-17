@@ -626,13 +626,13 @@ useEffect(() => {
 
     try {
       let targetId = song.id;
-      let res = await fetch(`/api/audio?v=${song.id}`, { method: 'GET' });
+      let res = await fetch(`/api/download?v=${song.id}`, { method: 'GET' });
       
       if (!res.ok) {
         const altId = await getAlternativeSourceId(song.title, song.artist);
         if (altId) {
           targetId = altId;
-          res = await fetch(`/api/audio?v=${targetId}`, { method: 'GET' });
+          res = await fetch(`/api/download?v=${targetId}`, { method: 'GET' });
         }
       }
 
@@ -663,10 +663,10 @@ useEffect(() => {
       setDownloads(await getAllDownloads());
       setDownloadProgress(prev => { const n = {...prev}; delete n[song.id]; return n; });
     } catch (err: any) {
-      console.error("Download error:", err);
+      console.warn("Download error:", err.message || err);
       setDownloadErrors(prev => ({ ...prev, [song.id]: "Failed" }));
       setDownloadProgress(prev => { const n = {...prev}; delete n[song.id]; return n; });
-      if (err.name === 'QuotaExceededError' || err.message.includes('Quota')) {
+      if (err.name === 'QuotaExceededError' || (err.message && err.message.includes('Quota'))) {
         alert("Not enough storage to download this song.");
       }
     }
