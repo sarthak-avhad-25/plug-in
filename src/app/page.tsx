@@ -97,6 +97,8 @@ export default function FransHalsMusicApp() {
   const [isScreenOff, setIsScreenOff] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showScreenOffText, setShowScreenOffText] = useState(false);
+  const [showFullscreenError, setShowFullscreenError] = useState(false);
+  const hasShownErrorRef = useRef(false);
   const lastTapRef = useRef<number>(0);
 
   useEffect(() => {
@@ -119,9 +121,16 @@ export default function FransHalsMusicApp() {
           await el.requestFullscreen({ navigationUI: "hide" });
         } else if (el.webkitRequestFullscreen) {
           await el.webkitRequestFullscreen();
+        } else {
+          throw new Error("Fullscreen API not supported");
         }
       } catch (e) {
         console.warn("Fullscreen request failed", e);
+        if (!hasShownErrorRef.current) {
+          setShowFullscreenError(true);
+          hasShownErrorRef.current = true;
+          setTimeout(() => setShowFullscreenError(false), 3000);
+        }
       }
     } else {
       const doc = document as any;
@@ -2071,7 +2080,7 @@ useEffect(() => {
       </div>
 
             {/* MOBILE VIEW (Plug-In Custom Design) */}
-      <div className="flex md:hidden w-full h-[100dvh] flex-col bg-[#050505] text-[#F5F5F5] relative overflow-hidden font-sans">
+      <div className="flex md:hidden w-full h-[100dvh] flex-col bg-[#050505] text-[#F5F5F5] relative overflow-hidden font-sans pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]">
         
         {/* Main Content Area */}
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pb-[140px] px-6 scrollbar-hide pt-12 transition-opacity duration-300" style={{ WebkitOverflowScrolling: 'touch' }}>
@@ -2427,7 +2436,7 @@ useEffect(() => {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed inset-0 z-[100] bg-[#050505] flex flex-col"
+              className="fixed inset-0 z-[100] bg-[#050505] flex flex-col pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]"
             >
               {/* Blurred Ambient Background */}
               <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
@@ -2620,6 +2629,20 @@ useEffect(() => {
 
       </div>
 
+      {/* FULLSCREEN ERROR OVERLAY */}
+      <AnimatePresence>
+        {showFullscreenError && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="md:hidden fixed top-[env(safe-area-inset-top,20px)] left-4 right-4 z-[9999] bg-[#ff3333] text-white p-3 text-center text-sm font-bold rounded-xl shadow-xl pointer-events-none"
+          >
+            Fullscreen isn't available in this browser.
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
       {/* MOBILE SCREEN OFF OVERLAY */}
       <AnimatePresence>
         {isScreenOff && (

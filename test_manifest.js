@@ -1,7 +1,4 @@
-import { MetadataRoute } from 'next'
-
-export default function manifest(): MetadataRoute.Manifest {
-  return {
+const m = {
     name: 'Plug In',
     short_name: 'Plug In',
     description: 'Your personal music hub',
@@ -22,5 +19,5 @@ export default function manifest(): MetadataRoute.Manifest {
         type: 'image/png',
       },
     ],
-  }
-}
+  };
+console.log(m);
