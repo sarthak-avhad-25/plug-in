@@ -122,23 +122,23 @@ export function Onboarding({ onComplete }: { onComplete: (profile: any) => void 
             animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
             exit={{ opacity: 0, scale: 1.2, filter: "blur(20px)", z: 100 }}
             transition={{ duration: 0.8, ease: "backOut" }}
-            className="relative z-10 w-full max-w-3xl px-6"
+            className="relative z-10 w-full max-w-5xl px-8"
           >
-            <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[3rem] p-10 md:p-16 shadow-[0_30px_60px_rgba(0,0,0,0.5)]">
-              <div className="text-center mb-8">
+            <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[3rem] px-10 py-6 md:px-20 md:py-10 shadow-[0_30px_60px_rgba(0,0,0,0.5)]">
+              <div className="text-center mb-4">
                 <h2 className="text-5xl font-black text-white mb-2">Create your profile</h2>
-                <p className="text-xl md:text-2xl text-white/50 mt-4">Tell us what we should call you.</p>
+                <p className="text-xl md:text-2xl text-white/50 mt-2">Tell us what we should call you.</p>
               </div>
 
-              <form onSubmit={handleSubmit} className="flex flex-col gap-6" autoComplete="off">
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4" autoComplete="off">
                 <div className="flex justify-center mb-4 w-full overflow-hidden">
-                  <div className="grid grid-cols-5 gap-4 md:gap-5 max-h-[30rem] overflow-y-auto custom-scrollbar pr-2 py-2 w-full justify-items-center">
+                  <div className="grid grid-cols-5 md:grid-cols-10 gap-3 md:gap-4 max-h-[16rem] overflow-y-auto custom-scrollbar pr-2 py-2 w-full justify-items-center">
                     {AVATARS.map(avatar => (
                       <button
                         key={avatar.id}
                         type="button"
                         onClick={() => setSelectedAvatarId(avatar.id)}
-                        className={`w-20 h-20 md:w-28 md:h-28 rounded-full overflow-hidden transition-all shadow-xl
+                        className={`w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden transition-all shadow-xl
                           ${selectedAvatarId === avatar.id ? 'scale-110 ring-4 ring-[#D4FF00] z-10 shadow-[0_0_20px_rgba(212,255,0,0.5)]' : 'scale-95 opacity-60 hover:scale-100 hover:opacity-100'}
                         `}
                       >
@@ -149,14 +149,14 @@ export function Onboarding({ onComplete }: { onComplete: (profile: any) => void 
                 </div>
 
                 <div>
-                  <label className="block text-white/50 text-lg md:text-xl font-bold tracking-widest mb-4 pl-2">USERNAME</label>
+                  <label className="block text-white/50 text-lg md:text-xl font-bold tracking-widest mb-2 pl-2">USERNAME</label>
                   <input
                     type="text"
                     required
                     placeholder="Enter your name"
                     value={username}
                     onChange={e => setUsername(e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 rounded-[2rem] px-10 py-8 text-3xl text-white font-black placeholder:text-white/20 focus:outline-none focus:border-[#D4FF00] transition-colors text-center shadow-inner"
+                    className="w-full bg-black/50 border border-white/10 rounded-[2rem] px-10 py-6 text-3xl text-white font-black placeholder:text-white/20 focus:outline-none focus:border-[#D4FF00] transition-colors text-center shadow-inner"
                     autoComplete="off"
                   />
                 </div>
@@ -164,7 +164,7 @@ export function Onboarding({ onComplete }: { onComplete: (profile: any) => void 
                 <button
                   type="submit"
                   disabled={!username.trim()}
-                  className="w-full bg-[#D4FF00] text-black font-black text-3xl font-black tracking-wide rounded-[2rem] py-8 mt-8 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center shadow-[0_0_30px_rgba(212,255,0,0.3)] disabled:opacity-50 disabled:hover:scale-100 disabled:shadow-none"
+                  className="w-full bg-[#D4FF00] text-black font-black text-3xl font-black tracking-wide rounded-[2rem] py-6 mt-4 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center shadow-[0_0_30px_rgba(212,255,0,0.3)] disabled:opacity-50 disabled:hover:scale-100 disabled:shadow-none"
                 >
                   Enter PlugIn
                 </button>
