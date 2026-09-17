@@ -57,10 +57,10 @@ const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite, onOpenMenu
 
     {/* Title & Artist */}
     <div className="flex flex-col flex-1 overflow-hidden min-w-0">
-      <span className="text-white text-sm font-semibold truncate leading-tight">
+      <span className="text-white text-sm font-semibold whitespace-normal break-words leading-tight">
         {song.title}
       </span>
-      <span className="text-gray-400 text-xs truncate mt-0.5 group-hover:text-white transition-colors duration-200">
+      <span className="text-gray-400 text-xs whitespace-normal break-words mt-0.5 group-hover:text-white transition-colors duration-200">
         {song.artist}
       </span>
     </div>
@@ -1329,7 +1329,7 @@ useEffect(() => {
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowCreatePlaylist(false)} />
           <div className="relative z-10 w-full max-w-sm bg-[#111] border border-white/10 p-6 rounded-3xl shadow-2xl flex flex-col gap-6 animate-in zoom-in-95 duration-200">
-            <h3 className="text-xl font-bold text-white text-center">New Playlist</h3>
+            <h2 className="text-xl font-bold text-white text-center">New Playlist</h2>
             <input
               type="text"
               autoFocus
@@ -1474,7 +1474,7 @@ useEffect(() => {
       <div id="left-column" className="hidden md:flex w-full md:w-[50%] lg:w-[40%] flex-col border-t-4 md:border-t-0 md:border-l-4 border-[#222222] relative z-20 bg-black text-white overflow-visible drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
         <div className="relative z-10 w-full h-full flex flex-col justify-start overflow-y-auto p-6 md:p-12 scroll-smooth bg-black">
           <header className="mb-6">
-          <div className="flex justify-between items-center border-b-4 border-white/30 pb-4">
+          <div className="flex justify-start items-center gap-4 border-b-4 border-white/30 pb-4">
             <h1 
               onClick={() => { setHasSearched(false); setShowPlaylist(false); setArtistQuery(""); setSongQuery(""); setSearchResults([]); }}
               className={`text-2xl font-medium tracking-wide  tracking-[0.2em] leading-none cursor-pointer transition-colors ${isLightBg ? 'text-white drop-shadow-md hover:text-[#D4FF00]' : 'text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] hover:text-[#D4FF00]'}`}
@@ -1676,8 +1676,8 @@ useEffect(() => {
 
         <div className="flex flex-col mt-4">
 <div className="w-full flex flex-col gap-4">
-            <div className="border-2 border-white/40 bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white shadow-[2px_2px_0_0_rgba(255,255,255,0.3)] p-3 mb-2 flex items-center justify-center">
-              <h3 className="text-xl font-medium tracking-wide  tracking-widest text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]">Playlists</h3>
+            <div className="mb-2 flex items-center justify-start px-2">
+              <h2 className="text-xl font-medium tracking-wide tracking-widest text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]">Playlists</h2>
             </div>
             {playlists.map(p => (
               <button 
@@ -1697,7 +1697,7 @@ useEffect(() => {
                   savePlaylists([...playlists, newP]);
                 }
               }}
-              className="w-full border border-[#222222] border-dashed p-4 text-xl font-medium tracking-wide tracking-tight bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white text-white hover:bg-[#000000] hover:text-white transition-colors"
+              className="w-full border-2 border-white/20 border-dashed p-4 text-xl font-medium tracking-wide tracking-tight bg-[#000000]/70 backdrop-blur-xl text-white hover:border-[#D4FF00] hover:text-[#D4FF00] transition-colors"
             >
               + New Playlist
             </button>
@@ -1735,7 +1735,7 @@ useEffect(() => {
           className={`relative z-10 flex-1 p-6 md:p-12 overflow-y-auto scroll-smooth will-change-transform transition-all duration-[1000ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${isInactive ? '-translate-y-16 scale-[1.02]' : 'translate-y-0 scale-100'}`}
         >
 
-              <div className="w-full flex flex-col gap-2 mb-8 z-[60] search-container">
+              <div className="w-full max-w-[1400px] mx-auto flex flex-col gap-2 mb-8 z-[60] search-container">
                 {/* Song Box */}
             <form 
               onSubmit={(e) => { 
@@ -1744,16 +1744,16 @@ useEffect(() => {
               }} 
               className="relative w-full group"
             >
-              <div className="border-2 border-white/40 bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white shadow-[2px_2px_0_0_rgba(255,255,255,0.3)] group-focus-within:translate-y-px group-focus-within:translate-x-px group-focus-within:shadow-[0px_0px_0_0_#024230] transition-all duration-200">
-                <div className="bg-black/50 text-white px-2 py-0.5 inline-block text-[10px] font-medium tracking-wide  tracking-widest border-r-2 border-b-2 border-white/40 backdrop-blur-xl">
-                  Track
+              <div className="border-2 border-white/60 bg-[#111111]/80 backdrop-blur-xl text-white shadow-[4px_4px_0_0_rgba(255,255,255,0.4)] group-focus-within:translate-y-px group-focus-within:translate-x-px group-focus-within:shadow-[0px_0px_0_0_rgba(255,255,255,0.8)] transition-all duration-200">
+                <div className="bg-black/80 text-white px-3 py-1 inline-block text-xs font-bold tracking-widest border-r-2 border-b-2 border-white/60 backdrop-blur-xl">
+                  TRACK
                 </div>
                 <input
                   type="text"
                   placeholder="What is the song name?"
                   value={songQuery}
                   onChange={(e) => setSongQuery(e.target.value)}
-                  className="w-full bg-transparent text-base font-bold px-3 py-1 outline-none placeholder:text-white/70 text-white"
+                  className="w-full bg-transparent text-lg md:text-xl font-bold px-4 py-3 outline-none placeholder:text-white/50 text-white"
                 />
               </div>
 
@@ -1789,7 +1789,7 @@ useEffect(() => {
             <div className="flex flex-col gap-8 w-full max-w-4xl mx-auto pb-32">
               <div className="flex flex-col gap-4 border-b-4 border-[#222222] pb-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-6xl md:text-8xl font-black tracking-tighter uppercase text-white truncate leading-none pb-2">{activePlaylist.name}</h3>
+                  <h2 className="text-6xl md:text-8xl font-black tracking-tighter uppercase text-white truncate leading-none pb-2">{activePlaylist.name}</h2>
                   <div className="flex flex-wrap gap-4 shrink-0 mt-4 md:mt-0">
                     <button 
                       onClick={() => {
@@ -1816,7 +1816,7 @@ useEffect(() => {
                           setActivePlaylistId('default');
                         }
                       }}
-                      className="px-3 py-2 border-2 border-transparent hover:border-red-500 hover:text-red-500 transition-colors  font-bold text-sm"
+                      className="px-4 py-2 border-2 border-transparent hover:border-red-500 hover:text-red-500 uppercase font-black text-xs tracking-widest transition-all"
                     >Delete</button>
                   </div>
                 </div>
@@ -1962,14 +1962,14 @@ useEffect(() => {
               {/* Worldwide Section */}
               <div className="flex flex-col gap-8">
                 <div className="flex items-center justify-between border-b-4 border-[#222222] pb-4 overflow-hidden">
-                  <motion.h3 
+                  <motion.h2 
                     initial={{ opacity: 0, x: -30 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
                     className="text-3xl font-medium tracking-wide tracking-tight text-white drop-shadow-xl"
                   >
                     Trending Worldwide
-                  </motion.h3>
+                  </motion.h2>
                 </div>
                 
                 {trendingWorldwide.length === 0 ? (
@@ -1997,14 +1997,14 @@ useEffect(() => {
               {/* India Section */}
               <div className="flex flex-col gap-8">
                 <div className="flex items-center justify-between border-b-4 border-[#222222] pb-4 overflow-hidden">
-                  <motion.h3 
+                  <motion.h2 
                     initial={{ opacity: 0, x: -30 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.7, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
                     className="text-3xl font-medium tracking-wide tracking-tight text-white drop-shadow-xl"
                   >
                     Trending in India
-                  </motion.h3>
+                  </motion.h2>
                 </div>
                 
                 {trendingIndia.length === 0 ? (
@@ -2033,7 +2033,7 @@ useEffect(() => {
           ) : (
             <div className="flex flex-col gap-8 w-full max-w-2xl mx-auto pb-32">
               <div className="flex items-center justify-between border-b-4 border-[#222222] pb-4">
-                <h3 className="text-3xl font-medium tracking-wide tracking-tight">Results</h3>
+                <h2 className="text-3xl font-medium tracking-wide tracking-tight">Results</h2>
                 {isSearching && <Loader2 className="w-8 h-8 animate-spin" />}
               </div>
               
@@ -2115,7 +2115,7 @@ useEffect(() => {
               {/* Recently Played */}
               {playbackHistory.length > 0 && (
                 <div className="flex flex-col gap-4">
-                  <h3 className="text-lg font-bold uppercase tracking-widest text-[#D4FF00]">Recently Played</h3>
+                  <h2 className="text-lg font-bold uppercase tracking-widest text-[#D4FF00]">Recently Played</h2>
                   <div className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide snap-x">
                     {[...playbackHistory].reverse().slice(0, 10).map((song, i) => (
                       <div key={i} className="min-w-[140px] max-w-[140px] flex flex-col gap-3 snap-start" onClick={() => playSong(song)}>
@@ -2137,7 +2137,7 @@ useEffect(() => {
 
               {/* Recommended / Trending */}
               <div className="flex flex-col gap-4">
-                <h3 className="text-lg font-bold uppercase tracking-widest text-white/80">Recommended For You</h3>
+                <h2 className="text-lg font-bold uppercase tracking-widest text-white/80">Recommended For You</h2>
                 <div className="flex flex-col gap-3">
                   {trendingWorldwide.slice(0, 5).map((song, i) => (
                     <div key={song.id} className="flex items-center gap-4 p-3 rounded-2xl bg-white/5 active:bg-white/10 transition-colors" onClick={() => playSong(song)}>
@@ -2163,7 +2163,7 @@ useEffect(() => {
           {mobileTab === "discover" && (
             <div className="flex flex-col gap-10 animate-in fade-in duration-500">
               <div className="flex flex-col gap-4">
-                <h3 className="text-lg font-bold uppercase tracking-widest text-[#D4FF00]">Trending Worldwide</h3>
+                <h2 className="text-lg font-bold uppercase tracking-widest text-[#D4FF00]">Trending Worldwide</h2>
                 <div className="grid grid-cols-2 gap-4">
                   {trendingWorldwide.map(song => (
                     <div key={song.id} className="flex flex-col gap-2" onClick={() => playSong(song)}>
@@ -2226,7 +2226,7 @@ useEffect(() => {
                  <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-[#D4FF00]" /></div>
               ) : hasSearched && searchResults.length > 0 && (
                 <div className="flex flex-col gap-3">
-                  <h3 className="text-sm font-bold uppercase tracking-widest text-white/40 mb-2">Results</h3>
+                  <h2 className="text-sm font-bold uppercase tracking-widest text-white/40 mb-2">Results</h2>
                   {searchResults.map((song, i) => (
                     <div key={song.id} className="flex items-center gap-4 p-2 rounded-xl active:bg-white/5" onClick={() => playSong(song)}>
                       <img src={song.image} className="w-12 h-12 rounded-lg object-cover" />
@@ -2254,7 +2254,7 @@ useEffect(() => {
           {mobileTab === "library" && (
             <div className="flex flex-col gap-8 animate-in fade-in duration-500">
               <div className="flex flex-col gap-4">
-                <h3 className="text-lg font-bold uppercase tracking-widest text-white/80">Your Playlists</h3>
+                <h2 className="text-lg font-bold uppercase tracking-widest text-white/80">Your Playlists</h2>
                 <div className="grid grid-cols-2 gap-4">
                   {playlists.map(playlist => (
                     <div 
@@ -2581,7 +2581,7 @@ useEffect(() => {
                     className="absolute inset-0 z-50 bg-[#050505]/95 backdrop-blur-2xl flex flex-col pt-12"
                   >
                     <div className="flex items-center justify-between p-6 pb-2 border-b border-white/10">
-                      <h3 className="text-lg font-black uppercase tracking-widest text-white">Lyrics</h3>
+                      <h2 className="text-lg font-black uppercase tracking-widest text-white">Lyrics</h2>
                       <button onClick={() => setIsLyricsExpanded(false)} className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white active:scale-90">
                         <ChevronDown className="w-6 h-6" />
                       </button>
