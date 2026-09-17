@@ -11,6 +11,7 @@ import type { SyncedLyric } from "./actions";
 import { loadProfiles, saveProfilesServer, loadActiveProfile, saveActiveProfileServer, loadPlaylistsServer, savePlaylistsServer, deletePlaylistsServer } from "./storage";
 import { Onboarding } from "./Onboarding";
 import { ProfileSelector } from "./ProfileSelector";
+import { LiveLyrics } from "./components/LiveLyrics";
 
 type Profile = {
   id: string;
@@ -495,7 +496,7 @@ useEffect(() => {
   
   const playerRef = useRef<YouTubePlayer | null>(null);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
-  const lyricsContainerRef = useRef<HTMLDivElement>(null);
+  
   const audioRef = useRef<HTMLAudioElement>(null);
   const shouldPlayRef = useRef(false);
 
@@ -512,44 +513,11 @@ useEffect(() => {
       isUserScrolling.current = false;
       lastScrolledIndex.current = -1; // Force immediate resync on next progress tick
       
-      // Snap back immediately when timeout finishes
-      if (lyricsContainerRef.current && lyrics.length > 0) {
-        const activeIndex = lyrics.reduce((acc, l, idx) => (progress >= l.time ? idx : acc), 0);
-        const innerWrapper = lyricsContainerRef.current.children[0];
-        if (innerWrapper) {
-          const activeElement = innerWrapper.children[activeIndex] as HTMLElement;
-          if (activeElement) {
-            const container = lyricsContainerRef.current;
-            const targetScroll = activeElement.offsetTop - (container.clientHeight / 2) + (activeElement.clientHeight / 2);
-            container.scrollTo({ top: targetScroll, behavior: "smooth" });
-            lastScrolledIndex.current = activeIndex;
-          }
-        }
-      }
+      
     }, 3000); // Reduced timeout to 3s for better responsiveness
   };
 
-  // Auto-scroll lyrics
-  useEffect(() => {
-    if (lyricsContainerRef.current && lyrics.length > 0) {
-      const activeIndex = lyrics.reduce((acc, l, idx) => (progress >= l.time ? idx : acc), 0);
-      
-      if (activeIndex !== lastScrolledIndex.current) {
-        lastScrolledIndex.current = activeIndex;
-        if (!isUserScrolling.current) {
-          const innerWrapper = lyricsContainerRef.current.children[0];
-          if (innerWrapper) {
-            const activeElement = innerWrapper.children[activeIndex] as HTMLElement;
-            if (activeElement) {
-              const container = lyricsContainerRef.current;
-              const targetScroll = activeElement.offsetTop - (container.clientHeight / 2) + (activeElement.clientHeight / 2);
-              container.scrollTo({ top: targetScroll, behavior: "smooth" });
-            }
-          }
-        }
-      }
-    }
-  }, [progress, lyrics]);
+  
 
 
 
@@ -854,22 +822,7 @@ useEffect(() => {
 
   // Re-scroll when expanding/collapsing
   useEffect(() => {
-    lastScrolledIndex.current = -1; // force re-scroll
-    setTimeout(() => { // wait for layout height transition
-      if (lyricsContainerRef.current && lyrics.length > 0 && !isUserScrolling.current) {
-        const activeIndex = lyrics.reduce((acc, l, idx) => (progress >= l.time ? idx : acc), 0);
-        const innerWrapper = lyricsContainerRef.current.children[0];
-        if (innerWrapper) {
-          const activeElement = innerWrapper.children[activeIndex] as HTMLElement;
-          if (activeElement) {
-            const container = lyricsContainerRef.current;
-            const targetScroll = activeElement.offsetTop - (container.clientHeight / 2) + (activeElement.clientHeight / 2);
-            container.scrollTo({ top: targetScroll, behavior: "smooth" });
-            lastScrolledIndex.current = activeIndex;
-          }
-        }
-      }
-    }, 100);
+    
   }, [isLyricsExpanded]);
 
   useEffect(() => {
@@ -1764,11 +1717,27 @@ useEffect(() => {
                      </button>
                    </div>
                    
-                   {/* Clean Navigation Section */}
-                   <div className="flex items-center justify-between w-full border-t border-white/10 pt-6">
+                   {/* LYRICS SECTION - ALWAYS VISIBLE DIRECTLY UNDER PLAYER */}
+                   <div className="w-full border-t border-white/10 pt-8 mt-4">
+                     <h3 className="text-sm font-bold text-white/50 uppercase tracking-widest mb-4">Live Lyrics</h3>
+                     <LiveLyrics 
+                       lyrics={lyrics} 
+                       isLoading={lyricsLoading} 
+                       progress={progress} 
+                       onSeek={(time) => {
+                         if (playerRef.current) {
+                           playerRef.current.seekTo(time, true);
+                           setProgress(time);
+                         }
+                       }}
+                     />
+                   </div>
+
+                   {/* Clean Navigation Section for Queue / Related */}
+                   <div className="flex items-center justify-between w-full border-t border-white/10 pt-6 mt-8">
                      <div className="flex items-center gap-6">
                        <button onClick={() => setPlayerTab(playerTab === 'queue' ? null : 'queue')} className={`text-xs font-bold uppercase tracking-widest transition-colors ${playerTab === 'queue' ? 'text-[#D4FF00]' : 'text-white/50 hover:text-white'}`}>Up Next</button>
-                       <button onClick={() => setPlayerTab(playerTab === 'lyrics' ? null : 'lyrics')} className={`text-xs font-bold uppercase tracking-widest transition-colors ${playerTab === 'lyrics' ? 'text-[#D4FF00]' : 'text-white/50 hover:text-white'}`}>Lyrics</button>
+                       
                        <button onClick={() => setPlayerTab(playerTab === 'related' ? null : 'related')} className={`text-xs font-bold uppercase tracking-widest transition-colors ${playerTab === 'related' ? 'text-[#D4FF00]' : 'text-white/50 hover:text-white'}`}>Related</button>
                      </div>
                      <div className="flex items-center gap-6">
@@ -1872,7 +1841,7 @@ useEffect(() => {
                        className="w-full mt-2 relative overflow-hidden bg-white/[0.02] rounded-2xl border border-white/5"
                      >
                        <div 
-                         ref={lyricsContainerRef}
+                         
                          onWheel={handleUserInteraction}
                          onTouchMove={handleUserInteraction}
                          onMouseDown={handleUserInteraction}
@@ -3183,30 +3152,17 @@ useEffect(() => {
                       </button>
                     </div>
                     <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 pb-32">
-                      {lyricsLoading ? (
-                        <div className="flex items-center justify-center h-full text-[#D4FF00]"><Loader2 className="w-8 h-8 animate-spin" /></div>
-                      ) : lyrics.length === 0 ? (
-                        <div className="flex items-center justify-center h-full text-white/30 font-bold uppercase tracking-widest">No lyrics found</div>
-                      ) : (
-                        lyrics.map((line, i) => {
-                          const activeIndex = lyrics.reduce((acc, l, idx) => (progress >= l.time ? idx : acc), 0);
-                          const isActive = i === activeIndex;
-                          const isPast = i < activeIndex;
-                          return (
-                            <div 
-                              key={i} 
-                              onClick={() => {
-                                if (useNativeAudio && audioRef.current) audioRef.current.currentTime = line.time;
-                                if (playerRef.current) playerRef.current.seekTo(line.time, true);
-                                setProgress(line.time);
-                              }}
-                              className={`text-2xl md:text-3xl font-black tracking-tight transition-all duration-300 cursor-pointer ${isActive ? 'text-white scale-[1.02] origin-left drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]' : isPast ? 'text-white/30' : 'text-white/50'}`}
-                            >
-                              {line.text}
-                            </div>
-                          );
-                        })
-                      )}
+                      <LiveLyrics 
+                        lyrics={lyrics} 
+                        isLoading={lyricsLoading} 
+                        progress={progress} 
+                        onSeek={(time) => {
+                          if (useNativeAudio && audioRef.current) audioRef.current.currentTime = time;
+                          if (playerRef.current) playerRef.current.seekTo(time, true);
+                          setProgress(time);
+                        }}
+                        isExpanded={true}
+                      />
                     </div>
                   </motion.div>
                 )}
