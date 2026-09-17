@@ -122,9 +122,9 @@ export function Onboarding({ onComplete }: { onComplete: (profile: any) => void 
             animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
             exit={{ opacity: 0, scale: 1.2, filter: "blur(20px)", z: 100 }}
             transition={{ duration: 0.8, ease: "backOut" }}
-            className="relative z-10 w-full max-w-md px-6"
+            className="relative z-10 w-full max-w-lg px-6"
           >
-            <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-[0_30px_60px_rgba(0,0,0,0.5)]">
+            <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-8 md:p-10 shadow-[0_30px_60px_rgba(0,0,0,0.5)]">
               <div className="text-center mb-8">
                 <h2 className="text-3xl font-bold text-white mb-2">Create your profile</h2>
                 <p className="text-white/50">Tell us what we should call you.</p>
