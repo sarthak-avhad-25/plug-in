@@ -777,6 +777,7 @@ useEffect(() => {
   const [clickOrigin, setClickOrigin] = useState<{x: number, y: number} | null>(null);
 
   const playRequestIdRef = useRef(0);
+  const activePlayRequestIdRef = useRef(0);
   const [playbackState, setPlaybackState] = useState<"idle" | "loading" | "playing" | "paused" | "buffering" | "error">("idle");
   const [isDraggingTimeline, setIsDraggingTimeline] = useState(false);
   const [dragProgress, setDragProgress] = useState(0);
@@ -851,6 +852,7 @@ useEffect(() => {
              logDebug(`[PLAY_PROMISE_REJECTED] name=${err.name} message=${err.message}`);
              logDebug(`Native play rejected: ${err.message}`);
              if (playRequestIdRef.current === currentId) {
+               activePlayRequestIdRef.current = currentId; // Transition definitively failed
                setIsPlaying(false);
                setPlaybackState("paused");
              }
@@ -1418,6 +1420,7 @@ useEffect(() => {
           console.log(`[AUDIO_PLAY_EVENT]`);
           logDebug(`[AUDIO_PLAY_EVENT]`);
           logDebug(`Native onPlay fired!`, e.currentTarget);
+          activePlayRequestIdRef.current = playRequestIdRef.current; // Transition succeeded
           setIsPlaying(true);
           setPlaybackState("playing");
           if (useNativeAudio) {
@@ -1438,6 +1441,7 @@ useEffect(() => {
           console.log(`[AUDIO_PLAYING_EVENT]`);
           logDebug(`[AUDIO_PLAYING_EVENT]`);
           logDebug(`Native onPlaying fired!`, e.currentTarget);
+          activePlayRequestIdRef.current = playRequestIdRef.current; // Transition succeeded
           setPlaybackState("playing");
         }}
         onTimeUpdate={(e) => {
@@ -1451,11 +1455,12 @@ useEffect(() => {
           logDebug(`Native onPause fired!`, e.currentTarget);
           
           // CRITICAL FIX: When audio.src is changed, the browser asynchronously fires a 'pause' event 
-          // for the PREVIOUS track. This overrides the "loading" state of the NEW track, causing 
-          // the UI to incorrectly show the Play button, forcing the user to tap again.
-          // By ignoring onPause when readyState === 0 and we WANT to play, we prevent this race condition!
-          if (e.currentTarget.readyState === 0 && shouldPlayRef.current) {
-            logDebug(`Ignoring onPause because readyState is 0 (src change artifact)`);
+          // for the PREVIOUS track. This overrides the "loading" state of the NEW track.
+          // If playRequestIdRef > activePlayRequestIdRef, it means we are actively transitioning 
+          // to a NEW request that hasn't successfully reached onPlay/onPlaying yet.
+          // If shouldPlayRef is true, we want it to play. We MUST ignore this stale pause.
+          if (playRequestIdRef.current !== activePlayRequestIdRef.current && shouldPlayRef.current) {
+            logDebug(`Ignoring stale onPause (transitioning to request ID ${playRequestIdRef.current}, active is ${activePlayRequestIdRef.current})`);
             return;
           }
           
