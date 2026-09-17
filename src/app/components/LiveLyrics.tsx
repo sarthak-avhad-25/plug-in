@@ -105,10 +105,10 @@ export function LiveLyrics({ lyrics, isLoading, progress, onSeek, isExpanded = f
                 onSeek(line.time);
                 setUserScrolled(false);
               }}
-              className="cursor-pointer transition-all duration-500 ease-out flex flex-wrap items-center justify-start origin-left"
+              className="cursor-pointer transition-all duration-[800ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none flex flex-wrap items-center justify-start origin-left"
               style={{
-                opacity: isActive ? 1 : (isPast ? 0.3 : 0.4),
-                transform: isActive ? 'scale(1.05)' : 'scale(0.95)',
+                opacity: isActive ? 1 : 0.45,
+                transform: isActive ? 'scale(1.05)' : 'scale(1)',
                 filter: isActive ? 'blur(0px)' : 'blur(0.5px)',
               }}
             >
@@ -118,7 +118,7 @@ export function LiveLyrics({ lyrics, isLoading, progress, onSeek, isExpanded = f
                 return (
                   <span 
                     key={wIdx} 
-                    className="inline-block mr-2 md:mr-3 transition-all duration-300 ease-out"
+                    className={`inline-block mr-2 md:mr-3 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${isActive ? 'font-bold' : 'font-medium'}`}
                     style={{
                       color: isWordActive ? '#D4FF00' : (isActive ? '#ffffff' : '#a3a3a3'),
                       textShadow: isWordActive 
@@ -132,7 +132,7 @@ export function LiveLyrics({ lyrics, isLoading, progress, onSeek, isExpanded = f
                 )
               }) : (
                 <span 
-                  className="inline-block transition-all duration-500 ease-out text-2xl md:text-4xl font-black tracking-tight leading-tight"
+                  className={`inline-block transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none text-2xl md:text-4xl tracking-tight leading-tight ${isActive ? 'font-bold' : 'font-medium'}`}
                   style={{ 
                     color: isActive ? '#D4FF00' : (isActive ? '#ffffff' : '#a3a3a3'),
                     textShadow: isActive ? '0px 0px 20px rgba(212,255,0,0.3)' : 'none'
