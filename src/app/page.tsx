@@ -66,6 +66,26 @@ const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite, onOpenMenu
       </span>
     </div>
 
+    {/* Download Button */}
+    {onDownload && (
+      <button 
+        onClick={(e) => { e.stopPropagation(); isDownloaded ? (onRemoveDownload && onRemoveDownload(e)) : (downloadProgress === undefined ? onDownload(e) : null); }}
+        className="p-2 shrink-0 transition-all duration-200 hover:scale-110 opacity-100 md:opacity-0 md:group-hover:opacity-100"
+        aria-label="Download"
+      >
+        {isDownloaded ? (
+          <CheckCircle2 className="w-4 h-4 text-[#D4FF00]" />
+        ) : downloadProgress !== undefined ? (
+          <div className="relative flex items-center justify-center w-4 h-4">
+            <Loader2 className="w-4 h-4 text-white animate-spin" />
+            {typeof downloadProgress === 'number' && <span className="absolute text-[7px] font-bold text-white leading-none">{downloadProgress}</span>}
+          </div>
+        ) : (
+          <ArrowDownToLine className="w-4 h-4 text-gray-400 hover:text-white" />
+        )}
+      </button>
+    )}
+
     {/* Favorite */}
     <button 
       onClick={(e) => { e.stopPropagation(); onToggleFavorite(e); }}
@@ -2296,7 +2316,24 @@ useEffect(() => {
                   <h2 className="text-lg font-bold uppercase tracking-widest text-[#D4FF00]">Recently Played</h2>
                   <div className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide snap-x">
                     {[...playbackHistory].reverse().slice(0, 10).map((song, i) => (
-                      <div key={i} className="min-w-[140px] max-w-[140px] flex flex-col gap-3 snap-start" onClick={() => playSong(song)}>
+                      <div key={i} className="min-w-[140px] max-w-[140px] flex flex-col gap-3 snap-start relative group" onClick={() => playSong(song)}>
+                        <div className="absolute top-2 right-2 z-10">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); downloads.some(d => d.id === song.id) ? handleRemoveDownload(song.id, e) : (downloadProgress[song.id] === undefined ? handleDownload(song, e) : null); }}
+                            className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-md active:bg-black/70 text-white"
+                          >
+                            {downloads.some(d => d.id === song.id) ? (
+                              <CheckCircle2 className="w-4 h-4 text-[#D4FF00]" />
+                            ) : downloadProgress[song.id] !== undefined ? (
+                              <div className="relative flex items-center justify-center w-4 h-4">
+                                <Loader2 className="w-4 h-4 text-white animate-spin" />
+                                {typeof downloadProgress[song.id] === 'number' && <span className="absolute text-[6px] font-bold text-white leading-none">{downloadProgress[song.id]}</span>}
+                              </div>
+                            ) : (
+                              <ArrowDownToLine className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
                         <div className="w-[140px] h-[140px] relative rounded-2xl overflow-hidden shadow-lg shadow-black/50">
                           <img src={song.image} className="w-full h-full object-cover" />
                           <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 active:opacity-100 transition-opacity">
@@ -2344,7 +2381,24 @@ useEffect(() => {
                 <h2 className="text-lg font-bold uppercase tracking-widest text-[#D4FF00]">Trending Worldwide</h2>
                 <div className="grid grid-cols-2 gap-4">
                   {trendingWorldwide.map(song => (
-                    <div key={song.id} className="flex flex-col gap-2" onClick={() => playSong(song)}>
+                    <div key={song.id} className="flex flex-col gap-2 relative group" onClick={() => playSong(song)}>
+                      <div className="absolute top-2 right-2 z-10">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); downloads.some(d => d.id === song.id) ? handleRemoveDownload(song.id, e) : (downloadProgress[song.id] === undefined ? handleDownload(song, e) : null); }}
+                          className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-md active:bg-black/70 text-white"
+                        >
+                          {downloads.some(d => d.id === song.id) ? (
+                            <CheckCircle2 className="w-4 h-4 text-[#D4FF00]" />
+                          ) : downloadProgress[song.id] !== undefined ? (
+                            <div className="relative flex items-center justify-center w-4 h-4">
+                              <Loader2 className="w-4 h-4 text-white animate-spin" />
+                              {typeof downloadProgress[song.id] === 'number' && <span className="absolute text-[6px] font-bold text-white leading-none">{downloadProgress[song.id]}</span>}
+                            </div>
+                          ) : (
+                            <ArrowDownToLine className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
                       <div className="aspect-square relative rounded-2xl overflow-hidden">
                         <img src={song.image} className="w-full h-full object-cover" />
                       </div>
@@ -2448,11 +2502,26 @@ useEffect(() => {
                         <span className="text-base font-bold text-white truncate">{song.title}</span>
                         <span className="text-sm text-white/50 truncate">{song.artist}</span>
                       </div>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); downloads.some(d => d.id === song.id) ? handleRemoveDownload(song.id, e) : (downloadProgress[song.id] === undefined ? handleDownload(song, e) : null); }}
+                        className="w-8 h-8 flex items-center justify-center rounded-full active:bg-white/10 shrink-0"
+                      >
+                        {downloads.some(d => d.id === song.id) ? (
+                          <CheckCircle2 className="w-4 h-4 text-[#D4FF00]" />
+                        ) : downloadProgress[song.id] !== undefined ? (
+                          <div className="relative flex items-center justify-center w-4 h-4">
+                            <Loader2 className="w-4 h-4 text-white animate-spin" />
+                            {typeof downloadProgress[song.id] === 'number' && <span className="absolute text-[6px] font-bold text-white leading-none">{downloadProgress[song.id]}</span>}
+                          </div>
+                        ) : (
+                          <ArrowDownToLine className="w-4 h-4 text-white/50" />
+                        )}
+                      </button>
                       <button className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 shrink-0">
                         <Play className="w-4 h-4 fill-white text-white ml-0.5" />
                       </button>
                       <button 
-                        onClick={(e) => openPlaylistMenu(song, e)}
+                        onClick={(e) => { e.stopPropagation(); openPlaylistMenu(song, e); }}
                         className="w-8 h-8 flex items-center justify-center rounded-full active:bg-white/10 shrink-0"
                       >
                         <MoreHorizontal className="w-5 h-5 text-white/50" />
@@ -2534,7 +2603,22 @@ useEffect(() => {
                         </div>
                       </div>
                       <button 
-                        onClick={(e) => openPlaylistMenu(song, e)}
+                        onClick={(e) => { e.stopPropagation(); downloads.some(d => d.id === song.id) ? handleRemoveDownload(song.id, e) : (downloadProgress[song.id] === undefined ? handleDownload(song, e) : null); }}
+                        className="w-10 h-10 flex items-center justify-center rounded-full active:bg-white/10 shrink-0"
+                      >
+                        {downloads.some(d => d.id === song.id) ? (
+                          <CheckCircle2 className="w-5 h-5 text-[#D4FF00]" />
+                        ) : downloadProgress[song.id] !== undefined ? (
+                          <div className="relative flex items-center justify-center w-5 h-5">
+                            <Loader2 className="w-5 h-5 text-white animate-spin" />
+                            {typeof downloadProgress[song.id] === 'number' && <span className="absolute text-[8px] font-bold text-white leading-none">{downloadProgress[song.id]}</span>}
+                          </div>
+                        ) : (
+                          <ArrowDownToLine className="w-5 h-5 text-white/50" />
+                        )}
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); openPlaylistMenu(song, e); }}
                         className="w-10 h-10 flex items-center justify-center rounded-full active:bg-white/10 shrink-0"
                       >
                         <MoreHorizontal className="w-5 h-5 text-white/50" />
