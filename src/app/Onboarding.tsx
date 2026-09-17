@@ -132,7 +132,7 @@ export function Onboarding({ onComplete }: { onComplete: (profile: any) => void 
 
               <form onSubmit={handleSubmit} className="flex flex-col gap-6" autoComplete="off">
                 <div className="flex justify-center mb-4 w-full overflow-hidden">
-                  <div className="grid grid-cols-5 gap-3 max-h-48 overflow-y-auto custom-scrollbar pr-2 py-2 w-full justify-items-center">
+                  <div className="grid grid-cols-5 gap-4 md:gap-5 max-h-48 overflow-y-auto custom-scrollbar pr-2 py-2 w-full justify-items-center">
                     {AVATARS.map(avatar => (
                       <button
                         key={avatar.id}

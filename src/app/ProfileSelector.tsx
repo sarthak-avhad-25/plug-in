@@ -46,7 +46,7 @@ export function ProfileSelector({
             <h2 className="text-3xl md:text-4xl font-black text-white tracking-wide uppercase">Switch Profile</h2>
           </div>
 
-          <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="flex flex-col gap-5 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
             {profiles.map(p => {
               const isActive = p.id === activeProfileId;
               const isDeleting = deletingId === p.id;
