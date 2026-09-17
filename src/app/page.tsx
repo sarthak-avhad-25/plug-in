@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
-import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2, Trash2, Info, Home, Library, Compass, ChevronDown, MoreHorizontal, ListMusic, Quote, Check, Plus , Shuffle, Repeat, Volume2, Share, Power, ArrowDownToLine, CheckCircle2, XCircle, WifiOff } from "lucide-react";
+import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2, Trash2, Info, Home, Library, Compass, ChevronDown, MoreHorizontal, ListMusic, Quote, Check, Plus , Shuffle, Repeat, Volume2, Volume1, VolumeX, Share, Power, ArrowDownToLine, CheckCircle2, XCircle, WifiOff } from "lucide-react";
 import { saveDownload, getDownload, removeDownload, getAllDownloads, type DownloadedSong } from "./offlineDb";
 import YouTube, { YouTubePlayer } from "react-youtube";
 import { searchYouTube, getArtistBackground, getSearchSuggestions, getSyncedLyrics, getTrendingWorldwide, getTrendingIndia, getRelatedSongs, getAlternativeSourceId } from "./actions";
@@ -232,6 +232,11 @@ export default function FransHalsMusicApp() {
   const [inlineSearchResults, setInlineSearchResults] = useState<Song[]>([]);
   const [isInlineSearching, setIsInlineSearching] = useState(false);
   const [isLyricsExpanded, setIsLyricsExpanded] = useState(false);
+  const [isQueueExpanded, setIsQueueExpanded] = useState(false);
+  const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [hasHeadphones, setHasHeadphones] = useState(false);
 
   // Mobile specific state
@@ -423,6 +428,27 @@ useEffect(() => {
     localStorage.setItem("music_profiles", JSON.stringify(newProfiles));
     // Persist to Redis in the background
     saveProfilesServer(newProfiles);
+  };
+
+  const handleShare = async (song: Song, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!song) return;
+    const url = window.location.origin + '?v=' + song.id;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: song.title,
+          text: `Check out ${song.title} by ${song.artist}`,
+          url: url
+        });
+      } catch (err) {
+        console.log('Share cancelled', err);
+      }
+    } else {
+      navigator.clipboard.writeText(url);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    }
   };
 
   const toggleLike = (song: Song, e: React.MouseEvent) => {
@@ -1345,7 +1371,8 @@ useEffect(() => {
                         "from-blue-400 to-indigo-600", "from-yellow-400 to-orange-500", "from-purple-500 to-fuchsia-600",
                         "from-teal-400 to-cyan-600", "from-rose-400 to-red-500"
                       ];
-                      const emojis = ["🎸", "🥁", "🎹", "🎤", "🎷", "🎺", "🎧", "🎵", "👾", "🦊", "🐯", "🐼", "😎", "🚀", "🌟"];
+                      const emojis = ["🎸", "🥁", "🎹", "🎤",
+                        "🎷", "🎺", "🎧", "🎵", "👾", "🦊", "🐯", "🐼", "😎", "🚀", "🌟"];
                       const newP = { 
                         id: Date.now().toString(), 
                         name: modalInput.trim(), 
@@ -1714,32 +1741,105 @@ useEffect(() => {
                    
                    {/* Secondary Controls */}
                    <div className="flex items-center justify-between w-full px-8 py-5 rounded-2xl bg-white/5 border border-white/5">
-                     <button className="text-white/40 hover:text-white transition-colors"><Volume2 className="w-6 h-6" /></button>
-                     <div className="flex items-center gap-8">
+                     <div className="relative" onMouseLeave={() => setShowVolumeSlider(false)}>
+                       <button 
+                         onMouseEnter={() => setShowVolumeSlider(true)}
+                         onClick={() => setIsMuted(!isMuted)} 
+                         className="text-white/40 hover:text-white transition-colors"
+                         title="Volume"
+                         aria-label="Volume"
+                       >
+                         {isMuted || volume === 0 ? <VolumeX className="w-6 h-6" /> : volume < 0.5 ? <Volume1 className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+                       </button>
+                       <AnimatePresence>
+                         {showVolumeSlider && (
+                           <motion.div 
+                             initial={{ opacity: 0, y: 10 }}
+                             animate={{ opacity: 1, y: 0 }}
+                             exit={{ opacity: 0, y: 10 }}
+                             className="absolute bottom-full left-0 mb-4 bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 shadow-xl z-50 flex items-center justify-center h-32 w-12"
+                           >
+                             <div className="relative w-full h-full flex items-center justify-center">
+                               <input 
+                                 type="range" min="0" max="1" step="0.01" 
+                                 value={isMuted ? 0 : volume} 
+                                 onChange={(e) => { setIsMuted(false); setVolume(parseFloat(e.target.value)); }} 
+                                 className="appearance-none bg-white/20 h-1 w-24 rounded-full outline-none transform -rotate-90 origin-center cursor-pointer absolute"
+                                 style={{ WebkitAppearance: 'none', background: `linear-gradient(to right, #D4FF00 0%, #D4FF00 ${(isMuted ? 0 : volume)*100}%, rgba(255,255,255,0.2) ${(isMuted ? 0 : volume)*100}%, rgba(255,255,255,0.2) 100%)` }}
+                               />
+                             </div>
+                           </motion.div>
+                         )}
+                       </AnimatePresence>
+                     </div>
+                     <div className="flex items-center gap-8 relative">
                        <button 
                          onClick={(e) => toggleLike(currentSong, e)}
                          className="text-white/40 hover:text-white transition-transform active:scale-90"
                        >
                          <Heart className={`w-6 h-6 transition-colors ${playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === currentSong?.id) ? 'fill-[#1ED760] text-[#1ED760]' : 'hover:text-white'}`} />
                        </button>
-                       <button className="text-white/40 hover:text-white transition-transform active:scale-90"><Share className="w-6 h-6" /></button>
+                       <div className="relative">
+                         <button onClick={(e) => handleShare(currentSong, e)} className="text-white/40 hover:text-white transition-transform active:scale-90" title="Share" aria-label="Share">
+                           <Share className="w-6 h-6" />
+                         </button>
+                         {copiedLink && (
+                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-[#D4FF00] text-black text-xs font-bold px-2 py-1 rounded whitespace-nowrap z-50 animate-in fade-in slide-in-from-bottom-2">
+                             Link copied
+                           </div>
+                         )}
+                       </div>
                        {hasHeadphones && <Headphones className="w-6 h-6 text-white/40" />}
                      </div>
-                     <button onClick={() => setIsLyricsExpanded(!isLyricsExpanded)} className={`transition-colors ${isLyricsExpanded ? 'text-white' : 'text-white/40 hover:text-white'}`}>
-                       <ListMusic className="w-6 h-6" />
-                     </button>
+                     <div className="flex items-center gap-4">
+                       <button onClick={() => { setIsQueueExpanded(!isQueueExpanded); setIsLyricsExpanded(false); }} className={`transition-colors ${isQueueExpanded ? 'text-white' : 'text-white/40 hover:text-white'}`} title="Queue" aria-label="Queue">
+                         <ListMusic className="w-6 h-6" />
+                       </button>
+                       <button onClick={() => { setIsLyricsExpanded(!isLyricsExpanded); setIsQueueExpanded(false); }} className={`transition-colors ${isLyricsExpanded ? 'text-white' : 'text-white/40 hover:text-white'}`} title="Lyrics" aria-label="Lyrics">
+                         <Quote className="w-6 h-6" />
+                       </button>
+                     </div>
                    </div>
                  </div>
                </div>
-                 {/* LYRICS BOX */}
+                 {/* QUEUE / LYRICS BOX */}
                  <div 
                    ref={lyricsContainerRef}
                    onWheel={handleUserInteraction}
                    onTouchMove={handleUserInteraction}
                    onMouseDown={handleUserInteraction}
-                   className={`mt-4 border-t-2 border-[#333] pt-4 overflow-y-auto overflow-x-hidden relative scrollbar-hide scroll-smooth transition-all duration-500 ${isLyricsExpanded ? 'bg-black/40 backdrop-blur-sm -mx-6 px-6 rounded-3xl' : 'bg-transparent'}`} 
-                   style={{ height: isLyricsExpanded ? '70vh' : '180px' }}
+                   className={`mt-4 border-t-2 border-[#333] pt-4 overflow-y-auto overflow-x-hidden relative scrollbar-hide scroll-smooth transition-all duration-500 ${(isLyricsExpanded || isQueueExpanded) ? 'bg-black/40 backdrop-blur-sm -mx-6 px-6 rounded-3xl' : 'bg-transparent'}`} 
+                   style={{ height: (isLyricsExpanded || isQueueExpanded) ? '70vh' : '180px' }}
                  >
+                   {isQueueExpanded ? (
+                     <div className="flex flex-col gap-4 w-full px-4 pb-8">
+                       {playbackHistory.length > 0 && (
+                         <div className="flex flex-col gap-2">
+                           <h3 className="text-sm font-bold text-white/50 uppercase tracking-widest">Previously Played</h3>
+                           {playbackHistory.map((song, i) => (
+                             <div key={i} className="opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all">
+                               <SongBox song={song} index={i} onPlay={() => playSong(song)} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} isDownloaded={downloads.some(d => d.id === song.id)} downloadProgress={downloadProgress[song.id]} onDownload={(e) => handleDownload(song, e)} onRemoveDownload={(e) => handleRemoveDownload(song.id, e)} />
+                             </div>
+                           ))}
+                         </div>
+                       )}
+                       <div className="flex flex-col gap-2 relative">
+                         <h3 className="text-sm font-bold text-[#D4FF00] uppercase tracking-widest">Now Playing</h3>
+                         <div className="ring-2 ring-[#D4FF00] rounded-xl">
+                           <SongBox song={currentSong} index={0} onPlay={() => {}} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === currentSong.id) ?? false} onToggleFavorite={(e) => toggleLike(currentSong, e)} onOpenMenu={(e) => openPlaylistMenu(currentSong, e)} isDownloaded={downloads.some(d => d.id === currentSong.id)} downloadProgress={downloadProgress[currentSong.id]} onDownload={(e) => handleDownload(currentSong, e)} onRemoveDownload={(e) => handleRemoveDownload(currentSong.id, e)} />
+                         </div>
+                       </div>
+                       {relatedSongs.filter(s => s.id !== currentSong.id).length > 0 && (
+                         <div className="flex flex-col gap-2">
+                           <h3 className="text-sm font-bold text-white/80 uppercase tracking-widest">Up Next</h3>
+                           {relatedSongs.filter(s => s.id !== currentSong.id).map((song, i) => (
+                             <SongBox key={song.id} song={song} index={i} onPlay={() => playSong(song)} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} isDownloaded={downloads.some(d => d.id === song.id)} downloadProgress={downloadProgress[song.id]} onDownload={(e) => handleDownload(song, e)} onRemoveDownload={(e) => handleRemoveDownload(song.id, e)} />
+                           ))}
+                         </div>
+                       )}
+                     </div>
+                   ) : (
+                     <>
                     {lyricsLoading ? (
                        <div className="w-full h-full flex flex-col items-center justify-center opacity-50">
                          <Loader2 className="w-8 h-8 animate-spin text-white mb-2" />
@@ -1809,6 +1909,8 @@ useEffect(() => {
                          })}
                        </div>
                     )}
+                     </>
+                   )}
                  </div>
             </motion.div>
           )}
@@ -2872,15 +2974,107 @@ useEffect(() => {
                   </button>
                 </div>
 
+                {/* Secondary Controls */}
+                <div className="flex items-center justify-between w-full px-4 mt-2">
+                  <div className="relative">
+                    <button onClick={(e) => handleShare(currentSong, e)} className="p-2 text-white/40 hover:text-white transition-transform active:scale-90" aria-label="Share">
+                      <Share className="w-6 h-6" />
+                    </button>
+                    {copiedLink && (
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-[#D4FF00] text-black text-xs font-bold px-2 py-1 rounded whitespace-nowrap z-50 animate-in fade-in slide-in-from-bottom-2">
+                        Link copied
+                      </div>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <button 
+                      onClick={() => setShowVolumeSlider(!showVolumeSlider)} 
+                      className="p-2 text-white/40 hover:text-white transition-transform active:scale-90"
+                      aria-label="Volume"
+                    >
+                      {isMuted || volume === 0 ? <VolumeX className="w-6 h-6" /> : volume < 0.5 ? <Volume1 className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+                    </button>
+                    <AnimatePresence>
+                      {showVolumeSlider && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10 }}
+                          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 shadow-xl z-[60] flex items-center justify-center h-32 w-12"
+                        >
+                          <div className="relative w-full h-full flex items-center justify-center">
+                            <input 
+                              type="range" min="0" max="1" step="0.01" 
+                              value={isMuted ? 0 : volume} 
+                              onChange={(e) => { setIsMuted(false); setVolume(parseFloat(e.target.value)); }} 
+                              className="appearance-none bg-white/20 h-1 w-24 rounded-full outline-none transform -rotate-90 origin-center cursor-pointer absolute"
+                              style={{ WebkitAppearance: 'none', background: `linear-gradient(to right, #D4FF00 0%, #D4FF00 ${(isMuted ? 0 : volume)*100}%, rgba(255,255,255,0.2) ${(isMuted ? 0 : volume)*100}%, rgba(255,255,255,0.2) 100%)` }}
+                            />
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                  <button onClick={() => { setIsQueueExpanded(!isQueueExpanded); setIsLyricsExpanded(false); }} className={`p-2 transition-transform active:scale-90 ${isQueueExpanded ? 'text-white' : 'text-white/40 hover:text-white'}`} aria-label="Queue">
+                    <ListMusic className="w-6 h-6" />
+                  </button>
+                </div>
+
                 {/* Lyrics Toggle */}
                 <button 
-                  onClick={() => setIsLyricsExpanded(!isLyricsExpanded)}
+                  onClick={() => { setIsLyricsExpanded(!isLyricsExpanded); setIsQueueExpanded(false); }}
                   className={`mt-4 py-3 rounded-2xl flex items-center justify-center gap-2 font-bold text-sm transition-colors ${isLyricsExpanded ? 'bg-[#D4FF00] text-black' : 'bg-white/10 text-white active:bg-white/20'}`}
                 >
                   <Quote className="w-4 h-4" />
                   {isLyricsExpanded ? "Hide Lyrics" : "Show Lyrics"}
                 </button>
               </div>
+
+              {/* Expandable Queue Sheet */}
+              <AnimatePresence>
+                {isQueueExpanded && (
+                  <motion.div 
+                    initial={{ y: "100%", opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: "100%", opacity: 0 }}
+                    transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                    className="absolute inset-0 z-50 bg-[#050505]/95 backdrop-blur-2xl flex flex-col pt-12"
+                  >
+                    <div className="flex items-center justify-between p-6 pb-2 border-b border-white/10">
+                      <h2 className="text-lg font-black uppercase tracking-widest text-white">Queue</h2>
+                      <button onClick={() => setIsQueueExpanded(false)} className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white active:scale-90">
+                        <ChevronDown className="w-6 h-6" />
+                      </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 pb-32">
+                      {playbackHistory.length > 0 && (
+                        <div className="flex flex-col gap-2">
+                          <h3 className="text-sm font-bold text-white/50 uppercase tracking-widest px-2">Previously Played</h3>
+                          {playbackHistory.map((song, i) => (
+                            <div key={i} className="opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all">
+                              <SongBox song={song} index={i} onPlay={() => playSong(song)} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} isDownloaded={downloads.some(d => d.id === song.id)} downloadProgress={downloadProgress[song.id]} onDownload={(e) => handleDownload(song, e)} onRemoveDownload={(e) => handleRemoveDownload(song.id, e)} />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex flex-col gap-2 relative">
+                        <h3 className="text-sm font-bold text-[#D4FF00] uppercase tracking-widest px-2">Now Playing</h3>
+                        <div className="ring-2 ring-[#D4FF00] rounded-xl overflow-hidden">
+                          <SongBox song={currentSong} index={0} onPlay={() => {}} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === currentSong.id) ?? false} onToggleFavorite={(e) => toggleLike(currentSong, e)} onOpenMenu={(e) => openPlaylistMenu(currentSong, e)} isDownloaded={downloads.some(d => d.id === currentSong.id)} downloadProgress={downloadProgress[currentSong.id]} onDownload={(e) => handleDownload(currentSong, e)} onRemoveDownload={(e) => handleRemoveDownload(currentSong.id, e)} />
+                        </div>
+                      </div>
+                      {relatedSongs.filter(s => s.id !== currentSong.id).length > 0 && (
+                        <div className="flex flex-col gap-2">
+                          <h3 className="text-sm font-bold text-white/80 uppercase tracking-widest px-2">Up Next</h3>
+                          {relatedSongs.filter(s => s.id !== currentSong.id).map((song, i) => (
+                            <SongBox key={song.id} song={song} index={i} onPlay={() => playSong(song)} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} isDownloaded={downloads.some(d => d.id === song.id)} downloadProgress={downloadProgress[song.id]} onDownload={(e) => handleDownload(song, e)} onRemoveDownload={(e) => handleRemoveDownload(song.id, e)} />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Expandable Lyrics Sheet */}
               <AnimatePresence>
