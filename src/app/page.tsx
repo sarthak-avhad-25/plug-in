@@ -10,6 +10,7 @@ import { searchYouTube, getArtistBackground, getSearchSuggestions, getSyncedLyri
 import type { SyncedLyric } from "./actions";
 import { loadProfiles, saveProfilesServer, loadActiveProfile, saveActiveProfileServer, loadPlaylistsServer, savePlaylistsServer, deletePlaylistsServer } from "./storage";
 import { Onboarding } from "./Onboarding";
+import { ProfileSelector } from "./ProfileSelector";
 
 type Profile = {
   id: string;
@@ -199,6 +200,8 @@ export default function FransHalsMusicApp() {
   const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
   const [showGreeting, setShowGreeting] = useState(false);
   const [isProfileChecking, setIsProfileChecking] = useState(true);
+  const [showProfileCreator, setShowProfileCreator] = useState(false);
+  const [showProfileSelector, setShowProfileSelector] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("music_active_profile");
@@ -1280,13 +1283,55 @@ useEffect(() => {
   if (!isClient) return null; // Hydration mismatch prevention
 
   if (isProfileChecking) return <div className="fixed inset-0 bg-[#020005]" />;
-  if (!activeProfile) {
+  
+  if (showProfileSelector || (!activeProfile && profiles.length > 0 && !showProfileCreator)) {
+    return (
+      <ProfileSelector 
+        profiles={profiles}
+        activeProfileId={activeProfile ? activeProfile.id : undefined}
+        onSelect={(p) => {
+          setActiveProfile(p);
+          localStorage.setItem("music_active_profile", JSON.stringify(p));
+          setShowGreeting(true);
+          setTimeout(() => setShowGreeting(false), 4000);
+          setShowProfileSelector(false);
+        }}
+        onAdd={() => {
+          setShowProfileCreator(true);
+          setShowProfileSelector(false);
+        }}
+        onEdit={(p, newName) => {
+          const updated = profiles.map(prof => prof.id === p.id ? { ...prof, name: newName } : prof);
+          saveProfiles(updated);
+          if (activeProfile && activeProfile.id === p.id) {
+             const updatedActive = { ...p, name: newName };
+             setActiveProfile(updatedActive);
+             localStorage.setItem("music_active_profile", JSON.stringify(updatedActive));
+          }
+        }}
+        onDelete={(p) => {
+          const updated = profiles.filter(prof => prof.id !== p.id);
+          saveProfiles(updated);
+          localStorage.removeItem(`frans_hals_playlists_${p.id}`);
+          if (activeProfile && activeProfile.id === p.id) {
+             setActiveProfile(null);
+             localStorage.removeItem("music_active_profile");
+          }
+        }}
+      />
+    );
+  }
+
+  if (!activeProfile || showProfileCreator) {
     return (
       <Onboarding onComplete={(profile) => {
+        const updated = [...profiles, profile];
+        saveProfiles(updated);
         setActiveProfile(profile);
         localStorage.setItem("music_active_profile", JSON.stringify(profile));
         setShowGreeting(true);
         setTimeout(() => setShowGreeting(false), 4000);
+        setShowProfileCreator(false);
       }} />
     );
   }
