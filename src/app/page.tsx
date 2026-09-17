@@ -101,24 +101,34 @@ export default function FransHalsMusicApp() {
 
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      setIsFullscreen(!!document.fullscreenElement || !!(document as any).webkitFullscreenElement);
     };
     document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+    };
   }, []);
 
   const toggleAppMode = async () => {
-    if (!document.fullscreenElement) {
+    const el = document.documentElement as any;
+    if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
       try {
-        if (document.documentElement.requestFullscreen) {
-          await document.documentElement.requestFullscreen({ navigationUI: "hide" });
+        if (el.requestFullscreen) {
+          await el.requestFullscreen({ navigationUI: "hide" });
+        } else if (el.webkitRequestFullscreen) {
+          await el.webkitRequestFullscreen();
         }
       } catch (e) {
         console.warn("Fullscreen request failed", e);
       }
     } else {
-      if (document.exitFullscreen) {
-        await document.exitFullscreen();
+      const doc = document as any;
+      if (doc.exitFullscreen) {
+        await doc.exitFullscreen();
+      } else if (doc.webkitExitFullscreen) {
+        await doc.webkitExitFullscreen();
       }
     }
   };
@@ -2610,6 +2620,34 @@ useEffect(() => {
 
       </div>
 
+      {/* MOBILE SCREEN OFF OVERLAY */}
+      <AnimatePresence>
+        {isScreenOff && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="md:hidden fixed inset-0 z-[9999] bg-black flex items-center justify-center touch-none"
+            onPointerDown={handleScreenOffPointerDown}
+            style={{ WebkitUserSelect: 'none', userSelect: 'none' }}
+          >
+            <AnimatePresence>
+              {showScreenOffText && (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="text-white/30 text-sm font-bold tracking-widest uppercase pointer-events-none"
+                >
+                  Double tap to wake
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
