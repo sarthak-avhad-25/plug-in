@@ -62,9 +62,15 @@ export function ProfileSelector({
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
                   
                   <div className="flex items-center gap-6 relative z-10">
-                    <div className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center text-4xl shadow-xl transition-transform duration-300 group-hover:scale-105 bg-gradient-to-br ${p.color}`}>
-                      {p.emoji}
-                    </div>
+                    {p.avatar ? (
+                      <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden shadow-xl transition-transform duration-300 group-hover:scale-105 shrink-0 border-2 border-transparent group-hover:border-white/20">
+                        <img src={p.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center text-4xl shadow-xl transition-transform duration-300 group-hover:scale-105 bg-gradient-to-br ${p.color || "from-gray-600 to-gray-800"}`}>
+                        {p.emoji || "👤"}
+                      </div>
+                    )}
                     
                     <div className="flex flex-col">
                       <div className="flex items-center gap-3">

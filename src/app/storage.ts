@@ -26,6 +26,7 @@ type Profile = {
   name: string;
   color: string;
   emoji: string;
+  avatar?: string;
 };
 
 type Playlist = {

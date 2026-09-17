@@ -17,6 +17,7 @@ type Profile = {
   name: string;
   color: string;
   emoji: string;
+  avatar?: string;
 };
 
 type Playlist = {
@@ -1606,10 +1607,15 @@ useEffect(() => {
             </h1>
             <div className="relative group/profile flex items-center">
               <button 
-                className={`w-10 h-10 rounded-full bg-gradient-to-br ${activeProfile.color} flex items-center justify-center text-xl shadow-lg hover:scale-110 transition-transform flex-shrink-0 border-2 border-white/20`}
+                onClick={() => setShowProfileSelector(true)}
+                className={`w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-xl shadow-lg hover:scale-110 transition-transform flex-shrink-0 border-2 border-white/20 ${!activeProfile.avatar ? `bg-gradient-to-br ${activeProfile.color}` : ''}`}
                 title={activeProfile.name}
               >
-                {activeProfile.emoji}
+                {activeProfile.avatar ? (
+                  <img src={activeProfile.avatar} alt={activeProfile.name} className="w-full h-full object-cover" />
+                ) : (
+                  activeProfile.emoji
+                )}
               </button>
               
               <div className="absolute top-full right-0 mt-2 opacity-0 pointer-events-none group-hover/profile:opacity-100 group-hover/profile:pointer-events-auto transition-all duration-200 z-50">
