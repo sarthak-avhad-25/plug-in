@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
 
@@ -9,8 +9,18 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Listen with Sarthak",
+  title: "Plug In",
   description: "Your personal music hub",
+  applicationName: "Plug In",
+  appleWebApp: {
+    capable: true,
+    title: "Plug In",
+    statusBarStyle: "black-translucent",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#000000",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
