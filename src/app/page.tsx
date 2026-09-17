@@ -9,6 +9,8 @@ import YouTube, { YouTubePlayer } from "react-youtube";
 import { searchYouTube, getArtistBackground, getSearchSuggestions, getSyncedLyrics, getTrendingWorldwide, getTrendingIndia, getRelatedSongs, getAlternativeSourceId } from "./actions";
 import type { SyncedLyric } from "./actions";
 import { loadProfiles, saveProfilesServer, loadActiveProfile, saveActiveProfileServer, loadPlaylistsServer, savePlaylistsServer, deletePlaylistsServer } from "./storage";
+import { Onboarding } from "./Onboarding";
+import { logout, type AuthUser, getSessionUser } from "./auth";
 
 type Profile = {
   id: string;
@@ -196,6 +198,20 @@ export default function FransHalsMusicApp() {
   };
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [showGreeting, setShowGreeting] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  
+  useEffect(() => {
+    getSessionUser().then(user => {
+      if (user) {
+        setAuthUser(user);
+        const profile = { id: user.id, name: user.name, color: "from-blue-600 to-purple-700", emoji: "🎧" };
+        setActiveProfile(profile);
+      }
+      setIsAuthLoading(false);
+    });
+  }, []);
 
   const [artistQuery, setArtistQuery] = useState("");
   const [songQuery, setSongQuery] = useState("");
@@ -1262,6 +1278,19 @@ useEffect(() => {
 
   if (!isClient) return null; // Hydration mismatch prevention
 
+  if (isAuthLoading) return <div className="fixed inset-0 bg-[#020005]" />;
+  if (!authUser) {
+    return (
+      <Onboarding onComplete={(user) => {
+        setAuthUser(user);
+        const profile = { id: user.id, name: user.name, color: "from-blue-600 to-purple-700", emoji: "🎧" };
+        setActiveProfile(profile);
+        setShowGreeting(true);
+        setTimeout(() => setShowGreeting(false), 4000);
+      }} />
+    );
+  }
+  // Fallback for types
   if (!activeProfile) {
     return (
       <div className="min-h-screen w-full bg-[#000000] flex flex-col items-center justify-center selection:bg-[#D4FF00] selection:text-white relative overflow-hidden">
@@ -1641,6 +1670,21 @@ useEffect(() => {
 
       {/* LEFT COLUMN - SEARCH & UI */}
       <div id="left-column" className="hidden md:flex w-full md:w-[50%] lg:w-[40%] flex-col border-t-4 md:border-t-0 md:border-l-4 border-[#222222] relative z-20 bg-black text-white overflow-visible drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+        
+        {/* Subtle Welcome Greeting */}
+        <AnimatePresence>
+          {showGreeting && authUser && (
+            <motion.div 
+              initial={{ opacity: 0, y: -50 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="absolute top-6 left-1/2 -translate-x-1/2 z-[100] bg-white/10 backdrop-blur-md border border-white/20 px-6 py-3 rounded-full shadow-2xl flex items-center gap-3"
+            >
+              <div className="w-2 h-2 rounded-full bg-[#D4FF00] animate-pulse" />
+              <span className="text-white font-medium">Welcome back, {authUser.name.split(' ')[0]}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <div className="relative z-10 w-full h-full flex flex-col justify-start overflow-y-auto p-6 md:p-12 scroll-smooth bg-black">
           <header className="mb-6">
           <div className="flex justify-start items-center gap-4 border-b-4 border-white/30 pb-4">
@@ -1650,16 +1694,27 @@ useEffect(() => {
             >
               LISTEN WITH {activeProfile.name}
             </h1>
-            <button 
-              onClick={() => {
-                setActiveProfile(null);
-                localStorage.removeItem("music_active_profile");
-              }}
-              className={`w-10 h-10 rounded-none bg-gradient-to-br ${activeProfile.color} flex items-center justify-center text-xl shadow-lg hover:scale-110 transition-transform flex-shrink-0 border-2 border-white/20`}
-              title="Switch Profile"
-            >
-              {activeProfile.emoji}
-            </button>
+            <div className="relative group/profile flex items-center">
+              <button 
+                className={`w-10 h-10 rounded-full bg-gradient-to-br ${activeProfile.color} flex items-center justify-center text-xl shadow-lg hover:scale-110 transition-transform flex-shrink-0 border-2 border-white/20`}
+                title={activeProfile.name}
+              >
+                {activeProfile.emoji}
+              </button>
+              
+              <div className="absolute top-full right-0 mt-2 opacity-0 pointer-events-none group-hover/profile:opacity-100 group-hover/profile:pointer-events-auto transition-all duration-200 z-50">
+                <button 
+                  onClick={async () => {
+                    await logout();
+                    setAuthUser(null);
+                    setActiveProfile(null);
+                  }}
+                  className="bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 hover:border-red-500 px-4 py-2 rounded-xl text-sm font-bold shadow-xl backdrop-blur-md transition-colors whitespace-nowrap flex items-center gap-2"
+                >
+                  <Power className="w-4 h-4" /> Sign Out
+                </button>
+              </div>
+            </div>
           </div>
         </header>
 
