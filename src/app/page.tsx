@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
-import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2, Trash2, Info, Home, Library, Compass, ChevronDown, MoreHorizontal, ListMusic, Quote, Check, Plus , Shuffle, Repeat, Volume2, Share, Power } from "lucide-react";
+import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2, Trash2, Info, Home, Library, Compass, ChevronDown, MoreHorizontal, ListMusic, Quote, Check, Plus , Shuffle, Repeat, Volume2, Share, Power, ArrowDownToLine, CheckCircle2, XCircle, WifiOff } from "lucide-react";
+import { saveDownload, getDownload, removeDownload, getAllDownloads, type DownloadedSong } from "./offlineDb";
 import YouTube, { YouTubePlayer } from "react-youtube";
 import { searchYouTube, getArtistBackground, getSearchSuggestions, getSyncedLyrics, getTrendingWorldwide, getTrendingIndia, getRelatedSongs, getAlternativeSourceId } from "./actions";
 import type { SyncedLyric } from "./actions";
@@ -31,7 +32,7 @@ type Song = {
 };
 
 
-const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite, onOpenMenu }: { song: Song, index: number, onPlay: (e: React.MouseEvent) => void, isFavorite: boolean, onToggleFavorite: (e: React.MouseEvent) => void, onOpenMenu?: (e: React.MouseEvent) => void }) => (
+const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite, onOpenMenu, isDownloaded, downloadProgress, onDownload, onRemoveDownload }: { song: Song, index: number, onPlay: (e: React.MouseEvent) => void, isFavorite: boolean, onToggleFavorite: (e: React.MouseEvent) => void, onOpenMenu?: (e: React.MouseEvent) => void, isDownloaded?: boolean, downloadProgress?: number | 'indeterminate', onDownload?: (e: React.MouseEvent) => void, onRemoveDownload?: (e: React.MouseEvent) => void }) => (
   <div 
     onClick={(e) => onPlay(e)}
     className="flex items-center px-3 py-2.5 hover:bg-white/10 rounded-xl cursor-pointer group gap-4 transition-all duration-200 w-full"
@@ -188,7 +189,13 @@ export default function FransHalsMusicApp() {
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [showPlaylist, setShowPlaylist] = useState(false);
+  const [showDownloads, setShowDownloads] = useState(false);
   const [playlists, setPlaylists] = useState<Playlist[]>([ { id: 'default', name: 'My Playlist', songs: [] } ]);
+  const [downloads, setDownloads] = useState<DownloadedSong[]>([]);
+  const [downloadProgress, setDownloadProgress] = useState<Record<string, number | 'indeterminate'>>({});
+  const [downloadErrors, setDownloadErrors] = useState<Record<string, string>>({});
+  const [isOffline, setIsOffline] = useState(false);
+  const currentObjectUrlRef = useRef<string | null>(null);
   const [activePlaylistId, setActivePlaylistId] = useState<string>('default');
   const [playlistMenu, setPlaylistMenu] = useState<{song: Song, x: number, y: number} | null>(null);
   const [isEditingPlaylist, setIsEditingPlaylist] = useState(false);
@@ -209,7 +216,7 @@ export default function FransHalsMusicApp() {
   const [hasHeadphones, setHasHeadphones] = useState(false);
 
   // Mobile specific state
-  const [mobileTab, setMobileTab] = useState<"home" | "discover" | "search" | "library" | "playlistView">("home");
+  const [mobileTab, setMobileTab] = useState<"home" | "discover" | "search" | "library" | "playlistView" | "downloads">("home");
   const [showMobilePlayer, setShowMobilePlayer] = useState(false);
   const [useNativeAudio, setUseNativeAudio] = useState(false);
 
@@ -346,6 +353,14 @@ useEffect(() => {
 
   useEffect(() => {
     setIsClient(true);
+    
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    setIsOffline(!navigator.onLine);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    getAllDownloads().then(setDownloads).catch(console.error);
+    
     // Auto-enable native audio on mobile to bypass strict iframe autoplay policies
     if (typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
       setUseNativeAudio(true);
@@ -578,6 +593,72 @@ useEffect(() => {
       }
     } else {
       setPlaybackState("error");
+    }
+  };
+
+  const handleDownload = async (song: Song, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (downloads.some(d => d.id === song.id)) return;
+    if (downloadProgress[song.id] !== undefined) return;
+
+    setDownloadProgress(prev => ({ ...prev, [song.id]: 'indeterminate' }));
+    setDownloadErrors(prev => { const n = {...prev}; delete n[song.id]; return n; });
+
+    try {
+      let targetId = song.id;
+      let res = await fetch(`/api/audio?v=${song.id}`, { method: 'GET' });
+      
+      if (!res.ok) {
+        const altId = await getAlternativeSourceId(song.title, song.artist);
+        if (altId) {
+          targetId = altId;
+          res = await fetch(`/api/audio?v=${targetId}`, { method: 'GET' });
+        }
+      }
+
+      if (!res.ok || !res.body) throw new Error("Failed to fetch audio");
+
+      const contentLength = res.headers.get('content-length');
+      const total = contentLength ? parseInt(contentLength, 10) : 0;
+      
+      let loaded = 0;
+      const reader = res.body.getReader();
+      const chunks = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) {
+          chunks.push(value);
+          loaded += value.length;
+          if (total) {
+            setDownloadProgress(prev => ({ ...prev, [song.id]: Math.round((loaded / total) * 100) }));
+          }
+        }
+      }
+
+      const blob = new Blob(chunks, { type: res.headers.get('content-type') || 'audio/mpeg' });
+      await saveDownload(song, blob);
+      
+      setDownloads(await getAllDownloads());
+      setDownloadProgress(prev => { const n = {...prev}; delete n[song.id]; return n; });
+    } catch (err: any) {
+      console.error("Download error:", err);
+      setDownloadErrors(prev => ({ ...prev, [song.id]: "Failed" }));
+      setDownloadProgress(prev => { const n = {...prev}; delete n[song.id]; return n; });
+      if (err.name === 'QuotaExceededError' || err.message.includes('Quota')) {
+        alert("Not enough storage to download this song.");
+      }
+    }
+  };
+
+  const handleRemoveDownload = async (songId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await removeDownload(songId);
+      setDownloads(await getAllDownloads());
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -817,27 +898,46 @@ useEffect(() => {
 
     const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
+    const isDownloaded = downloads.some(d => d.id === song.id);
+    let finalSrc = `/api/audio?v=${song.id}`;
+    
+    if (isDownloaded) {
+      try {
+        const localRecord = await getDownload(song.id);
+        if (localRecord) {
+          if (currentObjectUrlRef.current) {
+            URL.revokeObjectURL(currentObjectUrlRef.current);
+          }
+          finalSrc = URL.createObjectURL(localRecord.blob);
+          currentObjectUrlRef.current = finalSrc;
+        }
+      } catch (err) {
+        console.error("Failed to read from IndexedDB", err);
+      }
+    } else if (isOffline) {
+       if (playRequestIdRef.current === currentId) {
+         activePlayRequestIdRef.current = currentId;
+         setIsPlaying(false);
+         setPlaybackState("error");
+       }
+       return; // Cannot play non-downloaded song offline
+    }
+
     // STEP 3: INSTANT GESTURE PRIMING (DESKTOP ONLY)
-    // On Mobile, priming the YouTube iframe consumes the strict 1-time user gesture, 
-    // causing the native audio.play() to instantly reject with NotAllowedError!
     if (!isMobile && playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
       playerRef.current.unMute?.();
       playerRef.current.setVolume(100);
       playerRef.current.loadVideoById(song.id);
       playerRef.current.playVideo();
-      playerRef.current.pauseVideo(); // Prime synchronously, NO setTimeout delay!
+      playerRef.current.pauseVideo(); 
       logDebug(`YouTube iframe primed instantly.`);
     }
     
     if (isMobile) {
-      console.log(`[SOURCE_RESOLVED] url=/api/audio?v=${song.id}`);
-      logDebug(`[SOURCE_RESOLVED] url=/api/audio?v=${song.id}`);
       logDebug(`Mobile fast-path: setting src instantly to retain user gesture.`);
       setUseNativeAudio(true);
       if (audioRef.current) {
-        console.log(`[AUDIO_SRC_SET] currentSrc=/api/audio?v=${song.id}`);
-        logDebug(`[AUDIO_SRC_SET] currentSrc=/api/audio?v=${song.id}`);
-        audioRef.current.src = `/api/audio?v=${song.id}`;
+        audioRef.current.src = finalSrc;
         
         console.log(`[PLAY_CALL] paused=${audioRef.current.paused} readyState=${audioRef.current.readyState} networkState=${audioRef.current.networkState}`);
         logDebug(`[PLAY_CALL] paused=${audioRef.current.paused} readyState=${audioRef.current.readyState} networkState=${audioRef.current.networkState}`);
@@ -861,18 +961,26 @@ useEffect(() => {
       }
     } else {
       try {
-        console.log(`[RESOLVE_SOURCE_START] trackId=${song.id}`);
-      logDebug(`[RESOLVE_SOURCE_START] trackId=${song.id}`);
-      logDebug(`Validating native source...`);
-        let res = await fetch(`/api/audio?v=${song.id}`, { method: 'HEAD', signal: AbortSignal.timeout(4000) });
         let targetId = song.id;
+        let isNativeValid = false;
 
-        if (!res.ok) {
-          logDebug(`Native source invalid (HTTP ${res.status}). Resolving alternative source...`);
-          const altId = await getAlternativeSourceId(song.title, song.artist);
-          if (altId) {
-             targetId = altId;
-             res = await fetch(`/api/audio?v=${targetId}`, { method: 'HEAD', signal: AbortSignal.timeout(4000) });
+        if (isDownloaded) {
+          isNativeValid = true; // Local Blob is valid
+        } else {
+          console.log(`[RESOLVE_SOURCE_START] trackId=${song.id}`);
+          let res = await fetch(`/api/audio?v=${song.id}`, { method: 'HEAD', signal: AbortSignal.timeout(4000) });
+          if (!res.ok) {
+            const altId = await getAlternativeSourceId(song.title, song.artist);
+            if (altId) {
+              targetId = altId;
+              res = await fetch(`/api/audio?v=${targetId}`, { method: 'HEAD', signal: AbortSignal.timeout(4000) });
+              if (res.ok) {
+                finalSrc = `/api/audio?v=${targetId}`;
+                isNativeValid = true;
+              }
+            }
+          } else {
+            isNativeValid = true;
           }
         }
 
@@ -881,11 +989,11 @@ useEffect(() => {
           return; 
         }
 
-        if (res.ok) {
+        if (isNativeValid) {
           logDebug(`Using native audio (valid source)`);
           setUseNativeAudio(true);
           if (audioRef.current) {
-            audioRef.current.src = `/api/audio?v=${targetId}`;
+            audioRef.current.src = finalSrc;
             audioRef.current.load();
             logDebug(`[AUDIO_STATE_BEFORE] (Desktop playSong)`, audioRef.current);
             logDebug(`[CALLING_AUDIO_PLAY] from Desktop playSong`);
@@ -1481,7 +1589,7 @@ useEffect(() => {
           <header className="mb-6">
           <div className="flex justify-start items-center gap-4 border-b-4 border-white/30 pb-4">
             <h1 
-              onClick={() => { setHasSearched(false); setShowPlaylist(false); setArtistQuery(""); setSongQuery(""); setSearchResults([]); }}
+              onClick={() => { setHasSearched(false); setShowPlaylist(false); setShowDownloads(false); setArtistQuery(""); setSongQuery(""); setSearchResults([]); }}
               className={`text-2xl font-medium tracking-wide  tracking-[0.2em] leading-none cursor-pointer transition-colors ${isLightBg ? 'text-white drop-shadow-md hover:text-[#D4FF00]' : 'text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] hover:text-[#D4FF00]'}`}
             >
               LISTEN WITH {activeProfile.name}
@@ -1687,13 +1795,23 @@ useEffect(() => {
             {playlists.map(p => (
               <button 
                 key={p.id}
-                onClick={() => { setActivePlaylistId(p.id); setShowPlaylist(true); setHasSearched(false); setIsEditingPlaylist(false); }}
+                onClick={() => { setActivePlaylistId(p.id); setShowPlaylist(true); setShowDownloads(false); setHasSearched(false); setIsEditingPlaylist(false); }}
                 className={`w-full border-2 border-white/40 p-4 text-2xl font-medium tracking-wide tracking-tight transition-all flex justify-between items-center ${showPlaylist && activePlaylistId === p.id ? 'bg-[#D4FF00] text-[#000000] shadow-none translate-y-1 translate-x-1' : 'bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white shadow-sm hover:translate-y-1 hover:translate-x-1 hover:shadow-sm'}`}
               >
                 <span className="truncate pr-4 text-left">{p.name}</span>
                 <span className="bg-[#1d1d1f] text-white px-3 py-1 rounded-full text-sm shrink-0">{p.songs.length}</span>
               </button>
             ))}
+            <button 
+              onClick={() => { setShowDownloads(true); setShowPlaylist(false); setHasSearched(false); }}
+              className={`w-full border-2 border-white/40 p-4 text-2xl font-medium tracking-wide tracking-tight transition-all flex justify-between items-center ${showDownloads ? 'bg-[#D4FF00] text-[#000000] shadow-none translate-y-1 translate-x-1' : 'bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white shadow-sm hover:translate-y-1 hover:translate-x-1 hover:shadow-sm'}`}
+            >
+              <div className="flex items-center gap-2">
+                <ArrowDownToLine className="w-5 h-5" />
+                <span className="truncate text-left">Downloads</span>
+              </div>
+              <span className="bg-[#1d1d1f] text-white px-3 py-1 rounded-full text-sm shrink-0">{downloads.length}</span>
+            </button>
             <button 
               onClick={() => {
                 const name = prompt("Enter playlist name:");
@@ -1787,6 +1905,41 @@ useEffect(() => {
               </div>
 
 
+          {showDownloads && (
+            <div className="w-full flex flex-col pt-8">
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-3">
+                  <ArrowDownToLine className="w-8 h-8 text-[#D4FF00]" />
+                  <h2 className="text-4xl font-black tracking-tight text-white">Downloads</h2>
+                </div>
+                <div className="text-white/40 text-sm font-medium">
+                  {downloads.length} songs • {(downloads.reduce((acc, d) => acc + d.size, 0) / (1024 * 1024)).toFixed(1)} MB
+                </div>
+              </div>
+              <div className="flex flex-col gap-2 relative">
+                {downloads.length === 0 ? (
+                  <div className="py-20 text-center text-white/40">No downloaded songs yet.</div>
+                ) : (
+                  downloads.map((d, index) => (
+                    <div className="flex items-center group/box transition-all duration-200" key={d.id}>
+                      <div className="flex-1 pointer-events-auto">
+                        <SongBox 
+                          song={d.metadata} 
+                          index={index} 
+                          onPlay={(e) => playSong(d.metadata, true, "playlist", downloads.map(d=>d.metadata), e)} 
+                          isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === d.id) ?? false} 
+                          onToggleFavorite={(e) => toggleLike(d.metadata, e)} onOpenMenu={(e) => openPlaylistMenu(d.metadata, e)} 
+                          isDownloaded={true}
+                          onRemoveDownload={(e) => handleRemoveDownload(d.id, e)}
+                        />
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+          
           {showPlaylist ? (() => {
             const activePlaylist = playlists.find(p => p.id === activePlaylistId);
             if (!activePlaylist) return null;
@@ -1859,8 +2012,12 @@ useEffect(() => {
                             index={index} 
                             onPlay={() => !isEditingPlaylist && playSong(song, true, "playlist")} 
                             isFavorite={true} 
-                            onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} 
-                          />
+                            onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)}
+  isDownloaded={downloads.some(d => d.id === song.id)}
+  downloadProgress={downloadProgress[song.id]}
+  onDownload={(e) => handleDownload(song, e)}
+  onRemoveDownload={(e) => handleRemoveDownload(song.id, e)}
+/>
                         </div>
                         {isEditingPlaylist && (
                           <div className="absolute inset-y-0 right-12 flex items-center justify-center bg-black/40 backdrop-blur-md px-4 rounded-r-2xl border-l border-white/20 cursor-grab active:cursor-grabbing text-white/50 hover:text-white transition-colors">
@@ -1936,8 +2093,12 @@ useEffect(() => {
                                       index={i} 
                                       onPlay={(e) => playSong(song, true, "radio", undefined, e)} 
                                       isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} 
-                                      onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} 
-                                    />
+                                      onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)}
+  isDownloaded={downloads.some(d => d.id === song.id)}
+  downloadProgress={downloadProgress[song.id]}
+  onDownload={(e) => handleDownload(song, e)}
+  onRemoveDownload={(e) => handleRemoveDownload(song.id, e)}
+/>
                                   </div>
                                   <button 
                                     onClick={() => {
@@ -1991,8 +2152,12 @@ useEffect(() => {
                         index={index} 
                         onPlay={() => playSong(song)} 
                         isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} 
-                        onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} 
-                      />
+                        onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)}
+  isDownloaded={downloads.some(d => d.id === song.id)}
+  downloadProgress={downloadProgress[song.id]}
+  onDownload={(e) => handleDownload(song, e)}
+  onRemoveDownload={(e) => handleRemoveDownload(song.id, e)}
+/>
                     ))}
                     </div>
                   </div>
@@ -2026,8 +2191,12 @@ useEffect(() => {
                         index={index} 
                         onPlay={() => playSong(song)} 
                         isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} 
-                        onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} 
-                      />
+                        onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)}
+  isDownloaded={downloads.some(d => d.id === song.id)}
+  downloadProgress={downloadProgress[song.id]}
+  onDownload={(e) => handleDownload(song, e)}
+  onRemoveDownload={(e) => handleRemoveDownload(song.id, e)}
+/>
                     ))}
                     </div>
                   </div>
@@ -2056,8 +2225,12 @@ useEffect(() => {
                         index={index} 
                         onPlay={(e) => playSong(song, true, "radio", undefined, e)}
                         isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} 
-                        onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} 
-                      />
+                        onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)}
+  isDownloaded={downloads.some(d => d.id === song.id)}
+  downloadProgress={downloadProgress[song.id]}
+  onDownload={(e) => handleDownload(song, e)}
+  onRemoveDownload={(e) => handleRemoveDownload(song.id, e)}
+/>
                     ))}
                   </div>
                 </div>
@@ -2180,6 +2353,42 @@ useEffect(() => {
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* DOWNLOADS TAB */}
+          {mobileTab === "downloads" && (
+            <div className="flex flex-col gap-6 animate-in fade-in duration-500">
+              <div className="flex justify-between items-center mb-2">
+                <div className="flex items-center gap-3">
+                  <ArrowDownToLine className="w-6 h-6 text-[#D4FF00]" />
+                  <h2 className="text-2xl font-black tracking-tight text-white">Downloads</h2>
+                </div>
+                <div className="text-white/40 text-xs font-medium">
+                  {downloads.length} songs • {(downloads.reduce((acc, d) => acc + d.size, 0) / (1024 * 1024)).toFixed(1)} MB
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                {downloads.length === 0 ? (
+                  <div className="py-20 text-center text-white/40">No downloaded songs yet.</div>
+                ) : (
+                  downloads.map((d, index) => (
+                    <div className="flex items-center group/box transition-all duration-200" key={d.id}>
+                      <div className="flex-1 pointer-events-auto">
+                        <SongBox 
+                          song={d.metadata} 
+                          index={index} 
+                          onPlay={(e) => playSong(d.metadata, true, "playlist", downloads.map(d=>d.metadata), e)} 
+                          isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === d.id) ?? false} 
+                          onToggleFavorite={(e) => toggleLike(d.metadata, e)} onOpenMenu={(e) => openPlaylistMenu(d.metadata, e)} 
+                          isDownloaded={true}
+                          onRemoveDownload={(e) => handleRemoveDownload(d.id, e)}
+                        />
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -2422,6 +2631,13 @@ useEffect(() => {
             >
               <Library className="w-6 h-6" />
               <span className="text-[9px] font-bold tracking-widest uppercase">Library</span>
+            </button>
+            <button 
+              onClick={() => setMobileTab("downloads")}
+              className={`flex flex-col items-center gap-1 transition-colors ${mobileTab === "downloads" ? "text-[#D4FF00]" : "text-white/50"}`}
+            >
+              <ArrowDownToLine className="w-6 h-6" />
+              <span className="text-[9px] font-bold tracking-widest uppercase">Offline</span>
             </button>
           </div>
         </div>
