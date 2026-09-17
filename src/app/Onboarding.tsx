@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createAccount, signIn, getSessionUser, checkGoogleAuth, getGoogleAuthUrl, type AuthUser } from "./auth";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Eye, EyeOff } from "lucide-react";
 
 export function Onboarding({ onComplete }: { onComplete: (user: AuthUser) => void }) {
   const [step, setStep] = useState<"loading" | "welcome" | "auth_options" | "email_auth">("loading");
@@ -17,6 +17,7 @@ export function Onboarding({ onComplete }: { onComplete: (user: AuthUser) => voi
   const [googleError, setGoogleError] = useState("");
   const [googleConfigured, setGoogleConfigured] = useState<boolean | null>(null);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const initialized = useRef(false);
 
@@ -248,23 +249,34 @@ export function Onboarding({ onComplete }: { onComplete: (user: AuthUser) => voi
                   onChange={e => setEmail(e.target.value)}
                   className="w-full bg-black/50 border border-white/10 rounded-xl px-5 py-4 text-white placeholder:text-white/30 focus:outline-none focus:border-[#D4FF00] transition-colors"
                 />
-                <input
-                  type="password"
-                  required
-                  placeholder="Password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  className="w-full bg-black/50 border border-white/10 rounded-xl px-5 py-4 text-white placeholder:text-white/30 focus:outline-none focus:border-[#D4FF00] transition-colors"
-                />
-                {authMode === "signup" && (
+                <div className="relative">
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     required
-                    placeholder="Confirm Password"
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 rounded-xl px-5 py-4 text-white placeholder:text-white/30 focus:outline-none focus:border-[#D4FF00] transition-colors"
+                    placeholder="Password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    className="w-full bg-black/50 border border-white/10 rounded-xl px-5 py-4 pr-12 text-white placeholder:text-white/30 focus:outline-none focus:border-[#D4FF00] transition-colors"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                {authMode === "signup" && (
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      required
+                      placeholder="Confirm Password"
+                      value={confirmPassword}
+                      onChange={e => setConfirmPassword(e.target.value)}
+                      className="w-full bg-black/50 border border-white/10 rounded-xl px-5 py-4 pr-12 text-white placeholder:text-white/30 focus:outline-none focus:border-[#D4FF00] transition-colors"
+                    />
+                  </div>
                 )}
                 
                 {authMode === "signin" && (
