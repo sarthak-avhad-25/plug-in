@@ -195,6 +195,12 @@ export default function FransHalsMusicApp() {
   const [showProfileCreator, setShowProfileCreator] = useState(false);
   const [showProfileSelector, setShowProfileSelector] = useState(false);
   const [isRightMenuOpen, setIsRightMenuOpen] = useState(false);
+  const [expandedPlaylistId, setExpandedPlaylistId] = useState<string | null>(null);
+  const [activeMenuPlaylistId, setActiveMenuPlaylistId] = useState<string | null>(null);
+  const [renamingPlaylistId, setRenamingPlaylistId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [deletingPlaylistId, setDeletingPlaylistId] = useState<string | null>(null);
+  const [inlineSearchPlaylistId, setInlineSearchPlaylistId] = useState<string | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   useEffect(() => {
@@ -2380,49 +2386,248 @@ useEffect(() => {
                 initial={{ opacity: 0, height: 0, scale: 0.98, y: -20 }}
                 animate={{ opacity: 1, height: "auto", scale: 1, y: 0 }}
                 exit={{ opacity: 0, height: 0, scale: 0.98, y: -20 }}
-                transition={{ duration: 0.6, type: "spring", bounce: 0.25 }}
-                className="overflow-hidden flex flex-col gap-4"
+                transition={{ duration: 0.3, ease: "easeOut" }}
+                className="overflow-visible flex flex-col gap-6 p-6 rounded-2xl bg-black/60 border border-white/10 backdrop-blur-2xl shadow-2xl mb-8 relative z-50 w-full"
               >
-                <div className="flex flex-col mt-2">
-<div className="w-full flex flex-col gap-2">
-            <div className="mb-2 flex items-center justify-start px-2">
-              <h2 className="text-[10px] font-black tracking-[0.4em] text-white/30 uppercase mb-2">PLAYLISTS</h2>
-            </div>
-            {playlists.map(p => (
-              <button 
-                key={p.id}
-                onClick={() => { setActivePlaylistId(p.id); setShowPlaylist(true); setShowDownloads(false); setHasSearched(false); setIsEditingPlaylist(false); }}
-                className={`w-full border-b border-white/20 py-4 text-[24px] md:text-[32px] font-black tracking-tighter uppercase transition-colors flex justify-between items-center ${showPlaylist && activePlaylistId === p.id ? 'text-[#D4FF00] border-[#D4FF00]' : 'text-white/50 hover:text-white hover:border-white/50'}`}
-              >
-                <span className="truncate pr-4 text-left">{p.name}</span>
-                <span className="text-[12px] font-bold tracking-[0.4em] text-white/30 uppercase">{p.songs.length} TRACKS</span>
-              </button>
-            ))}
-            <button 
-              onClick={() => { setShowDownloads(true); setShowPlaylist(false); setHasSearched(false); }}
-              className={`w-full border-b border-white/20 py-4 text-[24px] md:text-[32px] font-black tracking-tighter uppercase transition-colors flex justify-between items-center ${showDownloads ? 'text-[#D4FF00] border-[#D4FF00]' : 'text-white/50 hover:text-white hover:border-white/50'}`}
-            >
-              <div className="flex items-center gap-2">
-                <ArrowDownToLine className="w-4 h-4" />
-                <span className="truncate text-left">Downloads</span>
-              </div>
-              <span className="text-[12px] font-bold tracking-[0.4em] text-white/30 uppercase">{downloads.length} TRACKS</span>
-            </button>
-            <button 
-              onClick={() => {
-                const name = prompt("Enter playlist name:");
-                if (name) {
-                  const newP = { id: Date.now().toString(), name, songs: [] };
-                  savePlaylists([...playlists, newP]);
-                }
-              }}
-              className="w-full border-b border-white/20 border-dashed py-4 text-[16px] md:text-[24px] font-black tracking-tighter uppercase bg-transparent text-white/30 hover:border-[#D4FF00] hover:text-[#D4FF00] transition-colors mt-2"
-            >
-              + New Playlist
-            </button>
-          </div>
-        </div>
+                
+                {/* MODALS OVERLAYS */}
+                <AnimatePresence>
+                  {renamingPlaylistId && (
+                    <motion.div
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      className="absolute inset-0 z-[60] bg-black/80 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center p-6"
+                    >
+                      <h3 className="text-xl font-black uppercase text-white mb-4 tracking-tighter">Rename Playlist</h3>
+                      <input 
+                        type="text" 
+                        value={renameValue} 
+                        onChange={e => setRenameValue(e.target.value)} 
+                        className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#D4FF00] mb-6"
+                        autoFocus
+                      />
+                      <div className="flex gap-4 w-full">
+                        <button onClick={() => setRenamingPlaylistId(null)} className="flex-1 py-3 rounded-xl border border-white/20 text-white/70 hover:text-white uppercase text-xs font-bold tracking-widest">Cancel</button>
+                        <button onClick={() => {
+                          savePlaylists(playlists.map(p => p.id === renamingPlaylistId ? {...p, name: renameValue} : p));
+                          setRenamingPlaylistId(null);
+                        }} className="flex-1 py-3 rounded-xl bg-[#D4FF00] text-black uppercase text-xs font-black tracking-widest">Save</button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
+                <AnimatePresence>
+                  {deletingPlaylistId && (
+                    <motion.div
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      className="absolute inset-0 z-[60] bg-black/80 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center p-6 text-center"
+                    >
+                      <h3 className="text-xl font-black uppercase text-white mb-2 tracking-tighter">Delete Playlist?</h3>
+                      <p className="text-sm text-white/50 mb-6">Are you sure you want to delete "{playlists.find(p => p.id === deletingPlaylistId)?.name}"?</p>
+                      <div className="flex gap-4 w-full">
+                        <button onClick={() => setDeletingPlaylistId(null)} className="flex-1 py-3 rounded-xl border border-white/20 text-white/70 hover:text-white uppercase text-xs font-bold tracking-widest">Cancel</button>
+                        <button onClick={() => {
+                          savePlaylists(playlists.filter(p => p.id !== deletingPlaylistId));
+                          setDeletingPlaylistId(null);
+                          if (activePlaylistId === deletingPlaylistId) { setShowPlaylist(false); setActivePlaylistId(''); }
+                        }} className="flex-1 py-3 rounded-xl bg-red-500 text-white uppercase text-xs font-black tracking-widest">Delete</button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                
+                <div className="flex flex-col gap-8 w-full">
+                   
+                   {/* YOUR MUSIC */}
+                   <div className="flex flex-col gap-2">
+                     <h2 className="text-[10px] font-black tracking-[0.4em] text-white/30 uppercase mb-2">YOUR MUSIC</h2>
+                     
+                      {/* Downloads */}
+                      <button 
+                        onClick={() => { setShowDownloads(true); setShowPlaylist(false); setHasSearched(false); setIsRightMenuOpen(false); }}
+                        className={`w-full group flex justify-between items-center py-3 px-4 rounded-xl transition-all ${showDownloads ? 'bg-white/10 text-[#D4FF00]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <ArrowDownToLine className="w-5 h-5" />
+                          <span className="text-[18px] font-black tracking-tighter uppercase">Downloads</span>
+                        </div>
+                        <span className="text-[10px] font-bold tracking-[0.2em] text-white/30 uppercase">{downloads.length} TRACKS</span>
+                      </button>
+                   </div>
+
+                   {/* PLAYLISTS */}
+                   <div className="flex flex-col gap-2 relative">
+                     <div className="flex items-center justify-between mb-2">
+                       <h2 className="text-[10px] font-black tracking-[0.4em] text-white/30 uppercase">PLAYLISTS</h2>
+                       <button onClick={() => {
+                          const name = prompt("Enter playlist name:");
+                          if (name) {
+                            const newP = { id: Date.now().toString(), name, songs: [] };
+                            savePlaylists([...playlists, newP]);
+                          }
+                       }} className="text-white/40 hover:text-[#D4FF00] p-1"><Plus className="w-4 h-4" /></button>
+                     </div>
+
+                     {playlists.map(p => (
+                       <div key={p.id} className="flex flex-col w-full">
+                         <div className={`w-full relative flex items-center justify-between group rounded-xl transition-all ${expandedPlaylistId === p.id ? 'bg-white/5 border border-white/10' : 'hover:bg-white/5 border border-transparent'}`}>
+                           <button 
+                             onClick={() => setExpandedPlaylistId(expandedPlaylistId === p.id ? null : p.id)}
+                             className="flex-1 flex items-center justify-between py-3 px-4 text-left"
+                           >
+                             <div className="flex items-center gap-3 truncate pr-4">
+                               <ListMusic className={`w-5 h-5 flex-shrink-0 ${expandedPlaylistId === p.id ? 'text-[#D4FF00]' : 'text-white/40'}`} />
+                               <span className={`text-[18px] font-black tracking-tighter uppercase truncate ${expandedPlaylistId === p.id ? 'text-[#D4FF00]' : 'text-white/80'}`}>{p.name}</span>
+                             </div>
+                             <span className="text-[10px] font-bold tracking-[0.2em] text-white/30 uppercase flex-shrink-0">{p.songs.length}</span>
+                           </button>
+
+                           {/* Three Dot Menu Button */}
+                           <div className="pr-2 flex-shrink-0 relative">
+                             <button 
+                               onClick={(e) => { e.stopPropagation(); setActiveMenuPlaylistId(activeMenuPlaylistId === p.id ? null : p.id); }}
+                               className={`p-2 rounded-lg transition-colors ${activeMenuPlaylistId === p.id ? 'text-white bg-white/10' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
+                             >
+                               <MoreHorizontal className="w-5 h-5" />
+                             </button>
+
+                             {/* Click Away Overlay */}
+                             {activeMenuPlaylistId === p.id && (
+                               <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setActiveMenuPlaylistId(null); }} />
+                             )}
+                             {/* The Menu */}
+                             <AnimatePresence>
+                               {activeMenuPlaylistId === p.id && (
+                                 <motion.div
+                                   initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                                   animate={{ opacity: 1, scale: 1, y: 0 }}
+                                   exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                                   transition={{ duration: 0.15 }}
+                                   className="absolute right-0 top-12 w-48 bg-[#111] border border-white/10 rounded-xl shadow-2xl py-2 z-50 overflow-hidden"
+                                 >
+                                   <button 
+                                     onClick={(e) => { e.stopPropagation(); setRenameValue(p.name); setRenamingPlaylistId(p.id); setActiveMenuPlaylistId(null); }}
+                                     className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                                   >
+                                     <span className="text-[16px]">✏️</span> Rename
+                                   </button>
+                                   <button 
+                                     onClick={(e) => { e.stopPropagation(); setActivePlaylistId(p.id); setShowPlaylist(true); setIsEditingPlaylist(true); setIsRightMenuOpen(false); setActiveMenuPlaylistId(null); }}
+                                     className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                                   >
+                                     <span className="text-[16px]">📝</span> Edit Songs
+                                   </button>
+                                   <button 
+                                     onClick={(e) => { e.stopPropagation(); setDeletingPlaylistId(p.id); setActiveMenuPlaylistId(null); }}
+                                     className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-500/70 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                                   >
+                                     <span className="text-[16px]">🗑️</span> Delete
+                                   </button>
+                                 </motion.div>
+                               )}
+                             </AnimatePresence>
+                           </div>
+                         </div>
+
+                         {/* EXPANDED SONGS */}
+                         <AnimatePresence>
+                           {expandedPlaylistId === p.id && (
+                             <motion.div
+                               initial={{ height: 0, opacity: 0 }}
+                               animate={{ height: "auto", opacity: 1 }}
+                               exit={{ height: 0, opacity: 0 }}
+                               transition={{ duration: 0.3 }}
+                               className="overflow-hidden flex flex-col pl-12 pr-4 pb-4 mt-1 gap-1"
+                             >
+                               {p.songs.map((song, idx) => (
+                                   <motion.button
+                                     key={song.id + idx}
+                                     initial={{ opacity: 0, x: -10 }}
+                                     animate={{ opacity: 1, x: 0 }}
+                                     transition={{ delay: idx * 0.05, duration: 0.2 }}
+                                     onClick={() => playSong(song, true, "playlist", p.songs)}
+                                     className="flex items-center gap-4 w-full py-2 px-3 rounded-lg hover:bg-white/5 transition-colors group text-left"
+                                   >
+                                     <div className="w-10 h-10 rounded-md bg-[#222] overflow-hidden flex-shrink-0 relative">
+                                        <img src={song.image} className="w-full h-full object-cover group-hover:opacity-50 transition-opacity" />
+                                        <Play className="w-4 h-4 text-white absolute inset-0 m-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                                     </div>
+                                     <div className="flex flex-col overflow-hidden">
+                                        <span className="text-[14px] font-bold text-white truncate">{song.title}</span>
+                                        <span className="text-[10px] text-white/50 truncate uppercase font-bold tracking-widest mt-1">{song.artist}</span>
+                                     </div>
+                                   </motion.button>
+                               ))}
+                               
+                               {inlineSearchPlaylistId === p.id ? (
+                                 <motion.div initial={{opacity:0}} animate={{opacity:1}} className="flex flex-col gap-2 mt-2 w-full">
+                                   <div className="flex items-center gap-2">
+                                     <input
+                                       type="text"
+                                       placeholder="Search songs to add..."
+                                       value={inlineSearchQuery}
+                                       onChange={(e) => setInlineSearchQuery(e.target.value)}
+                                       onKeyDown={async (e) => {
+                                         if(e.key === 'Enter' && inlineSearchQuery.trim()){
+                                           setIsInlineSearching(true);
+                                           const res = await searchYouTube(inlineSearchQuery.trim(), "any");
+                                           setInlineSearchResults(res);
+                                           setIsInlineSearching(false);
+                                         }
+                                       }}
+                                       className="flex-1 bg-white/5 border border-white/20 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-[#D4FF00]"
+                                       autoFocus
+                                     />
+                                     <button onClick={() => { setInlineSearchPlaylistId(null); setInlineSearchQuery(""); setInlineSearchResults([]); }} className="p-2 text-white/50 hover:text-white"><X className="w-4 h-4"/></button>
+                                   </div>
+                                   {isInlineSearching ? (
+                                     <div className="py-4 flex justify-center"><Loader2 className="w-4 h-4 animate-spin text-[#D4FF00]" /></div>
+                                   ) : (
+                                     inlineSearchResults.length > 0 && (
+                                       <div className="flex flex-col gap-1 max-h-48 overflow-y-auto pr-1">
+                                         {inlineSearchResults.map(s => {
+                                           const isAdded = p.songs.some(existing => existing.id === s.id);
+                                           return (
+                                             <div key={s.id} className="flex items-center justify-between w-full py-2 px-2 rounded-lg bg-black/40">
+                                               <div className="flex items-center gap-3 overflow-hidden">
+                                                 <img src={s.image} className="w-8 h-8 rounded-md object-cover flex-shrink-0" />
+                                                 <div className="flex flex-col overflow-hidden">
+                                                   <span className="text-[12px] font-bold text-white truncate">{s.title}</span>
+                                                   <span className="text-[9px] text-white/50 truncate uppercase">{s.artist}</span>
+                                                 </div>
+                                               </div>
+                                               <button
+                                                 onClick={() => {
+                                                   if(isAdded) return;
+                                                   savePlaylists(playlists.map(pl => pl.id === p.id ? { ...pl, songs: [...pl.songs, s] } : pl));
+                                                 }}
+                                                 className={`w-6 h-6 flex items-center justify-center rounded-full flex-shrink-0 ml-2 transition-all ${isAdded ? 'bg-[#D4FF00]/20 text-[#D4FF00]' : 'bg-white/10 hover:bg-[#D4FF00] hover:text-black text-white'}`}
+                                               >
+                                                 {isAdded ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                                               </button>
+                                             </div>
+                                           );
+                                         })}
+                                       </div>
+                                     )
+                                   )}
+                                 </motion.div>
+                               ) : (
+                                 <button 
+                                   onClick={(e) => { e.stopPropagation(); setInlineSearchPlaylistId(p.id); setInlineSearchResults([]); setInlineSearchQuery(""); }}
+                                   className={`mt-2 py-2 px-3 rounded-lg border border-dashed border-white/20 text-white/50 hover:text-white hover:border-[#D4FF00] hover:bg-[#D4FF00]/5 text-xs font-black tracking-widest uppercase transition-colors text-left ${p.songs.length === 0 ? 'w-full text-center' : 'w-auto self-start'}`}
+                                 >
+                                   + Add Songs
+                                 </button>
+                               )}
+                             </motion.div>
+                           )}
+                         </AnimatePresence>
+
+                       </div>
+                     ))}
+                   </div>
+                </div>
 
               </motion.div>
             )}
