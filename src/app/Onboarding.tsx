@@ -57,51 +57,15 @@ export function Onboarding({ onComplete }: { onComplete: (profile: any) => void 
         avatar: avatar.image
       };
       onComplete(profile);
-    }, 3000); // Heavy entering duration
+    }, 3000);
   };
 
   return (
     <div 
       onClick={handleScreenClick}
-      className={`fixed inset-0 bg-[#020005] z-[9999] flex flex-col items-center justify-center overflow-hidden ${(step === "welcome" || step === "transition_to_profile") ? 'cursor-pointer' : ''}`}
+      className={`fixed inset-0 bg-[#020202] z-[9999] flex flex-col items-center justify-center overflow-hidden ${(step === "welcome" || step === "transition_to_profile") ? 'cursor-pointer' : ''}`}
     >
-      
-      {/* Dynamic Background */}
-      <div className="absolute inset-0 pointer-events-none">
-        <motion.div
-          animate={
-            step === "transition_to_profile" || step === "transition_to_app" 
-              ? { scale: [1, 2, 1.5], opacity: [0.3, 0.9, 0.5], rotate: 90 } 
-              : { scale: [1, 1.2, 0.9, 1], opacity: [0.3, 0.6, 0.3], rotate: 0 }
-          }
-          transition={{ duration: fastForward ? 0.2 : (step.includes("transition") ? 2.5 : 8), repeat: step.includes("transition") ? 0 : Infinity, ease: "easeInOut" }}
-          className="absolute top-[20%] left-[20%] w-[60%] h-[60%] bg-purple-600/30 rounded-full blur-[120px] mix-blend-screen"
-        />
-        <motion.div
-          animate={
-            step === "transition_to_profile" || step === "transition_to_app" 
-              ? { scale: [1, 2.5, 1.2], opacity: [0.2, 0.8, 0.4], rotate: -90 } 
-              : { scale: [1, 1.3, 0.8, 1], opacity: [0.2, 0.5, 0.2], rotate: 0 }
-          }
-          transition={{ duration: fastForward ? 0.2 : (step.includes("transition") ? 2.5 : 10), repeat: step.includes("transition") ? 0 : Infinity, ease: "easeInOut" }}
-          className="absolute bottom-[20%] right-[20%] w-[50%] h-[50%] bg-[#D4FF00]/20 rounded-full blur-[100px] mix-blend-screen"
-        />
-        
-        {/* Light sweep effect during transitions */}
-        <AnimatePresence>
-          {(step === "transition_to_profile" || step === "transition_to_app") && (
-            <motion.div
-              initial={{ x: "-100%", opacity: 0 }}
-              animate={{ x: "100%", opacity: [0, 1, 0] }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: fastForward ? 0.15 : 1.5, ease: "easeInOut" }}
-              className="absolute inset-0 w-[200%] h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12 blur-3xl mix-blend-overlay"
-            />
-          )}
-        </AnimatePresence>
-
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
-      </div>
+      <div className="absolute inset-0 bg-noise opacity-5 pointer-events-none mix-blend-overlay" />
 
       <AnimatePresence mode="wait">
         
@@ -109,27 +73,51 @@ export function Onboarding({ onComplete }: { onComplete: (profile: any) => void 
         {step === "welcome" && (
           <motion.div
             key="welcome"
-            initial={{ opacity: 0, scale: 0.9, filter: "blur(20px)" }}
-            animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-            exit={{ opacity: 0, scale: 1.5, filter: "blur(30px)", rotate: 5 }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, filter: "blur(20px)", y: -50 }}
             transition={{ duration: 1.5, ease: "easeInOut" }}
-            className="relative z-10 flex flex-col items-center justify-center text-center px-6"
+            className="relative z-10 w-full h-full flex flex-col justify-between p-12"
           >
-            <motion.h1 
-              className="text-5xl md:text-7xl font-black text-white tracking-widest mb-6 drop-shadow-[0_0_30px_rgba(255,255,255,0.3)]"
-              animate={{ letterSpacing: ["10px", "15px", "10px"] }}
-              transition={{ duration: fastForward ? 0.4 : 4, ease: "easeInOut" }}
-            >
-              PLUGIN
-            </motion.h1>
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: fastForward ? 0.1 : 1, duration: fastForward ? 0.1 : 1 }}
-              className="text-lg md:text-2xl text-white/70 font-medium tracking-wide"
-            >
-              Your music. Your sound. Your space.
-            </motion.p>
+            <div className="flex justify-between items-start w-full">
+               <motion.span 
+                 initial={{ opacity: 0 }}
+                 animate={{ opacity: 1 }}
+                 transition={{ delay: 1 }}
+                 className="text-[10px] font-black tracking-[0.4em] text-[#D4FF00] uppercase"
+               >
+                 SYSTEM BOOT
+               </motion.span>
+               <motion.span 
+                 initial={{ opacity: 0 }}
+                 animate={{ opacity: 1 }}
+                 transition={{ delay: 1.2 }}
+                 className="text-[10px] font-black tracking-[0.4em] text-white/50 uppercase"
+               >
+                 V 0.9.1
+               </motion.span>
+            </div>
+            
+            <div className="flex flex-col items-center text-center">
+              <motion.h1 
+                className="text-[120px] md:text-[200px] font-black text-white tracking-tighter leading-[0.8] mix-blend-difference"
+                animate={{ letterSpacing: ["-5px", "0px", "-5px"] }}
+                transition={{ duration: fastForward ? 0.4 : 6, ease: "easeInOut" }}
+              >
+                PLUGIN
+              </motion.h1>
+            </div>
+            
+            <div className="flex justify-end w-full">
+              <motion.span 
+                 initial={{ opacity: 0, x: 20 }}
+                 animate={{ opacity: 1, x: 0 }}
+                 transition={{ delay: fastForward ? 0.1 : 2 }}
+                 className="text-[12px] font-black tracking-[0.4em] text-white/50 uppercase border-b border-white/20 pb-1"
+               >
+                 A NEW SOUND
+               </motion.span>
+            </div>
           </motion.div>
         )}
 
@@ -137,57 +125,57 @@ export function Onboarding({ onComplete }: { onComplete: (profile: any) => void 
         {step === "create_profile" && (
           <motion.div
             key="create_profile"
-            initial={{ opacity: 0, y: 100, scale: 0.8, filter: "blur(20px)" }}
-            animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-            exit={{ opacity: 0, scale: 1.2, filter: "blur(20px)", z: 100 }}
+            initial={{ opacity: 0, filter: "blur(10px)" }}
+            animate={{ opacity: 1, filter: "blur(0px)" }}
+            exit={{ opacity: 0, scale: 1.1, filter: "blur(20px)" }}
             transition={{ duration: 0.8, ease: "backOut" }}
-            className="relative z-10 w-full max-w-5xl px-8"
+            className="relative z-10 w-full h-full flex flex-col justify-between p-6 md:p-12"
           >
-            <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[3rem] px-10 py-6 md:px-20 md:py-10 shadow-[0_30px_60px_rgba(0,0,0,0.5)]">
-              <div className="text-center mb-4">
-                <h2 className="text-5xl font-black text-white mb-2">Create your profile</h2>
-                <p className="text-xl md:text-2xl text-white/50 mt-2">Tell us what we should call you.</p>
+            <div className="flex flex-col gap-2 relative">
+               <span className="text-[10px] font-black tracking-[0.4em] text-white/30 absolute -top-4 right-0">IDENTITY</span>
+               <h2 className="text-[64px] font-black tracking-tighter text-white leading-[0.8] uppercase w-3/4">CREATE<br/>PROFILE</h2>
+            </div>
+
+            <form onSubmit={handleSubmit} className="flex flex-col gap-8 w-full max-w-xl mx-auto" autoComplete="off">
+              <div className="flex overflow-x-auto gap-6 pb-4 scrollbar-hide -mx-6 px-6 snap-x">
+                {AVATARS.map((avatar, i) => (
+                  <button
+                    key={avatar.id}
+                    type="button"
+                    onClick={() => setSelectedAvatarId(avatar.id)}
+                    className={`min-w-[120px] h-[160px] snap-center overflow-hidden transition-all duration-500
+                      ${selectedAvatarId === avatar.id ? 'scale-110 shadow-[0_20px_40px_rgba(255,255,255,0.1)] grayscale-0' : 'scale-95 grayscale opacity-40 hover:opacity-100 hover:grayscale-0'}
+                    `}
+                  >
+                    <img src={avatar.image} alt="Avatar" className="w-full h-full object-cover" />
+                    <div className="absolute top-2 left-2 text-[10px] font-black mix-blend-difference text-white tracking-widest">{String(i+1).padStart(2,'0')}</div>
+                  </button>
+                ))}
               </div>
 
-              <form onSubmit={handleSubmit} className="flex flex-col gap-4" autoComplete="off">
-                <div className="flex justify-center mb-4 w-full overflow-hidden">
-                  <div className="grid grid-cols-5 gap-4 md:gap-6 max-h-[24rem] overflow-y-auto custom-scrollbar pr-2 py-4 w-full justify-items-center">
-                    {AVATARS.map(avatar => (
-                      <button
-                        key={avatar.id}
-                        type="button"
-                        onClick={() => setSelectedAvatarId(avatar.id)}
-                        className={`w-20 h-20 md:w-28 md:h-28 rounded-full overflow-hidden transition-all shadow-xl
-                          ${selectedAvatarId === avatar.id ? 'scale-110 ring-4 ring-[#D4FF00] z-10 shadow-[0_0_20px_rgba(212,255,0,0.5)]' : 'scale-95 opacity-60 hover:scale-100 hover:opacity-100'}
-                        `}
-                      >
-                        <img src={avatar.image} alt="Avatar" className="w-full h-full object-cover" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-white/50 text-lg md:text-xl font-bold tracking-widest mb-2 pl-2">USERNAME</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Enter your name"
-                    value={username}
-                    onChange={e => setUsername(e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 rounded-[2rem] px-10 py-6 text-3xl text-white font-black placeholder:text-white/20 focus:outline-none focus:border-[#D4FF00] transition-colors text-center shadow-inner"
-                    autoComplete="off"
-                  />
-                </div>
-                
-                <button
-                  type="submit"
-                  disabled={!username.trim()}
-                  className="w-full bg-[#D4FF00] text-black font-black text-3xl font-black tracking-wide rounded-[2rem] py-6 mt-4 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center shadow-[0_0_30px_rgba(212,255,0,0.3)] disabled:opacity-50 disabled:hover:scale-100 disabled:shadow-none"
-                >
-                  Enter PlugIn
-                </button>
-              </form>
+              <div className="flex flex-col border-b border-white/20 pb-2 relative mt-4">
+                <input
+                  type="text"
+                  required
+                  placeholder="ENTER ALIAS"
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  className="w-full bg-transparent text-[48px] text-white font-black tracking-tighter placeholder:text-white/20 focus:outline-none uppercase"
+                  autoComplete="off"
+                />
+              </div>
+              
+              <button
+                type="submit"
+                disabled={!username.trim()}
+                className="w-full bg-[#D4FF00] text-black font-black text-2xl tracking-tighter uppercase py-8 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center disabled:opacity-30 mix-blend-screen"
+              >
+                INITIALIZE
+              </button>
+            </form>
+            
+            <div className="text-center text-[10px] font-black tracking-[0.4em] text-white/30 uppercase mt-4">
+               SECURE LOCAL STORAGE
             </div>
           </motion.div>
         )}
@@ -196,21 +184,22 @@ export function Onboarding({ onComplete }: { onComplete: (profile: any) => void 
         {step === "transition_to_app" && (
           <motion.div
             key="transition_to_app"
-            className="relative z-10 flex flex-col items-center justify-center text-center px-6"
+            className="relative z-10 w-full h-full flex flex-col items-center justify-center"
           >
             <motion.div
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: [0.5, 1.2, 5], opacity: [0, 1, 0] }}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: [0.8, 1, 4], opacity: [0, 1, 0] }}
               transition={{ duration: 2.5, ease: "easeInOut" }}
+              className="flex flex-col items-center"
             >
-              <div className="w-32 h-32 rounded-full overflow-hidden shadow-[0_0_50px_rgba(255,255,255,0.2)]">
+              <div className="w-[300px] h-[400px] overflow-hidden grayscale">
                 <img 
                   src={AVATARS.find(a => a.id === selectedAvatarId)?.image} 
                   alt="Avatar" 
                   className="w-full h-full object-cover" 
                 />
               </div>
-              <h2 className="text-4xl font-bold text-white mt-6 drop-shadow-xl">{username}</h2>
+              <h2 className="text-[64px] font-black text-white mt-6 tracking-tighter uppercase mix-blend-difference absolute top-1/2 -translate-y-1/2">{username}</h2>
             </motion.div>
           </motion.div>
         )}

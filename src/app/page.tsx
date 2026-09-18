@@ -227,6 +227,82 @@ export default function FransHalsMusicApp() {
   
   const [searchResults, setSearchResults] = useState<Song[]>([]);
   const [trendingWorldwide, setTrendingWorldwide] = useState<Song[]>([]);
+  const [recommendedSongs, setRecommendedSongs] = useState<Song[]>([]);
+  const [artistPlaylistsData, setArtistPlaylistsData] = useState<{name: string, image: string | null}[]>([
+    { name: "THE WEEKND", image: null },
+    { name: "TAYLOR SWIFT", image: null },
+    { name: "ARIJIT SINGH", image: null },
+    { name: "TRAVIS SCOTT", image: null },
+    { name: "BILLIE EILISH", image: null },
+    { name: "AP DHILLON", image: null }
+  ]);
+  const [isOpeningArtist, setIsOpeningArtist] = useState<string | null>(null);
+
+  const openArtistPlaylist = async (artist: string) => {
+    setIsOpeningArtist(artist);
+    try {
+      const songs = await searchYouTube(artist, "artist");
+      if (songs && songs.length > 0) {
+        const id = "artist-" + artist;
+        const exists = playlists.find(p => p.id === id);
+        if (!exists) {
+           setPlaylists(prev => [...prev, { id, name: artist + " ESSENTIALS", songs }]);
+        } else {
+           setPlaylists(prev => prev.map(p => p.id === id ? { ...p, songs } : p));
+        }
+        setActivePlaylistId(id);
+        setMobileTab("playlistView");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    setIsOpeningArtist(null);
+  };
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchArtistImages = async () => {
+      const cached = localStorage.getItem('music_artist_images');
+      let cacheData = cached ? JSON.parse(cached) : {};
+      
+      const updatedData = [...artistPlaylistsData];
+      let hasChanges = false;
+
+      for (let i = 0; i < updatedData.length; i++) {
+        const artist = updatedData[i].name;
+        if (cacheData[artist]) {
+          updatedData[i].image = cacheData[artist];
+          hasChanges = true;
+          continue;
+        }
+        try {
+          let img = await getArtistBackground(artist);
+          if (!img) {
+            const songs = await searchYouTube(artist, "artist");
+            if (songs && songs.length > 0) {
+              img = songs[0].image;
+            }
+          }
+          if (img && mounted) {
+            cacheData[artist] = img;
+            updatedData[i].image = img;
+            hasChanges = true;
+            localStorage.setItem('music_artist_images', JSON.stringify(cacheData));
+            setArtistPlaylistsData([...updatedData]);
+          }
+        } catch(e) { console.error(e); }
+      }
+      if (hasChanges && mounted) {
+        setArtistPlaylistsData(updatedData);
+      }
+    };
+    
+    if (artistPlaylistsData.some(a => a.image === null)) {
+      fetchArtistImages();
+    }
+    return () => { mounted = false; };
+  }, []);
+
   const [trendingIndia, setTrendingIndia] = useState<Song[]>([]);
 
   const [isSearching, setIsSearching] = useState(false);
@@ -298,6 +374,10 @@ export default function FransHalsMusicApp() {
       const ind = await getTrendingIndia();
       setTrendingWorldwide(ww);
       setTrendingIndia(ind);
+      try {
+        const rec = await searchYouTube("trending viral hits 2024", "any");
+        if (rec) setRecommendedSongs(rec.slice(0, 12));
+      } catch (e) {}
       
       localStorage.setItem('music_trending_cache', JSON.stringify({
         date: today,
@@ -1292,6 +1372,13 @@ useEffect(() => {
 
   return (
     <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#000000] text-white font-sans selection:bg-[#D4FF00] selection:text-white">
+        <style dangerouslySetInnerHTML={{__html: `
+          @keyframes musicWave {
+            0% { height: 20%; opacity: 0.3; }
+            100% { height: 80%; opacity: 0.8; }
+          }
+        `}} />
+
       {playlistMenu && (
         <>
           <div className="fixed inset-0 z-[100]" onClick={() => setPlaylistMenu(null)} />
@@ -1587,7 +1674,7 @@ useEffect(() => {
         </header>
 
         <AnimatePresence>
-          {currentSong && (
+          {currentSong ? (
             <motion.div
               key={currentSong.id}
               initial={{ opacity: 0, height: 0, marginBottom: 0, scale: 0.8 }}
@@ -1616,7 +1703,18 @@ useEffect(() => {
                      animate={{ opacity: 1, scale: 1 }}
                      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
                    >
-                     <img src={currentSong.image} className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-[2s] ease-out" alt="album art" />
+                     <AnimatePresence mode="wait">
+                       <motion.img 
+                         key={currentSong.image}
+                         initial={{ opacity: 0, scale: 0.94 }}
+                         animate={{ opacity: 1, scale: 1 }}
+                         exit={{ opacity: 0, scale: 0.94 }}
+                         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                         src={currentSong.image} 
+                         className="w-full h-full absolute inset-0 object-cover transform hover:scale-105 transition-transform duration-[2s] ease-out" 
+                         alt="album art" 
+                       />
+                     </AnimatePresence>
                      
                      {/* Artwork Inner Shadow */}
                      <div className="absolute inset-0 rounded-2xl border border-white/10 mix-blend-overlay pointer-events-none" />
@@ -1958,6 +2056,32 @@ useEffect(() => {
                  </motion.div>
                  )}
                  </AnimatePresence>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="desktop-player-empty"
+              initial={{ opacity: 0, height: 0, marginBottom: 0, scale: 0.8 }}
+              animate={{ opacity: 1, height: "auto", marginBottom: 48, scale: 1, filter: "blur(0px)" }}
+              exit={{ opacity: 0, height: 0, marginBottom: 0, scale: 0.5, filter: "blur(10px)" }}
+              transition={{ type: "spring", damping: 15, stiffness: 120, mass: 0.6 }}
+              className="w-full flex flex-col gap-4 overflow-visible origin-center relative z-50"
+            >
+               <div className="relative overflow-hidden rounded-[32px] bg-[#020202] p-8 md:p-10 shadow-[0_40px_80px_rgba(0,0,0,0.9)] border border-white/5 flex flex-col items-center justify-center gap-12 transition-all duration-700 h-[600px]">
+                  <div className="absolute inset-0 flex items-center justify-center gap-2 md:gap-4 opacity-50">
+                    {[0.2, 0.5, 0.1, 0.6, 0.3, 0.4, 0.2].map((delay, i) => (
+                      <div 
+                        key={i} 
+                        className="w-4 md:w-8 bg-white/20 rounded-full shadow-[0_0_20px_rgba(255,255,255,0.1)] mix-blend-screen"
+                        style={{ 
+                          animation: `musicWave 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate`,
+                          animationDelay: `${delay}s`,
+                          height: '20%'
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-[12px] font-black tracking-[0.4em] text-white/50 relative z-10">SELECT A TRACK TO BEGIN</span>
+               </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -2444,150 +2568,223 @@ useEffect(() => {
             </div>
           </div>
 
-          {/* HOME TAB */}
+                    {/* HOME TAB */}
           {mobileTab === "home" && (
-            <div className="flex flex-col gap-10 animate-in fade-in duration-500">
-              <h2 className="text-2xl font-bold text-white/90 tracking-tight">
-                {new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'}, {activeProfile?.name || 'Guest'}.
-              </h2>
-
-              {/* Recently Played */}
-              {playbackHistory.length > 0 && (
-                <div className="flex flex-col gap-4">
-                  <h2 className="text-lg font-bold uppercase tracking-widest text-[#D4FF00]">Recently Played</h2>
-                  <div className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide snap-x">
-                    {[...playbackHistory].reverse().slice(0, 10).map((song, i) => (
-                      <div key={i} className="min-w-[140px] max-w-[140px] flex flex-col gap-3 snap-start relative group" onClick={() => playSong(song)}>
-                        <div className="absolute top-2 right-2 z-10">
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); downloads.some(d => d.id === song.id) ? handleRemoveDownload(song.id, e) : (downloadProgress[song.id] === undefined ? handleDownload(song, e) : null); }}
-                            className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-md active:bg-black/70 text-white"
-                          >
-                            {downloads.some(d => d.id === song.id) ? (
-                              <CheckCircle2 className="w-4 h-4 text-[#D4FF00]" />
-                            ) : downloadProgress[song.id] !== undefined ? (
-                              <div className="relative flex items-center justify-center w-4 h-4">
-                                <Loader2 className="w-4 h-4 text-white animate-spin" />
-                                {typeof downloadProgress[song.id] === 'number' && <span className="absolute text-[6px] font-bold text-white leading-none">{downloadProgress[song.id]}</span>}
-                              </div>
-                            ) : (
-                              <ArrowDownToLine className="w-4 h-4" />
-                            )}
-                          </button>
-                        </div>
-                        <div className="w-[140px] h-[140px] relative rounded-2xl overflow-hidden shadow-lg shadow-black/50">
-                          <img src={song.image} className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 active:opacity-100 transition-opacity">
-                            <Play className="w-10 h-10 fill-white text-white" />
-                          </div>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-white truncate">{song.title}</span>
-                          <span className="text-xs text-white/50 truncate">{song.artist}</span>
-                        </div>
-                      </div>
-                    ))}
+            <div className="flex flex-col gap-24 animate-in fade-in duration-[1s] ease-out">
+              
+              {/* Cinematic Hero Block */}
+              <div className="flex flex-col relative w-full mt-8">
+                <div className="absolute top-0 right-0 w-2/3 aspect-[3/4] bg-white/5 rounded-tl-[40px] rounded-br-[80px] overflow-hidden rotate-2 translate-x-4 -translate-y-12 blur-sm pointer-events-none">
+                  {playbackHistory.length > 0 && <img src={playbackHistory[playbackHistory.length - 1].image} className="w-full h-full object-cover opacity-30" />}
+                </div>
+                
+                <div className="relative z-10 w-[85%] aspect-[4/5] rounded-[24px] overflow-hidden shadow-2xl -ml-2" onClick={() => playbackHistory.length > 0 && playSong(playbackHistory[playbackHistory.length - 1])}>
+                  {playbackHistory.length > 0 ? (
+                    <>
+                      <img src={playbackHistory[playbackHistory.length - 1].image} className="w-full h-full object-cover scale-105" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent" />
+                    </>
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#050505] to-[#111] border border-white/10 flex items-center justify-center gap-1 md:gap-2">
+                       {[0.2, 0.5, 0.1, 0.6, 0.3, 0.4, 0.2].map((delay, i) => (
+                         <div 
+                           key={i} 
+                           className="w-4 md:w-6 bg-white/20 rounded-full shadow-[0_0_20px_rgba(255,255,255,0.1)] mix-blend-screen"
+                           style={{ 
+                             animation: `musicWave 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate`,
+                             animationDelay: `${delay}s`,
+                             height: '20%'
+                           }}
+                         />
+                       ))}
+                    </div>
+                  )}
+                  
+                  <div className="absolute inset-x-0 bottom-0 p-6 flex items-end justify-between">
+                    <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center text-black shrink-0 active:scale-90 transition-transform mix-blend-screen">
+                       <Play className="w-6 h-6 fill-current ml-1" />
+                    </div>
                   </div>
+                </div>
+
+                <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-4 flex flex-col z-20 pointer-events-none mix-blend-difference">
+                  <h1 className="text-[72px] sm:text-[80px] font-black tracking-tighter leading-[0.8] text-white uppercase text-right" style={{ WebkitTextStroke: '1px rgba(255,255,255,0.2)' }}>
+                    YOUR<br/>SOUND
+                  </h1>
+                </div>
+
+                {playbackHistory.length > 0 && (
+                  <div className="relative z-20 mt-6 ml-4 flex flex-col w-[80%] mix-blend-screen">
+                    <span className="text-[10px] font-bold tracking-[0.3em] text-[#00FFFF] mb-1">NOW PLAYING</span>
+                    <span className="text-3xl font-black text-white truncate tracking-tighter leading-none">{playbackHistory[playbackHistory.length - 1].title}</span>
+                    <span className="text-sm font-medium text-white/50 truncate tracking-wide mt-1">{playbackHistory[playbackHistory.length - 1].artist}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Section 01: Discover (Recent Vault) */}
+              {playbackHistory.length > 0 && (
+                <div className="flex flex-col gap-10 relative w-full pt-12 border-t border-white/10">
+                   <div className="flex justify-between items-start">
+                      <h2 className="text-[56px] font-black tracking-tighter text-white leading-none">01</h2>
+                      <div className="flex flex-col items-end">
+                         <span className="text-[10px] font-bold tracking-[0.4em] text-[#D4FF00] uppercase">DISCOVER</span>
+                         <span className="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase mt-1">RECENT VAULT</span>
+                      </div>
+                   </div>
+                   
+                   <div className="flex flex-col gap-8 w-full mt-4">
+                     {[...playbackHistory].reverse().slice(0, 5).map((song, i) => (
+                       <div key={i} className="flex items-center gap-6 active:opacity-50 transition-opacity" onClick={() => playSong(song)}>
+                         <div className="text-[10px] font-black text-white/20 tracking-widest w-6 -rotate-90 origin-center">{String(i+1).padStart(2, '0')}</div>
+                         <div className="w-24 h-24 rounded-full overflow-hidden shrink-0 border border-white/10">
+                           <img src={song.image} className="w-full h-full object-cover grayscale" />
+                         </div>
+                         <div className="flex flex-col flex-1 min-w-0 pr-4 border-b border-white/10 pb-4">
+                           <span className="text-2xl font-black text-white truncate tracking-tighter uppercase">{song.title}</span>
+                           <span className="text-[10px] font-bold tracking-[0.2em] text-white/40 truncate mt-1">{song.artist}</span>
+                         </div>
+                       </div>
+                     ))}
+                   </div>
                 </div>
               )}
 
-              {/* Recommended / Trending */}
-              <div className="flex flex-col gap-4">
-                <h2 className="text-lg font-bold uppercase tracking-widest text-white/80">Recommended For You</h2>
-                <div className="flex flex-col gap-3">
-                  {trendingWorldwide.slice(0, 5).map((song, i) => (
-                    <div key={song.id} className="flex items-center gap-4 p-3 rounded-2xl bg-white/5 active:bg-white/10 transition-colors" onClick={() => playSong(song)}>
-                      <img src={song.image} className="w-14 h-14 rounded-xl object-cover" />
-                      <div className="flex flex-col flex-1 min-w-0">
-                        <span className="text-base font-bold text-white truncate">{song.title}</span>
-                        <span className="text-sm text-white/50 truncate">{song.artist}</span>
+              {/* Section 02: RECOMMENDED FOR YOU */}
+              {recommendedSongs.length > 0 && (
+                <div className="flex flex-col gap-12 relative w-full pt-12 border-t border-white/10">
+                   <div className="flex justify-between items-start">
+                      <h2 className="text-[56px] font-black tracking-tighter text-white leading-none">02</h2>
+                      <div className="flex flex-col items-end text-right w-1/2">
+                         <span className="text-[10px] font-bold tracking-[0.4em] text-[#D4FF00] uppercase">FOR YOU</span>
+                         <span className="text-[20px] font-black tracking-tighter text-white uppercase mt-1 leading-[0.9]">RECOMMENDED<br/>SONGS</span>
                       </div>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); toggleLike(song, e); }}
-                        className="p-2"
-                      >
-                        <Heart className={`w-5 h-5 ${playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false ? 'fill-[#D4FF00] text-[#D4FF00]' : 'text-white/40'}`} />
-                      </button>
-                    </div>
-                  ))}
+                   </div>
+                   
+                   <div className="flex overflow-x-auto gap-8 pb-12 scrollbar-hide -mx-5 px-5 snap-x">
+                     {recommendedSongs.map((song, i) => (
+                       <div key={i} className="min-w-[220px] max-w-[220px] flex flex-col gap-5 snap-start relative group" onClick={() => playSong(song)}>
+                         <div className="w-[220px] h-[300px] relative overflow-hidden group-active:scale-[0.97] transition-transform duration-500 rounded-tr-[40px] rounded-bl-[40px]">
+                           <img src={song.image} className="w-full h-full object-cover filter grayscale opacity-80 group-active:grayscale-0 group-active:opacity-100 transition-all duration-700" />
+                           <div className="absolute top-4 left-4 text-[10px] font-black text-white mix-blend-difference tracking-widest">{String(i+1).padStart(2, '0')}</div>
+                           <div className="absolute bottom-4 right-4 z-10">
+                             <button 
+                               onClick={(e) => { e.stopPropagation(); downloads.some(d => d.id === song.id) ? handleRemoveDownload(song.id, e) : (downloadProgress[song.id] === undefined ? handleDownload(song, e) : null); }}
+                               className="w-10 h-10 flex items-center justify-center rounded-full bg-white text-black active:scale-90 transition-transform mix-blend-screen"
+                             >
+                               {downloads.some(d => d.id === song.id) ? <CheckCircle2 className="w-5 h-5" /> : <ArrowDownToLine className="w-5 h-5" />}
+                             </button>
+                           </div>
+                         </div>
+                         <div className="flex flex-col px-2 border-l-2 border-[#D4FF00] pl-4 py-1">
+                           <span className="text-xl font-black text-white truncate tracking-tighter uppercase leading-tight">{song.title}</span>
+                           <span className="text-[11px] font-bold tracking-wider text-[#FF00FF] truncate mt-1 uppercase">{song.artist}</span>
+                         </div>
+                       </div>
+                     ))}
+                   </div>
                 </div>
+              )}
+
+              {/* Section 03: ARTIST PLAYLISTS */}
+              <div className="flex flex-col gap-12 relative w-full pt-12 border-t border-white/10">
+                 <div className="flex justify-between items-start">
+                    <h2 className="text-[56px] font-black tracking-tighter text-white leading-none">03</h2>
+                    <div className="flex flex-col items-end text-right">
+                       <span className="text-[10px] font-bold tracking-[0.4em] text-[#00FFFF] uppercase">PLAYLISTS</span>
+                       <span className="text-[20px] font-black tracking-tighter text-white uppercase mt-1 leading-[0.9]">ARTIST<br/>ESSENTIALS</span>
+                    </div>
+                 </div>
+                 
+                 <div className="flex overflow-x-auto gap-8 pb-12 scrollbar-hide -mx-5 px-5 snap-x">
+                   {artistPlaylistsData.map((artist, i) => (
+                     <div 
+                       key={i} 
+                       className="min-w-[280px] max-w-[280px] flex flex-col gap-6 snap-start relative group" 
+                       onClick={() => openArtistPlaylist(artist.name)}
+                     >
+                       <div className="w-[280px] h-[350px] relative overflow-hidden group-active:scale-[0.97] transition-transform duration-500 border border-white/10 shadow-2xl">
+                         <AnimatePresence mode="wait">
+                           {artist.image ? (
+                             <motion.img 
+                               key="image"
+                               initial={{ opacity: 0, scale: 0.94 }}
+                               animate={{ opacity: 1, scale: 1 }}
+                               exit={{ opacity: 0, scale: 1.05 }}
+                               transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                               src={artist.image} 
+                               className="absolute inset-0 w-full h-full object-cover filter brightness-50 contrast-125 grayscale group-active:grayscale-0 group-active:brightness-75 transition-all duration-700" 
+                             />
+                           ) : (
+                             <motion.div 
+                               key="fallback"
+                               initial={{ opacity: 0 }}
+                               animate={{ opacity: 1 }}
+                               exit={{ opacity: 0 }}
+                               transition={{ duration: 0.8 }}
+                               className="absolute inset-0 bg-gradient-to-br from-[#111] to-[#020202] flex items-center justify-center filter brightness-50 contrast-125 group-active:brightness-75 transition-all duration-700"
+                             >
+                               <span className="text-[140px] font-black text-white/10 uppercase select-none leading-none tracking-tighter" style={{WebkitTextStroke: '1px rgba(255,255,255,0.05)'}}>{artist.name.substring(0,2)}</span>
+                             </motion.div>
+                           )}
+                         </AnimatePresence>
+                         
+                         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-90 pointer-events-none" />
+                         
+                         <div className="absolute inset-0 p-6 flex flex-col justify-between mix-blend-screen pointer-events-none">
+                           <div className="flex justify-between items-start w-full">
+                             <div className="text-[12px] font-black text-white tracking-[0.4em] origin-top-left -rotate-90 translate-y-12 translate-x-2">
+                               {String(i+1).padStart(2, '0')}
+                             </div>
+                             {isOpeningArtist === artist.name ? (
+                               <div className="w-12 h-12 rounded-full border border-[#D4FF00] flex items-center justify-center">
+                                 <Loader2 className="w-5 h-5 text-[#D4FF00] animate-spin" />
+                               </div>
+                             ) : (
+                               <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center">
+                                 <Play className="w-5 h-5 text-black ml-1" />
+                               </div>
+                             )}
+                           </div>
+                           
+                           <div className="flex flex-col">
+                             <span className="text-[40px] font-black text-white tracking-tighter leading-[0.8] uppercase break-words w-[80%]">{artist.name}</span>
+                             <span className="text-[10px] font-bold tracking-[0.3em] text-[#D4FF00] mt-3 uppercase">ESSENTIALS</span>
+                             <span className="text-[10px] font-bold tracking-[0.3em] text-white/50 mt-1 uppercase">MULTIPLE TRACKS</span>
+                           </div>
+                         </div>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+              </div>
+
+              {/* Section 04: TRENDING */}
+              <div className="flex flex-col gap-10 relative w-full pt-12 border-t border-white/10">
+                 <div className="flex flex-col items-start gap-1">
+                    <h2 className="text-[56px] font-black tracking-tighter text-white leading-none">04</h2>
+                    <span className="text-[10px] font-bold tracking-[0.4em] text-white/50 uppercase mt-2">TRENDING</span>
+                 </div>
+                 
+                 <div className="flex flex-col gap-8 w-full mt-4">
+                   {trendingWorldwide.slice(0, 10).map((song, i) => (
+                     <div key={song.id} className="flex items-center gap-6 active:opacity-50 transition-opacity" onClick={() => playSong(song)}>
+                       <div className="text-[10px] font-black text-white/20 tracking-widest w-6 -rotate-90 origin-center">{String(i+1).padStart(2, '0')}</div>
+                       <div className="w-24 h-24 overflow-hidden shrink-0 border border-white/10 mix-blend-luminosity hover:mix-blend-normal">
+                         <img src={song.image} className="w-full h-full object-cover" />
+                       </div>
+                       <div className="flex flex-col flex-1 min-w-0 pr-4 border-b border-white/10 pb-4">
+                         <span className="text-2xl font-black text-white truncate tracking-tighter uppercase">{song.title}</span>
+                         <span className="text-[10px] font-bold tracking-[0.2em] text-[#FF00FF] truncate mt-1">{song.artist}</span>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
               </div>
             </div>
           )}
-
-          {/* DISCOVER TAB */}
-          {mobileTab === "discover" && (
-            <div className="flex flex-col gap-10 animate-in fade-in duration-500">
-              <div className="flex flex-col gap-4">
-                <h2 className="text-lg font-bold uppercase tracking-widest text-[#D4FF00]">Trending Worldwide</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  {trendingWorldwide.map(song => (
-                    <div key={song.id} className="flex flex-col gap-2 relative group" onClick={() => playSong(song)}>
-                      <div className="absolute top-2 right-2 z-10">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); downloads.some(d => d.id === song.id) ? handleRemoveDownload(song.id, e) : (downloadProgress[song.id] === undefined ? handleDownload(song, e) : null); }}
-                          className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-md active:bg-black/70 text-white"
-                        >
-                          {downloads.some(d => d.id === song.id) ? (
-                            <CheckCircle2 className="w-4 h-4 text-[#D4FF00]" />
-                          ) : downloadProgress[song.id] !== undefined ? (
-                            <div className="relative flex items-center justify-center w-4 h-4">
-                              <Loader2 className="w-4 h-4 text-white animate-spin" />
-                              {typeof downloadProgress[song.id] === 'number' && <span className="absolute text-[6px] font-bold text-white leading-none">{downloadProgress[song.id]}</span>}
-                            </div>
-                          ) : (
-                            <ArrowDownToLine className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                      <div className="aspect-square relative rounded-2xl overflow-hidden">
-                        <img src={song.image} className="w-full h-full object-cover" />
-                      </div>
-                      <span className="text-sm font-bold text-white truncate">{song.title}</span>
-                      <span className="text-xs text-white/50 truncate">{song.artist}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* DOWNLOADS TAB */}
-          {mobileTab === "downloads" && (
-            <div className="flex flex-col gap-6 animate-in fade-in duration-500">
-              <div className="flex justify-between items-center mb-2">
-                <div className="flex items-center gap-3">
-                  <ArrowDownToLine className="w-6 h-6 text-[#D4FF00]" />
-                  <h2 className="text-2xl font-black tracking-tight text-white">Downloads</h2>
-                </div>
-                <div className="text-white/40 text-xs font-medium">
-                  {downloads.length} songs • {(downloads.reduce((acc, d) => acc + d.size, 0) / (1024 * 1024)).toFixed(1)} MB
-                </div>
-              </div>
-              <div className="flex flex-col gap-2">
-                {downloads.length === 0 ? (
-                  <div className="py-20 text-center text-white/40">No downloaded songs yet.</div>
-                ) : (
-                  downloads.map((d, index) => (
-                    <div className="flex items-center group/box transition-all duration-200" key={d.id}>
-                      <div className="flex-1 pointer-events-auto">
-                        <SongBox 
-                          song={d.metadata} 
-                          index={index} 
-                          onPlay={(e) => playSong(d.metadata, true, "playlist", downloads.map(d=>d.metadata), e)} 
-                          isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === d.id) ?? false} 
-                          onToggleFavorite={(e) => toggleLike(d.metadata, e)} onOpenMenu={(e) => openPlaylistMenu(d.metadata, e)} 
-                          isDownloaded={true}
-                          onRemoveDownload={(e) => handleRemoveDownload(d.id, e)}
-                        />
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
-
+          
           {/* SEARCH TAB */}
           {mobileTab === "search" && (
             <div className="flex flex-col gap-6 animate-in fade-in duration-500">
@@ -2790,7 +2987,17 @@ useEffect(() => {
                 onClick={() => setShowMobilePlayer(true)}
               >
                 <div className="w-12 h-12 relative rounded-xl overflow-hidden shrink-0">
-                  <img src={currentSong.image} className="w-full h-full object-cover" />
+                  <AnimatePresence mode="wait">
+                    <motion.img 
+                      key={currentSong.image}
+                      initial={{ opacity: 0, scale: 0.94 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.94 }}
+                      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                      src={currentSong.image} 
+                      className="absolute inset-0 w-full h-full object-cover" 
+                    />
+                  </AnimatePresence>
                 </div>
                 <div className="flex flex-col flex-1 min-w-0">
                   <span className="text-sm font-bold text-white truncate">{currentSong.title}</span>
