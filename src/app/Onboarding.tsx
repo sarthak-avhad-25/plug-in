@@ -106,6 +106,14 @@ export function Onboarding({ onComplete }: { onComplete: (profile: any) => void 
               >
                 PLUGIN
               </motion.h1>
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: fastForward ? 0.2 : 1.5, duration: 1 }}
+                className="text-sm md:text-lg font-bold tracking-[0.3em] text-[#D4FF00] uppercase mt-6"
+              >
+                Tune In. Zone Out.
+              </motion.p>
             </div>
             
             <div className="flex justify-end w-full">

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { NeonBackground } from "./NeonBackground";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
-import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2, Trash2, Info, Home, Library, Compass, ChevronDown, MoreHorizontal, ListMusic, Quote, Check, Plus , Shuffle, Repeat, Volume2, Volume1, VolumeX, Share, Power, ArrowDownToLine, CheckCircle2, XCircle, WifiOff } from "lucide-react";
+import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2, Trash2, Info, Home, Library, Compass, ChevronDown, MoreHorizontal, ListMusic, Quote, Check, Plus , Shuffle, Repeat, Volume2, Volume1, VolumeX, Share, Power, ArrowDownToLine, CheckCircle2, XCircle, WifiOff , Menu, X } from "lucide-react";
 import { saveDownload, getDownload, removeDownload, getAllDownloads, type DownloadedSong } from "./offlineDb";
 import YouTube, { YouTubePlayer } from "react-youtube";
 import { searchYouTube, getArtistBackground, getSearchSuggestions, getSyncedLyrics, getTrendingWorldwide, getTrendingIndia, getRelatedSongs, getAlternativeSourceId } from "./actions";
@@ -204,6 +204,7 @@ export default function FransHalsMusicApp() {
   const [isProfileChecking, setIsProfileChecking] = useState(true);
   const [showProfileCreator, setShowProfileCreator] = useState(false);
   const [showProfileSelector, setShowProfileSelector] = useState(false);
+  const [isRightMenuOpen, setIsRightMenuOpen] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("music_active_profile");
@@ -1673,6 +1674,8 @@ useEffect(() => {
           </div>
         </header>
 
+
+
         <AnimatePresence>
           {currentSong ? (
             <motion.div
@@ -2067,35 +2070,66 @@ useEffect(() => {
               className="w-full flex flex-col gap-4 overflow-visible origin-center relative z-50"
             >
                <div className="relative overflow-hidden rounded-[32px] bg-[#020202] p-8 md:p-10 shadow-[0_40px_80px_rgba(0,0,0,0.9)] border border-white/5 flex flex-col items-center justify-center gap-12 transition-all duration-700 h-[600px]">
-                  <div className="absolute inset-0 flex items-center justify-center gap-2 md:gap-4 opacity-50">
-                    {[0.2, 0.5, 0.1, 0.6, 0.3, 0.4, 0.2].map((delay, i) => (
-                      <div 
-                        key={i} 
-                        className="w-4 md:w-8 bg-white/20 rounded-full shadow-[0_0_20px_rgba(255,255,255,0.1)] mix-blend-screen"
-                        style={{ 
-                          animation: `musicWave 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate`,
-                          animationDelay: `${delay}s`,
-                          height: '20%'
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-[12px] font-black tracking-[0.4em] text-white/50 relative z-10">SELECT A TRACK TO BEGIN</span>
+                  <motion.video
+                    src="/1789719590290633.mov"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    initial={{ scale: 1 }}
+                    animate={{ scale: 1.1 }}
+                    transition={{ duration: 8, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
+                    className="absolute inset-0 w-full h-full object-cover opacity-90"
+                  />
                </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <div className="flex flex-col mt-4">
-<div className="w-full flex flex-col gap-4">
+        </div>
+      </div>
+
+      {/* RIGHT COLUMN - RESULTS & PLAYER */}
+      <div className="hidden md:flex w-full md:w-[50%] lg:w-[60%] relative bg-[#000000]/80 backdrop-blur-md border-l border-[#222222] text-[#F5F5F5] overflow-hidden flex-col min-h-[50vh] md:min-h-screen">
+        
+        {/* Heavily Animated Neon Background */}
+        <NeonBackground />
+
+        {/* Content Area */}
+        <div 
+          className={`relative z-10 flex-1 p-6 md:p-12 overflow-y-auto scroll-smooth will-change-transform transition-all duration-[1000ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${isInactive ? '-translate-y-16 scale-[1.02]' : 'translate-y-0 scale-100'}`}
+        >
+
+
+          {/* Top Bar with Hamburger */}
+          <div className="flex justify-end mb-6 z-50 relative">
+            <button
+              onClick={() => setIsRightMenuOpen(!isRightMenuOpen)}
+              className="p-3 md:p-4 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full text-white hover:text-[#D4FF00] hover:border-[#D4FF00]/50 hover:bg-white/10 transition-all shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:shadow-[0_0_20px_rgba(212,255,0,0.2)] active:scale-95"
+            >
+              {isRightMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
+
+          <AnimatePresence>
+            {isRightMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, scale: 0.98, y: -20 }}
+                animate={{ opacity: 1, height: "auto", scale: 1, y: 0 }}
+                exit={{ opacity: 0, height: 0, scale: 0.98, y: -20 }}
+                transition={{ duration: 0.6, type: "spring", bounce: 0.25 }}
+                className="overflow-hidden flex flex-col gap-4"
+              >
+                <div className="flex flex-col mt-2">
+<div className="w-full flex flex-col gap-2">
             <div className="mb-2 flex items-center justify-start px-2">
-              <h2 className="text-xl font-medium tracking-wide tracking-widest text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]">Playlists</h2>
+              <h2 className="text-base font-medium tracking-wide tracking-widest text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]">Playlists</h2>
             </div>
             {playlists.map(p => (
               <button 
                 key={p.id}
                 onClick={() => { setActivePlaylistId(p.id); setShowPlaylist(true); setShowDownloads(false); setHasSearched(false); setIsEditingPlaylist(false); }}
-                className={`w-full border-2 border-white/40 p-4 text-2xl font-medium tracking-wide tracking-tight transition-all flex justify-between items-center ${showPlaylist && activePlaylistId === p.id ? 'bg-[#D4FF00] text-[#000000] shadow-none translate-y-1 translate-x-1' : 'bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white shadow-sm hover:translate-y-1 hover:translate-x-1 hover:shadow-sm'}`}
+                className={`w-full rounded-2xl p-3 md:p-4 text-base md:text-lg font-bold tracking-wide transition-all duration-300 flex justify-between items-center ${showPlaylist && activePlaylistId === p.id ? 'bg-[#D4FF00] text-black shadow-[0_0_30px_rgba(212,255,0,0.3)] scale-[1.02]' : 'bg-white/5 backdrop-blur-xl border border-white/10 text-white hover:bg-white/10 hover:border-white/30 hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] hover:scale-[1.01]'}`}
               >
                 <span className="truncate pr-4 text-left">{p.name}</span>
                 <span className="bg-[#1d1d1f] text-white px-3 py-1 rounded-full text-sm shrink-0">{p.songs.length}</span>
@@ -2103,10 +2137,10 @@ useEffect(() => {
             ))}
             <button 
               onClick={() => { setShowDownloads(true); setShowPlaylist(false); setHasSearched(false); }}
-              className={`w-full border-2 border-white/40 p-4 text-2xl font-medium tracking-wide tracking-tight transition-all flex justify-between items-center ${showDownloads ? 'bg-[#D4FF00] text-[#000000] shadow-none translate-y-1 translate-x-1' : 'bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white shadow-sm hover:translate-y-1 hover:translate-x-1 hover:shadow-sm'}`}
+              className={`w-full rounded-2xl p-3 md:p-4 text-base md:text-lg font-bold tracking-wide transition-all duration-300 flex justify-between items-center ${showDownloads ? 'bg-[#D4FF00] text-black shadow-[0_0_30px_rgba(212,255,0,0.3)] scale-[1.02]' : 'bg-white/5 backdrop-blur-xl border border-white/10 text-white hover:bg-white/10 hover:border-white/30 hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] hover:scale-[1.01]'}`}
             >
               <div className="flex items-center gap-2">
-                <ArrowDownToLine className="w-5 h-5" />
+                <ArrowDownToLine className="w-4 h-4" />
                 <span className="truncate text-left">Downloads</span>
               </div>
               <span className="bg-[#1d1d1f] text-white px-3 py-1 rounded-full text-sm shrink-0">{downloads.length}</span>
@@ -2119,27 +2153,13 @@ useEffect(() => {
                   savePlaylists([...playlists, newP]);
                 }
               }}
-              className="w-full border-2 border-white/20 border-dashed p-4 text-xl font-medium tracking-wide tracking-tight bg-[#000000]/70 backdrop-blur-xl text-white hover:border-[#D4FF00] hover:text-[#D4FF00] transition-colors"
+              className="w-full rounded-2xl border-2 border-white/20 border-dashed p-3 md:p-4 text-base font-bold tracking-wide bg-transparent backdrop-blur-xl text-white hover:border-[#D4FF00] hover:text-[#D4FF00] hover:bg-[#D4FF00]/5 transition-all duration-300 hover:scale-[1.01]"
             >
               + New Playlist
             </button>
           </div>
         </div>
-        </div>
-      </div>
 
-      {/* RIGHT COLUMN - RESULTS & PLAYER */}
-      <div className="hidden md:flex w-full md:w-[50%] lg:w-[60%] relative bg-[#000000]/80 backdrop-blur-md border-l border-[#222222] text-[#F5F5F5] overflow-hidden flex-col min-h-[50vh] md:min-h-screen">
-        
-
-
-        {/* Heavily Animated Neon Background */}
-        <NeonBackground />
-
-        {/* Content Area */}
-        <div 
-          className={`relative z-10 flex-1 p-6 md:p-12 overflow-y-auto scroll-smooth will-change-transform transition-all duration-[1000ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${isInactive ? '-translate-y-16 scale-[1.02]' : 'translate-y-0 scale-100'}`}
-        >
 
               <div className="w-full max-w-[1400px] mx-auto flex flex-col gap-2 mb-8 z-[60] search-container">
                 {/* Song Box */}
@@ -2150,32 +2170,30 @@ useEffect(() => {
               }} 
               className="relative w-full group"
             >
-              <div className="border-2 border-white/60 bg-[#111111]/80 backdrop-blur-xl text-white shadow-[4px_4px_0_0_rgba(255,255,255,0.4)] group-focus-within:translate-y-px group-focus-within:translate-x-px group-focus-within:shadow-[0px_0px_0_0_rgba(255,255,255,0.8)] transition-all duration-200">
-                <div className="bg-black/80 text-white px-3 py-1 inline-block text-xs font-bold tracking-widest border-r-2 border-b-2 border-white/60 backdrop-blur-xl">
-                  TRACK
-                </div>
+              <div className="flex items-center gap-4 px-6 py-4 rounded-3xl bg-white/5 backdrop-blur-3xl border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] group-focus-within:border-[#D4FF00]/50 group-focus-within:bg-white/10 group-focus-within:shadow-[0_0_40px_rgba(212,255,0,0.15)] transition-all duration-300 overflow-hidden">
+                <Search className="w-6 h-6 text-white/50 group-focus-within:text-[#D4FF00] transition-colors shrink-0" />
                 <input
                   type="text"
-                  placeholder="What is the song name?"
+                  placeholder="Search for your next obsession..."
                   value={songQuery}
                   onChange={(e) => setSongQuery(e.target.value)}
-                  className="w-full bg-transparent text-lg md:text-xl font-bold px-4 py-3 outline-none placeholder:text-white/50 text-white"
+                  className="w-full bg-transparent text-lg md:text-xl font-medium outline-none placeholder:text-white/30 text-white"
                 />
               </div>
 
               <AnimatePresence>
                 {songSuggestions.length > 0 && (
                   <motion.ul 
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="md:absolute md:top-full md:left-0 w-full mt-2 md:mt-4 bg-[#000000]/70 backdrop-blur-xl border border-[#222222] text-white border-2 border-white/30 shadow-[8px_8px_0_0_rgba(255,255,255,0.2)] z-50 flex flex-col divide-y-2 divide-white/20"
+                    initial={{ opacity: 0, y: -10, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                    className="md:absolute md:top-full md:left-0 w-full mt-2 md:mt-4 rounded-3xl bg-[#111111]/90 backdrop-blur-3xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.8)] z-50 flex flex-col overflow-hidden divide-y divide-white/5"
                   >
                     {songSuggestions.map((sug, i) => (
                       <li 
                         key={i} 
                         onClick={() => { setSongQuery(sug); setSongSuggestions([]); executeFullSearch(sug, "any"); }}
-                        className="px-6 py-4 cursor-pointer text-2xl font-black uppercase tracking-tighter  tracking-tight text-white hover:bg-[#000000] hover:text-white transition-colors flex justify-between items-center group/item"
+                        className="px-6 py-4 cursor-pointer text-lg md:text-xl font-bold tracking-wide text-white/80 hover:bg-white/10 hover:text-[#D4FF00] transition-all flex justify-between items-center group/item"
                       >
                         {sug}
                         <ArrowRight className="w-6 h-6 opacity-0 group-hover/item:opacity-100 transition-opacity" />
@@ -2186,6 +2204,10 @@ useEffect(() => {
               </AnimatePresence>
             </form>
               </div>
+
+              </motion.div>
+            )}
+          </AnimatePresence>
 
 
           {showDownloads && (
@@ -2586,19 +2608,20 @@ useEffect(() => {
                       <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent" />
                     </>
                   ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#050505] to-[#111] border border-white/10 flex items-center justify-center gap-1 md:gap-2">
-                       {[0.2, 0.5, 0.1, 0.6, 0.3, 0.4, 0.2].map((delay, i) => (
-                         <div 
-                           key={i} 
-                           className="w-4 md:w-6 bg-white/20 rounded-full shadow-[0_0_20px_rgba(255,255,255,0.1)] mix-blend-screen"
-                           style={{ 
-                             animation: `musicWave 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate`,
-                             animationDelay: `${delay}s`,
-                             height: '20%'
-                           }}
-                         />
-                       ))}
-                    </div>
+                    <>
+                      <motion.video
+                        src="/1789719590290633.mov"
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        initial={{ scale: 1 }}
+                        animate={{ scale: 1.1 }}
+                        transition={{ duration: 8, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
+                        className="absolute inset-0 w-full h-full object-cover opacity-90"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/40 opacity-80" />
+                    </>
                   )}
                   
                   <div className="absolute inset-x-0 bottom-0 p-6 flex items-end justify-between">
@@ -2609,9 +2632,15 @@ useEffect(() => {
                 </div>
 
                 <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-4 flex flex-col z-20 pointer-events-none mix-blend-difference">
-                  <h1 className="text-[72px] sm:text-[80px] font-black tracking-tighter leading-[0.8] text-white uppercase text-right" style={{ WebkitTextStroke: '1px rgba(255,255,255,0.2)' }}>
+                  <motion.h1 
+                    initial={{ y: 0 }}
+                    animate={{ y: [-5, 5, -5] }}
+                    transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                    className="text-[72px] sm:text-[80px] font-black tracking-tighter leading-[0.8] text-white uppercase text-right drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]" 
+                    style={{ WebkitTextStroke: '1px rgba(255,255,255,0.2)' }}
+                  >
                     YOUR<br/>SOUND
-                  </h1>
+                  </motion.h1>
                 </div>
 
                 {playbackHistory.length > 0 && (
