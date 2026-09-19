@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { NeonBackground } from "./NeonBackground";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
+import { LiveLyrics } from "./components/LiveLyrics";
 import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2, Trash2, Info, Home, Library, Compass, ChevronDown, MoreHorizontal, ListMusic, Quote, Check, Plus , Shuffle, Repeat, Volume2, Volume1, VolumeX, Share, Power, ArrowDownToLine, XCircle, WifiOff , Menu, X, Music } from "lucide-react";
 import { saveDownload, getDownload, removeDownload, getAllDownloads, type DownloadedSong } from "./offlineDb";
 import YouTube, { YouTubePlayer } from "react-youtube";
@@ -1546,20 +1547,11 @@ export default function FransHalsMusicApp() {
     
     setLyrics([]);
     setLyricsLoading(true);
-    setPlayerTab('lyrics');
-    setIsLyricsExpanded(true);
     lastScrolledIndex.current = -1;
     
     // Fetch related songs in the background and append to queue if advancing
     getRelatedSongs(song.id).then(fetched => {
-      setRelatedSongs(prev => {
-        const isSongInQueue = prev.some(s => s.id === song.id);
-        if (isSongInQueue) {
-          const newUnique = fetched.filter(f => !prev.some(p => p.id === f.id));
-          return [...prev, ...newUnique];
-        }
-        return fetched;
-      });
+      setRelatedSongs(fetched);
     });
     
     getSyncedLyrics(song.title, song.artist).then(fetchedLyrics => {
@@ -2256,12 +2248,27 @@ export default function FransHalsMusicApp() {
                    </div>
                    
 
-                   {/* Clean Navigation Section for Queue / Related / Lyrics */}
+                   {/* LYRICS SECTION - ALWAYS VISIBLE DIRECTLY UNDER PLAYER */}
+                   <div className="w-full border-t border-white/10 pt-8 mt-4">
+                     <h3 className="text-sm font-bold text-white/50 uppercase tracking-widest mb-4">Live Lyrics</h3>
+                     <LiveLyrics 
+                       lyrics={lyrics} 
+                       isLoading={lyricsLoading} 
+                       progress={progress} 
+                       onSeek={(time) => {
+                         if (playerRef.current) {
+                           playerRef.current.seekTo(time, true);
+                           setProgress(time);
+                         }
+                       }}
+                     />
+                   </div>
+
+                   {/* Clean Navigation Section for Queue / Related */}
                    <div className="flex items-center justify-between w-full border-t border-white/10 pt-6 mt-8">
                      <div className="flex items-center gap-6">
                        <button onClick={() => setPlayerTab(playerTab === 'queue' ? null : 'queue')} className={`text-xs font-bold uppercase tracking-widest transition-colors ${playerTab === 'queue' ? 'text-[#D4FF00]' : 'text-white/50 hover:text-white'}`}>Up Next</button>
-                      <button onClick={() => setPlayerTab(playerTab === 'lyrics' ? null : 'lyrics')} className={`text-xs font-bold uppercase tracking-widest transition-colors ${playerTab === 'lyrics' || playerTab === null ? 'text-[#D4FF00]' : 'text-white/50 hover:text-white'}`}>Lyrics</button>
-                      <button onClick={() => setPlayerTab(playerTab === 'related' ? null : 'related')} className={`text-xs font-bold uppercase tracking-widest transition-colors ${playerTab === 'related' ? 'text-[#D4FF00]' : 'text-white/50 hover:text-white'}`}>Related</button>
+                       <button onClick={() => setPlayerTab(playerTab === 'related' ? null : 'related')} className={`text-xs font-bold uppercase tracking-widest transition-colors ${playerTab === 'related' ? 'text-[#D4FF00]' : 'text-white/50 hover:text-white'}`}>Related</button>
                      </div>
                      <div className="flex items-center gap-6">
 
@@ -2342,10 +2349,23 @@ export default function FransHalsMusicApp() {
                                  duration: 0.6, 
                                  ease: [0.22, 1, 0.36, 1] 
                                }}
-                               style={{ zIndex: 100 - i }}
-                               className="opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all relative"
+                               className="relative group/history cursor-pointer"
                              >
-                               <SongBox layout="horizontal" hideActions={true} song={song} index={i} onPlay={() => playSong(song)} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} isDownloaded={downloads.some(d => d.id === song.id)} downloadProgress={downloadProgress[song.id]} onDownload={(e) => handleDownload(song, e)} onRemoveDownload={(e) => handleRemoveDownload(song.id, e)} />
+                               <div className="absolute inset-0 bg-white/5 opacity-0 group-hover/history:opacity-100 rounded-xl transition-opacity -z-10" />
+                               <SongBox 
+                                 layout="horizontal" 
+                                 hideActions={true} 
+                                 song={song} 
+                                 index={i} 
+                                 onPlay={() => playSong(song)} 
+                                 isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} 
+                                 onToggleFavorite={(e) => toggleLike(song, e)} 
+                                 onOpenMenu={(e) => openPlaylistMenu(song, e)} 
+                                 isDownloaded={downloads.some(d => d.id === song.id)} 
+                                 downloadProgress={downloadProgress[song.id]} 
+                                 onDownload={(e) => handleDownload(song, e)} 
+                                 onRemoveDownload={(e) => handleRemoveDownload(song.id, e)} 
+                               />
                              </motion.div>
                            ))}
                          </div>
@@ -2364,87 +2384,28 @@ export default function FransHalsMusicApp() {
                                   duration: 0.6, 
                                   ease: [0.22, 1, 0.36, 1] 
                                 }}
-                                style={{ zIndex: 100 - i }}
-                                className="relative"
+                                className="relative group/next cursor-pointer"
                               >
-                                <SongBox layout="horizontal" hideActions={true} song={song} index={i} onPlay={() => playSong(song)} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} isDownloaded={downloads.some(d => d.id === song.id)} downloadProgress={downloadProgress[song.id]} onDownload={(e) => handleDownload(song, e)} onRemoveDownload={(e) => handleRemoveDownload(song.id, e)} />
+                                <div className="absolute inset-0 bg-white/5 opacity-0 group-hover/next:opacity-100 rounded-xl transition-opacity -z-10" />
+                                <SongBox 
+                                  layout="horizontal" 
+                                  hideActions={true} 
+                                  song={song} 
+                                  index={i} 
+                                  onPlay={() => playSong(song)} 
+                                  isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} 
+                                  onToggleFavorite={(e) => toggleLike(song, e)} 
+                                  onOpenMenu={(e) => openPlaylistMenu(song, e)} 
+                                  isDownloaded={downloads.some(d => d.id === song.id)} 
+                                  downloadProgress={downloadProgress[song.id]} 
+                                  onDownload={(e) => handleDownload(song, e)} 
+                                  onRemoveDownload={(e) => handleRemoveDownload(song.id, e)} 
+                                />
                               </motion.div>
                            ))}
                          </div>
                        )}
                      </div>
-                   ) : (playerTab === 'lyrics' || playerTab === null) ? (
-                     <>
-                    {lyricsLoading ? (
-                       <div className="w-full h-full flex flex-col items-center justify-center opacity-50">
-                         <Loader2 className="w-8 h-8 animate-spin text-white mb-2" />
-                         <span className="text-xs font-bold  tracking-widest text-gray-400">Loading Lyrics</span>
-                       </div>
-                    ) : lyrics.length === 0 ? (
-                       <div className="w-full h-full flex flex-col items-center justify-center opacity-30">
-                         <span className="text-xs font-bold  tracking-widest text-gray-400">No Lyrics Found</span>
-                       </div>
-                    ) : (
-                       <div 
-                         className="flex flex-col gap-3 w-full px-4 py-[75px] h-[400px] overflow-y-auto scrollbar-hide relative"
-                       >
-                         {lyrics.map((line, i) => {
-                            const activeIndex = lyrics.reduce((acc, l, idx) => (progress >= l.time ? idx : acc), 0);
-                            const isActive = i === activeIndex;
-                            const isPast = i < activeIndex;
-                            return (
-                              <motion.div 
-                                key={i} 
-                                onClick={() => {
-                                  if (playerRef.current) {
-                                    playerRef.current.seekTo(line.time, true);
-                                    setProgress(line.time);
-                                    isUserScrolling.current = false;
-                                    if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
-                                  }
-                                }}
-                                animate={{ 
-                                  opacity: isActive ? 1 : isPast ? (isLyricsExpanded ? 0.8 : 0.5) : (isLyricsExpanded ? 0.9 : 0.7), 
-                                  scale: isActive ? 1.05 : 0.95,
-                                  x: isActive ? 20 : 0,
-                                  letterSpacing: isActive ? '0.05em' : '-0.05em'
-                                }}
-                                transition={{ type: "spring", stiffness: 400, damping: 25, mass: 0.8 }}
-                                className="cursor-pointer font-medium tracking-wide  origin-left transition-colors hover:opacity-100 flex flex-wrap text-xl md:text-3xl mb-4"
-                              >
-                                {line.words ? line.words.map((w, wIdx) => {
-                                  const isWordActive = isActive && progress >= w.time;
-                                  return (
-                                    <span 
-                                      key={wIdx} 
-                                      className="inline-block mr-2 md:mr-3 transition-all duration-150"
-                                      style={{
-                                        color: isWordActive ? '#D4FF00' : (isActive ? '#fff' : (isLyricsExpanded ? '#ccc' : '#999')),
-                                        textShadow: isLyricsExpanded 
-                                          ? (isWordActive ? '2px 2px 0px #000, 0 0 10px rgba(0,0,0,0.8)' : '1px 1px 3px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.8)') 
-                                          : (isWordActive ? '2px 2px 0px #000' : '0px 0px 0px transparent'),
-                                        transform: isWordActive ? 'scale(1.05) translateY(-2px)' : 'scale(1) translateY(0px)'
-                                      }}
-                                    >
-                                      {w.text}
-                                    </span>
-                                  )
-                                }) : (
-                                  <span 
-                                    style={{ 
-                                      color: isActive ? '#D4FF00' : (isLyricsExpanded ? '#ccc' : '#999'),
-                                      textShadow: isLyricsExpanded ? '1px 1px 3px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.8)' : 'none'
-                                    }}
-                                  >
-                                    {line.text}
-                                  </span>
-                                )}
-                              </motion.div>
-                            )
-                         })}
-                       </div>
-                    )}
-                     </>
                    ) : playerTab === 'related' ? (
                      <div className="flex flex-col gap-4 w-full px-4 py-8">
                        <h3 className="text-sm font-bold text-white/50 uppercase tracking-widest px-2">Related Songs</h3>
@@ -3690,72 +3651,17 @@ export default function FransHalsMusicApp() {
                       </button>
                     </div>
                     <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 pb-32">
-                     {lyricsLoading ? (
-                        <div className="w-full h-full flex flex-col items-center justify-center opacity-50">
-                          <Loader2 className="w-8 h-8 animate-spin text-white mb-2" />
-                          <span className="text-xs font-bold  tracking-widest text-gray-400">Loading Lyrics</span>
-                        </div>
-                     ) : lyrics.length === 0 ? (
-                        <div className="w-full h-full flex flex-col items-center justify-center opacity-30">
-                          <span className="text-xs font-bold  tracking-widest text-gray-400">No Lyrics Found</span>
-                        </div>
-                     ) : (
-                        <div 
-                          className="flex flex-col gap-3 w-full px-4 py-[75px]"
-                        >
-                          {lyrics.map((line, i) => {
-                             const activeIndex = lyrics.reduce((acc, l, idx) => (progress >= l.time ? idx : acc), 0);
-                             const isActive = i === activeIndex;
-                             const isPast = i < activeIndex;
-                             return (
-                               <motion.div 
-                                 key={i} 
-                                 onClick={() => {
-                                   if (useNativeAudio && audioRef.current) audioRef.current.currentTime = line.time;
-                                   if (playerRef.current) playerRef.current.seekTo(line.time, true);
-                                   setProgress(line.time);
-                                 }}
-                                 animate={{ 
-                                   opacity: isActive ? 1 : isPast ? (isLyricsExpanded ? 0.8 : 0.5) : (isLyricsExpanded ? 0.9 : 0.7), 
-                                   scale: isActive ? 1.05 : 0.95,
-                                   x: isActive ? 20 : 0,
-                                   letterSpacing: isActive ? '0.05em' : '-0.05em'
-                                 }}
-                                 transition={{ type: "spring", stiffness: 400, damping: 25, mass: 0.8 }}
-                                 className="cursor-pointer font-medium tracking-wide  origin-left transition-colors hover:opacity-100 flex flex-wrap text-xl md:text-3xl mb-4"
-                               >
-                                 {line.words ? line.words.map((w, wIdx) => {
-                                   const isWordActive = isActive && progress >= w.time;
-                                   return (
-                                     <span 
-                                       key={wIdx} 
-                                       className="inline-block mr-2 md:mr-3 transition-all duration-150"
-                                       style={{
-                                         color: isWordActive ? '#D4FF00' : (isActive ? '#fff' : (isLyricsExpanded ? '#ccc' : '#999')),
-                                         textShadow: isLyricsExpanded 
-                                           ? (isWordActive ? '2px 2px 0px #000, 0 0 10px rgba(0,0,0,0.8)' : '1px 1px 3px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.8)') 
-                                           : (isWordActive ? '2px 2px 0px #000' : '0px 0px 0px transparent'),
-                                         transform: isWordActive ? 'scale(1.05) translateY(-2px)' : 'scale(1) translateY(0px)'
-                                       }}
-                                     >
-                                       {w.text}
-                                     </span>
-                                   )
-                                 }) : (
-                                   <span 
-                                     style={{ 
-                                       color: isActive ? '#D4FF00' : (isLyricsExpanded ? '#ccc' : '#999'),
-                                       textShadow: isLyricsExpanded ? '1px 1px 3px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.8)' : 'none'
-                                     }}
-                                   >
-                                     {line.text}
-                                   </span>
-                                 )}
-                               </motion.div>
-                             )
-                          })}
-                        </div>
-                     )}
+                      <LiveLyrics 
+                        lyrics={lyrics} 
+                        isLoading={lyricsLoading} 
+                        progress={progress} 
+                        onSeek={(time) => {
+                          if (useNativeAudio && audioRef.current) audioRef.current.currentTime = time;
+                          if (playerRef.current) playerRef.current.seekTo(time, true);
+                          setProgress(time);
+                        }}
+                        isExpanded={true}
+                      />
                     </div>
                   </motion.div>
                 )}
