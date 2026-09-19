@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { NeonBackground } from "./NeonBackground";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
-import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2, Trash2, Info, Home, Library, Compass, ChevronDown, MoreHorizontal, ListMusic, Quote, Check, Plus , Shuffle, Repeat, Volume2, Volume1, VolumeX, Share, Power, ArrowDownToLine, CheckCircle2, XCircle, WifiOff , Menu, X } from "lucide-react";
+import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2, Trash2, Info, Home, Library, Compass, ChevronDown, MoreHorizontal, ListMusic, Quote, Check, Plus , Shuffle, Repeat, Volume2, Volume1, VolumeX, Share, Power, ArrowDownToLine, XCircle, WifiOff , Menu, X } from "lucide-react";
 import { saveDownload, getDownload, removeDownload, getAllDownloads, type DownloadedSong } from "./offlineDb";
 import YouTube, { YouTubePlayer } from "react-youtube";
 import { searchYouTube, getArtistBackground, getSearchSuggestions, getSyncedLyrics, getTrendingWorldwide, getTrendingIndia, getRelatedSongs, getAlternativeSourceId } from "./actions";
@@ -37,69 +37,119 @@ type Song = {
 };
 
 
-const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite, onOpenMenu, isDownloaded, downloadProgress, onDownload, onRemoveDownload, isPlaying }: { song: Song, index: number, onPlay: (e: React.MouseEvent) => void, isFavorite: boolean, onToggleFavorite: (e: React.MouseEvent) => void, onOpenMenu?: (e: React.MouseEvent) => void, isDownloaded?: boolean, downloadProgress?: number | 'indeterminate', onDownload?: (e: React.MouseEvent) => void, onRemoveDownload?: (e: React.MouseEvent) => void, isPlaying?: boolean }) => (
-  <div 
-    onClick={(e) => onPlay(e)}
-    className="flex items-center gap-4 md:gap-6 group cursor-pointer active:opacity-50 transition-opacity w-full hover:bg-white/5 p-2 -ml-2"
-  >
-    <div className="text-[10px] md:text-[12px] font-black tracking-widest text-white/30 -rotate-90 origin-center w-4 md:w-6 shrink-0 opacity-0 md:opacity-100 hidden md:block">
-      {String(index + 1).padStart(2, '0')}
-    </div>
-    
-    <div className="w-[60px] h-[60px] md:w-[80px] md:h-[80px] overflow-hidden shrink-0 border border-white/10 group-hover:border-[#D4FF00] transition-colors relative bg-[#111]">
-      <img
-        src={song.image}
-        className="w-full h-full object-cover transition-all duration-500 scale-105 group-hover:scale-100"
-        alt={song.title}
-      />
+const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite, onOpenMenu, isDownloaded, downloadProgress, onDownload, onRemoveDownload, isPlaying, layout = "vertical", hideActions = false }: { song: Song, index: number, onPlay: (e: React.MouseEvent) => void, isFavorite: boolean, onToggleFavorite: (e: React.MouseEvent) => void, onOpenMenu?: (e: React.MouseEvent) => void, isDownloaded?: boolean, downloadProgress?: number | 'indeterminate', onDownload?: (e: React.MouseEvent) => void, onRemoveDownload?: (e: React.MouseEvent) => void, isPlaying?: boolean, layout?: "horizontal" | "vertical", hideActions?: boolean }) => {
+  const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    const elements = container.querySelectorAll('.scrollable-text-container');
+    elements.forEach((el) => {
+      const parent = el.parentElement;
+      if (parent) {
+        const distance = Math.max(0, el.scrollWidth - parent.clientWidth);
+        if (distance > 0) {
+          // 25 pixels per second for slightly faster readable speed
+          const duration = Math.max(3, distance / 25); 
+          (el as HTMLElement).style.setProperty('--scroll-dist', `-${distance}px`);
+          (el as HTMLElement).style.setProperty('--scroll-duration', `${duration}s`);
+        } else {
+          (el as HTMLElement).style.setProperty('--scroll-dist', `0px`);
+        }
+      }
+    });
+  };
 
-      {isPlaying && (
-        <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-[2px]">
-           <div className="w-1 h-3 bg-[#D4FF00] animate-bounce" style={{animationDelay: '0ms'}}/>
-           <div className="w-1 h-5 bg-[#D4FF00] animate-bounce" style={{animationDelay: '100ms'}}/>
-           <div className="w-1 h-2 bg-[#D4FF00] animate-bounce" style={{animationDelay: '200ms'}}/>
+  if (layout === "vertical") {
+    return (
+      <div 
+        onClick={(e) => onPlay(e)}
+        className="flex flex-col items-center gap-2 group cursor-pointer active:opacity-50 transition-all w-full hover:bg-white/5 p-2 rounded-xl border border-transparent hover:border-white/10"
+      >
+        <div className="w-[120px] h-[120px] md:w-[150px] md:h-[150px] overflow-hidden shrink-0 border border-white/10 group-hover:border-[#D4FF00] transition-colors relative bg-[#111] rounded-xl shadow-lg">
+          <img
+            src={song.image}
+            className="w-full h-full object-cover transition-all duration-500 scale-105 group-hover:scale-100"
+            alt={song.title}
+          />
+
+          {isPlaying && (
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-[2px]">
+               <div className="w-1 h-3 bg-[#D4FF00] animate-bounce" style={{animationDelay: '0ms'}}/>
+               <div className="w-1 h-4 bg-[#D4FF00] animate-bounce" style={{animationDelay: '100ms'}}/>
+               <div className="w-1 h-2 bg-[#D4FF00] animate-bounce" style={{animationDelay: '200ms'}}/>
+            </div>
+          )}
         </div>
-      )}
-    </div>
 
-    <div className="flex flex-col flex-1 min-w-0 justify-center h-[60px] md:h-[80px] py-1 md:py-2 border-b border-white/10 group-hover:border-transparent transition-colors">
-      <div className="flex flex-col">
-        <span className="text-[16px] md:text-[24px] font-black tracking-tighter uppercase text-white truncate leading-[0.9] drop-shadow-md">
-          {song.title}
-        </span>
-        <span className="text-[10px] font-bold tracking-[0.4em] text-white/30 uppercase mt-2 truncate group-hover:text-[#D4FF00] transition-colors">
-          {song.artist}
-        </span>
+        <div className="flex flex-col w-full text-center items-center min-w-0 justify-center transition-colors mt-2">
+          <span className="text-[12px] md:text-[14px] font-black tracking-tighter uppercase text-white truncate leading-[1.1] w-full px-2 drop-shadow-md">
+            {song.title}
+          </span>
+          <span className="text-[8px] md:text-[9px] font-bold tracking-[0.4em] text-white/40 uppercase mt-1 truncate group-hover:text-[#D4FF00] transition-colors w-full px-2">
+            {song.artist}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-center gap-4 mt-2 shrink-0" onClick={e => e.stopPropagation()}>
+          <button 
+            onClick={(e) => { e.stopPropagation(); onToggleFavorite(e); }}
+            className={`w-10 h-10 flex items-center justify-center border hover:border-white/30 rounded-full transition-all duration-300 hover:scale-110 bg-black/50 ${isFavorite ? 'border-[#D4FF00]/50' : 'border-white/10'}`}
+          >
+            <Heart className={`w-4 h-4 ${isFavorite ? 'fill-[#D4FF00] text-[#D4FF00]' : 'text-white/50 hover:text-white'}`} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div 
+      onClick={(e) => onPlay(e)}
+      onMouseEnter={handleMouseEnter}
+      className="flex items-center gap-4 md:gap-6 group cursor-pointer active:opacity-50 transition-opacity w-full hover:bg-white/5 p-2 -ml-2 relative z-0"
+    >
+      <div className="text-[10px] md:text-[12px] font-black tracking-widest text-white/30 -rotate-90 origin-center w-4 md:w-6 shrink-0 opacity-0 md:opacity-100 hidden md:block">
+        {String(index + 1).padStart(2, '0')}
+      </div>
+      
+      <div className="w-[50px] h-[50px] md:w-[60px] md:h-[60px] overflow-hidden shrink-0 border border-white/10 group-hover:border-[#D4FF00] transition-colors relative bg-[#111]">
+        <img
+          src={song.image}
+          className="w-full h-full object-cover transition-all duration-500 scale-105 group-hover:scale-100"
+          alt={song.title}
+        />
+
+        {isPlaying && (
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-[2px]">
+             <div className="w-1 h-3 bg-[#D4FF00] animate-bounce" style={{animationDelay: '0ms'}}/>
+             <div className="w-1 h-5 bg-[#D4FF00] animate-bounce" style={{animationDelay: '100ms'}}/>
+             <div className="w-1 h-2 bg-[#D4FF00] animate-bounce" style={{animationDelay: '200ms'}}/>
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-col flex-1 min-w-0 justify-center min-h-[50px] md:min-h-[60px] py-1 border-b border-white/10 group-hover:border-transparent transition-colors pr-12 md:pr-16">
+        <div className="flex flex-col min-w-0">
+          <div className="overflow-hidden min-w-0">
+            <span className="scrollable-text-container text-[14px] md:text-[16px] font-black tracking-tighter uppercase text-white leading-[1.1] drop-shadow-md block truncate group-hover:w-max group-hover:overflow-visible group-hover:text-clip animate-custom-scroll origin-left">
+              {song.title}
+            </span>
+          </div>
+          <span className="text-[9px] md:text-[10px] font-bold tracking-[0.4em] text-white/30 uppercase mt-1 truncate group-hover:text-[#D4FF00] transition-colors">
+            {song.artist}
+          </span>
+        </div>
+      </div>
+
+      <div className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 flex items-center justify-center z-10 pointer-events-none group-hover:pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+        <button 
+          onClick={(e) => { e.stopPropagation(); onToggleFavorite(e); }}
+          className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center border hover:border-white/30 rounded-full transition-all duration-300 hover:scale-110 bg-black/50 backdrop-blur-sm shadow-xl ${isFavorite ? 'border-[#D4FF00]/50 opacity-100 pointer-events-auto' : 'border-white/10 opacity-0 group-hover:opacity-100'}`}
+        >
+          <Heart className={`w-4 h-4 ${isFavorite ? 'fill-[#D4FF00] text-[#D4FF00]' : 'text-white/50 hover:text-white'}`} />
+        </button>
       </div>
     </div>
-
-    <div className="flex items-center justify-end gap-3 mt-auto mb-auto shrink-0 pr-2" onClick={e => e.stopPropagation()}>
-      {onDownload && (
-        <button 
-          onClick={(e) => { e.stopPropagation(); isDownloaded ? (onRemoveDownload && onRemoveDownload(e)) : (downloadProgress === undefined ? onDownload(e) : null); }}
-          className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center border border-white/10 hover:border-[#D4FF00] rounded-full transition-all duration-300 hover:scale-110 bg-black/50"
-          aria-label="Download"
-        >
-          {isDownloaded ? (
-            <CheckCircle2 className="w-4 h-4 text-[#D4FF00]" />
-          ) : downloadProgress !== undefined ? (
-            <div className="relative flex items-center justify-center w-4 h-4">
-              <Loader2 className="w-4 h-4 text-[#D4FF00] animate-spin" />
-            </div>
-          ) : (
-            <ArrowDownToLine className="w-4 h-4 text-white/50 hover:text-[#D4FF00]" />
-          )}
-        </button>
-      )}
-      <button 
-        onClick={(e) => { e.stopPropagation(); onToggleFavorite(e); }}
-        className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center border hover:border-white/30 rounded-full transition-all duration-300 hover:scale-110 bg-black/50 ${isFavorite ? 'border-[#D4FF00]/50' : 'border-white/10'}`}
-      >
-        <Heart className={`w-4 h-4 ${isFavorite ? 'fill-[#D4FF00] text-[#D4FF00]' : 'text-white/50 hover:text-white'}`} />
-      </button>
-    </div>
-  </div>
-);
+  );
+};
 
 export default function FransHalsMusicApp() {
   const dragControls = useDragControls();
@@ -109,6 +159,16 @@ export default function FransHalsMusicApp() {
   const [duration, setDuration] = useState(0);
   const [lyrics, setLyrics] = useState<SyncedLyric[]>([]);
   const [lyricsLoading, setLyricsLoading] = useState(false);
+  const [savedProgressMap, setSavedProgressMap] = useState<Record<string, { progress: number, duration: number }>>({});
+  
+  useEffect(() => {
+    if (currentSong && duration > 0) {
+      setSavedProgressMap(prev => ({
+        ...prev,
+        [currentSong.id]: { progress, duration }
+      }));
+    }
+  }, [progress, duration, currentSong]);
   
   const [isScreenOff, setIsScreenOff] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -483,28 +543,6 @@ export default function FransHalsMusicApp() {
     }
   }, [activeProfile]);
 
-// Inactivity detection: hide search sections after 15 seconds of inactivity
-useEffect(() => {
-  let timeout: NodeJS.Timeout;
-  const resetTimer = () => {
-    setIsInactive(false);
-    clearTimeout(timeout);
-    timeout = setTimeout(() => setIsInactive(true), 5000);
-  };
-  // initialise timer
-  resetTimer();
-  window.addEventListener('mousemove', resetTimer);
-  window.addEventListener('keydown', resetTimer);
-  window.addEventListener('scroll', resetTimer);
-  window.addEventListener('touchstart', resetTimer);
-  return () => {
-    clearTimeout(timeout);
-    window.removeEventListener('mousemove', resetTimer);
-    window.removeEventListener('keydown', resetTimer);
-    window.removeEventListener('scroll', resetTimer);
-    window.removeEventListener('touchstart', resetTimer);
-  };
-}, []);
 
 
   useEffect(() => {
@@ -881,6 +919,8 @@ useEffect(() => {
                            <SongBox 
                              song={song} 
                              index={i} 
+                             layout="horizontal"
+                             hideActions={true}
                              onPlay={(e) => playSong(song, false, "playlist", activeFilter.songs, e)}
                              isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false}
                              onToggleFavorite={(e) => toggleLike(song, e)}
@@ -933,12 +973,9 @@ useEffect(() => {
 {/* Section 01: CONTINUE LISTENING */}
               {playbackHistory.length > 0 && (
                 <div className="flex flex-col gap-8 relative w-full pt-12 border-t border-white/10">
-                   <div className="flex justify-between items-start">
-                      <h2 className="text-[56px] font-black tracking-tighter text-white leading-none">01</h2>
-                      <div className="flex flex-col items-end">
-                         <span className="text-[10px] font-bold tracking-[0.4em] text-[#D4FF00] uppercase">RESUME</span>
-                         <span className="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase mt-1">CONTINUE LISTENING</span>
-                      </div>
+                   <div className="flex flex-col items-start text-left gap-2">
+                      <span className="text-[10px] font-bold tracking-[0.4em] text-[#D4FF00] uppercase">RESUME</span>
+                      <span className="text-[40px] md:text-[56px] font-black tracking-tighter text-white uppercase leading-[0.9]">RECENTLY&nbsp;&nbsp;PLAYED</span>
                    </div>
                    
                    <div className="flex overflow-x-auto gap-6 pb-8 scrollbar-hide -mx-5 px-5 snap-x">
@@ -948,10 +985,13 @@ useEffect(() => {
                            <img src={song.image} className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105" />
 
                            
-                           {/* Progress Bar (Visual only to match design spec) */}
-                           <div className="absolute bottom-0 left-0 w-full h-1 bg-white/20">
-                             <div className="h-full bg-[#D4FF00] w-[60%]" />
-                           </div>
+                            {/* Progress Bar (Actual playback progress) */}
+                            <div className="absolute bottom-0 left-0 w-full h-1 bg-white/20">
+                              <div 
+                                className="h-full bg-[#D4FF00]" 
+                                style={{ width: `${savedProgressMap[song.id] ? (savedProgressMap[song.id].progress / savedProgressMap[song.id].duration) * 100 : 0}%` }}
+                              />
+                            </div>
                          </div>
                          <div className="flex flex-col border-b border-white/20 pb-3 group-hover:border-[#D4FF00] transition-colors">
                            <span className="text-[20px] font-black text-white truncate tracking-tighter uppercase leading-[0.9]">{song.title}</span>
@@ -979,18 +1019,46 @@ useEffect(() => {
                        <div key={i} className="min-w-[220px] max-w-[220px] flex flex-col gap-5 snap-start relative group cursor-pointer" onClick={() => playSong(song)}>
                          <div className="w-[220px] h-[300px] relative overflow-hidden border border-white/10 group-hover:border-[#D4FF00] transition-colors duration-500 bg-[#111]">
                            <img src={song.image} className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105" />
-                           <div className="absolute top-4 left-4 text-[10px] font-black text-[#D4FF00] tracking-widest">{String(i+1).padStart(2, '0')}</div>
-                           <div className="absolute bottom-4 right-4 z-10">
-                             <button 
-                               onClick={(e) => { e.stopPropagation(); downloads.some(d => d.id === song.id) ? handleRemoveDownload(song.id, e) : (downloadProgress[song.id] === undefined ? handleDownload(song, e) : null); }}
-                               className="w-12 h-12 flex items-center justify-center rounded-full border border-white/20 bg-black/50 hover:border-[#D4FF00] text-white hover:text-[#D4FF00] hover:scale-110 active:scale-90 transition-all backdrop-blur-md"
-                             >
-                               {downloads.some(d => d.id === song.id) ? <CheckCircle2 className="w-5 h-5" /> : <ArrowDownToLine className="w-5 h-5" />}
-                             </button>
-                           </div>
+                            <div className="absolute top-4 left-4 text-[10px] font-black text-[#D4FF00] tracking-widest">{String(i+1).padStart(2, '0')}</div>
+
                          </div>
                          <div className="flex flex-col border-b border-white/20 pb-4 group-hover:border-[#D4FF00] transition-colors">
-                           <span className="text-[28px] font-black text-white truncate tracking-tighter uppercase leading-[0.9]">{song.title}</span>
+                           <span className="text-[20px] font-black text-white truncate tracking-tighter uppercase leading-[0.9]">{song.title}</span>
+                           <span className="text-[10px] font-bold tracking-[0.4em] text-white/30 group-hover:text-white truncate mt-2 uppercase transition-colors">{song.artist}</span>
+                         </div>
+                       </div>
+                     ))}
+                   </div>
+                </div>
+              )}
+
+              {/* SONGS FOR YOU (Netflix Style) */}
+              {trendingIndia.length > 0 && (
+                <div className="flex flex-col gap-12 relative w-full pt-12 border-t border-white/10">
+                   <div className="flex flex-col items-start text-left">
+                      <span className="text-[10px] font-bold tracking-[0.4em] text-[#D4FF00] uppercase mb-1">RECOMMENDED</span>
+                      <span className="text-[40px] md:text-[56px] font-black tracking-tighter text-white uppercase mt-1 leading-[0.9]">SONGS FOR YOU</span>
+                   </div>
+                   
+                   <div className="flex overflow-x-auto gap-8 pb-12 scrollbar-hide -mx-5 px-5 snap-x">
+                     {[...Array(40)].map((_, i) => (i % 2 === 0 ? trendingWorldwide[Math.floor(i/2) + 10] : trendingIndia[Math.floor(i/2)])).filter(s => s !== undefined && (!s.seconds || s.seconds < 480)).slice(0, 15).map((song, i) => (
+                       <div key={i} className="min-w-[220px] max-w-[220px] flex flex-col gap-5 snap-start relative group cursor-pointer" onClick={() => playSong(song)}>
+                         <div className="w-[220px] h-[300px] relative overflow-hidden border border-white/10 group-hover:border-[#D4FF00] transition-colors duration-500 bg-[#111]">
+                           <img src={song.image} className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105" />
+                            <div 
+                              className="absolute -bottom-4 -left-2 z-10 font-black leading-none pointer-events-none select-none tracking-tighter"
+                              style={{
+                                fontSize: '120px',
+                                color: '#FFFFFF',
+                                WebkitTextStroke: '2px #FFFFFF'
+                              }}
+                            >
+                              {i + 1}
+                            </div>
+
+                         </div>
+                         <div className="flex flex-col border-b border-white/20 pb-4 group-hover:border-[#D4FF00] transition-colors">
+                           <span className="text-[20px] font-black text-white truncate tracking-tighter uppercase leading-[0.9]">{song.title}</span>
                            <span className="text-[10px] font-bold tracking-[0.4em] text-white/30 group-hover:text-white truncate mt-2 uppercase transition-colors">{song.artist}</span>
                          </div>
                        </div>
@@ -1063,12 +1131,13 @@ useEffect(() => {
                       <span className="text-[40px] md:text-[56px] font-black tracking-tighter text-white uppercase mt-1 leading-[0.9]">TRENDING<br/>NOW</span>
                    </div>
                  
-                 <div className="flex flex-col gap-2 w-full mt-4">
+                 <div className="flex flex-col gap-2 w-[min(100%,900px)] mx-auto mt-4">
                    {trendingWorldwide.slice(0, 10).map((song, i) => (
                      <SongBox 
                        key={song.id} 
                        song={song} 
                        index={i} 
+                       layout="horizontal"
                        onPlay={(e) => playSong(song, false, "playlist", trendingWorldwide.slice(0, 10), e)}
                        isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false}
                        onToggleFavorite={(e) => toggleLike(song, e)}
@@ -1267,6 +1336,17 @@ useEffect(() => {
     setCurrentSong(song);
     setPlaybackState("loading");
     setIsPlaying(false); // Legacy sync
+
+    // Automatically scroll the left section to the top so the active player is visible
+    setTimeout(() => {
+      const leftCol = document.getElementById("left-column");
+      if (leftCol) leftCol.scrollTo({ top: 0, behavior: "smooth" });
+      const leftScroll = document.getElementById("left-scroll-container");
+      if (leftScroll) leftScroll.scrollTo({ top: 0, behavior: "smooth" });
+      
+      const mobilePlayerContainer = document.getElementById("mobile-player-container");
+      if (mobilePlayerContainer) mobilePlayerContainer.scrollTo({ top: 0, behavior: "smooth" });
+    }, 50);
 
     logDebug(`playSong: ${song.title}`, audioRef.current);
 
@@ -1591,11 +1671,11 @@ useEffect(() => {
 
   if (isProfileChecking) return <div className="fixed inset-0 bg-[#020005]" />;
   
-  if (showProfileSelector || (!activeProfile && profiles.length > 0 && !showProfileCreator)) {
+  if (!activeProfile && profiles.length > 0 && !showProfileCreator) {
     return (
       <ProfileSelector 
         profiles={profiles}
-        activeProfileId={activeProfile ? activeProfile.id : undefined}
+        activeProfileId={undefined}
         onSelect={(p) => {
           setActiveProfile(p);
           localStorage.setItem("music_active_profile", JSON.stringify(p));
@@ -1610,20 +1690,11 @@ useEffect(() => {
         onEdit={(p, newName) => {
           const updated = profiles.map(prof => prof.id === p.id ? { ...prof, name: newName } : prof);
           saveProfiles(updated);
-          if (activeProfile && activeProfile.id === p.id) {
-             const updatedActive = { ...p, name: newName };
-             setActiveProfile(updatedActive);
-             localStorage.setItem("music_active_profile", JSON.stringify(updatedActive));
-          }
         }}
         onDelete={(p) => {
           const updated = profiles.filter(prof => prof.id !== p.id);
           saveProfiles(updated);
           localStorage.removeItem(`frans_hals_playlists_${p.id}`);
-          if (activeProfile && activeProfile.id === p.id) {
-             setActiveProfile(null);
-             localStorage.removeItem("music_active_profile");
-          }
         }}
       />
     );
@@ -1644,7 +1715,54 @@ useEffect(() => {
   }
 
   return (
-    <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#000000] text-white font-sans selection:bg-[#D4FF00] selection:text-white">
+    <>
+      <AnimatePresence>
+        {showProfileSelector && (
+          <motion.div
+            initial={{ opacity: 0, scale: 1.05 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed inset-0 z-[10000]"
+          >
+            <ProfileSelector 
+              profiles={profiles}
+              activeProfileId={activeProfile ? activeProfile.id : undefined}
+              onSelect={(p) => {
+                setActiveProfile(p);
+                localStorage.setItem("music_active_profile", JSON.stringify(p));
+                setShowGreeting(true);
+                setTimeout(() => setShowGreeting(false), 4000);
+                setShowProfileSelector(false);
+              }}
+              onAdd={() => {
+                setShowProfileCreator(true);
+                setShowProfileSelector(false);
+              }}
+              onEdit={(p, newName) => {
+                const updated = profiles.map(prof => prof.id === p.id ? { ...prof, name: newName } : prof);
+                saveProfiles(updated);
+                if (activeProfile && activeProfile.id === p.id) {
+                   const updatedActive = { ...p, name: newName };
+                   setActiveProfile(updatedActive);
+                   localStorage.setItem("music_active_profile", JSON.stringify(updatedActive));
+                }
+              }}
+              onDelete={(p) => {
+                const updated = profiles.filter(prof => prof.id !== p.id);
+                saveProfiles(updated);
+                localStorage.removeItem(`frans_hals_playlists_${p.id}`);
+                if (activeProfile && activeProfile.id === p.id) {
+                   setActiveProfile(null);
+                   localStorage.removeItem("music_active_profile");
+                }
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+    <div className="min-h-screen md:h-screen md:overflow-hidden w-full flex flex-col md:flex-row bg-[#000000] text-white font-sans selection:bg-[#D4FF00] selection:text-white">
         <style dangerouslySetInnerHTML={{__html: `
           @keyframes musicWave {
             0% { height: 20%; opacity: 0.3; }
@@ -1893,7 +2011,7 @@ useEffect(() => {
       />
 
       {/* LEFT COLUMN - SEARCH & UI */}
-      <div id="left-column" className="hidden md:flex w-full md:w-[50%] lg:w-[40%] flex-col border-t md:border-t-0 md:border-r border-white/10 relative z-20 bg-[#020202] text-white overflow-visible">
+      <div id="left-column" className="hidden md:flex w-full md:w-[40%] lg:w-[30%] flex-col border-t md:border-t-0 md:border-r border-white/10 relative z-20 bg-[#020202] text-white md:h-screen overflow-y-auto scrollbar-hide">
         
         {/* Subtle Welcome Greeting */}
         <AnimatePresence>
@@ -1909,15 +2027,14 @@ useEffect(() => {
             </motion.div>
           )}
         </AnimatePresence>
-        <div className="relative z-10 w-full h-full flex flex-col justify-start overflow-y-auto p-6 md:p-12 scroll-smooth bg-[#020202]">
+        <div id="left-scroll-container" className="relative z-10 w-full h-full flex flex-col justify-start overflow-y-auto p-6 md:p-12 scroll-smooth bg-[#020202]">
           <header className="mb-8">
           <div className="flex justify-between items-end border-b border-white/20 pb-4">
             <h1 
               onClick={() => { setHasSearched(false); setShowPlaylist(false); setShowDownloads(false); setArtistQuery(""); setSongQuery(""); setSearchResults([]); setActiveFilter(null); }}
               className={`text-[40px] md:text-[56px] font-black tracking-tighter uppercase leading-[0.8] cursor-pointer transition-colors text-white hover:text-[#D4FF00]`}
             >
-              {activeProfile.name}<br/>
-              <span className="text-white/50">IS CONNECTED</span>
+              PLUG IN
             </h1>
           </div>
         </header>
@@ -1979,7 +2096,7 @@ useEffect(() => {
                          initial={{ opacity: 0, y: 10 }}
                          animate={{ opacity: 1, y: 0 }}
                          transition={{ duration: 0.5, delay: 0.1 }}
-                         className="text-3xl md:text-4xl font-black tracking-tight text-white mb-1 truncate"
+                         className="text-2xl md:text-3xl font-black tracking-tight text-white mb-1 truncate"
                        >
                          {currentSong.title}
                        </motion.span>
@@ -2202,7 +2319,7 @@ useEffect(() => {
                            <h3 className="text-sm font-bold text-white/50 uppercase tracking-widest">Previously Played</h3>
                            {playbackHistory.map((song, i) => (
                              <div key={i} className="opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all">
-                               <SongBox song={song} index={i} onPlay={() => playSong(song)} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} isDownloaded={downloads.some(d => d.id === song.id)} downloadProgress={downloadProgress[song.id]} onDownload={(e) => handleDownload(song, e)} onRemoveDownload={(e) => handleRemoveDownload(song.id, e)} />
+                               <SongBox layout="horizontal" hideActions={true} song={song} index={i} onPlay={() => playSong(song)} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} isDownloaded={downloads.some(d => d.id === song.id)} downloadProgress={downloadProgress[song.id]} onDownload={(e) => handleDownload(song, e)} onRemoveDownload={(e) => handleRemoveDownload(song.id, e)} />
                              </div>
                            ))}
                          </div>
@@ -2210,14 +2327,14 @@ useEffect(() => {
                        <div className="flex flex-col gap-2 relative">
                          <h3 className="text-sm font-bold text-[#D4FF00] uppercase tracking-widest">Now Playing</h3>
                          <div className="ring-2 ring-[#D4FF00] rounded-xl">
-                           <SongBox song={currentSong} index={0} onPlay={() => {}} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === currentSong.id) ?? false} onToggleFavorite={(e) => toggleLike(currentSong, e)} onOpenMenu={(e) => openPlaylistMenu(currentSong, e)} isDownloaded={downloads.some(d => d.id === currentSong.id)} downloadProgress={downloadProgress[currentSong.id]} onDownload={(e) => handleDownload(currentSong, e)} onRemoveDownload={(e) => handleRemoveDownload(currentSong.id, e)} />
+                           <SongBox layout="horizontal" hideActions={true} song={currentSong} index={0} onPlay={() => {}} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === currentSong.id) ?? false} onToggleFavorite={(e) => toggleLike(currentSong, e)} onOpenMenu={(e) => openPlaylistMenu(currentSong, e)} isDownloaded={downloads.some(d => d.id === currentSong.id)} downloadProgress={downloadProgress[currentSong.id]} onDownload={(e) => handleDownload(currentSong, e)} onRemoveDownload={(e) => handleRemoveDownload(currentSong.id, e)} />
                          </div>
                        </div>
                        {relatedSongs.filter(s => s.id !== currentSong.id).length > 0 && (
                          <div className="flex flex-col gap-2">
                            <h3 className="text-sm font-bold text-white/80 uppercase tracking-widest">Up Next</h3>
                            {relatedSongs.filter(s => s.id !== currentSong.id).map((song, i) => (
-                             <SongBox key={song.id} song={song} index={i} onPlay={() => playSong(song)} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} isDownloaded={downloads.some(d => d.id === song.id)} downloadProgress={downloadProgress[song.id]} onDownload={(e) => handleDownload(song, e)} onRemoveDownload={(e) => handleRemoveDownload(song.id, e)} />
+                              <SongBox layout="horizontal" hideActions={true} key={song.id} song={song} index={i} onPlay={() => playSong(song)} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} isDownloaded={downloads.some(d => d.id === song.id)} downloadProgress={downloadProgress[song.id]} onDownload={(e) => handleDownload(song, e)} onRemoveDownload={(e) => handleRemoveDownload(song.id, e)} />
                            ))}
                          </div>
                        )}
@@ -2298,7 +2415,7 @@ useEffect(() => {
                      <div className="flex flex-col gap-4 w-full px-4 py-8">
                        <h3 className="text-sm font-bold text-white/50 uppercase tracking-widest px-2">Related Songs</h3>
                        {relatedSongs.map((song, i) => (
-                         <SongBox key={song.id} song={song} index={i} onPlay={() => playSong(song)} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} isDownloaded={downloads.some(d => d.id === song.id)} downloadProgress={downloadProgress[song.id]} onDownload={(e) => handleDownload(song, e)} onRemoveDownload={(e) => handleRemoveDownload(song.id, e)} />
+                         <SongBox layout="horizontal" hideActions={true} key={song.id} song={song} index={i} onPlay={() => playSong(song)} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} isDownloaded={downloads.some(d => d.id === song.id)} downloadProgress={downloadProgress[song.id]} onDownload={(e) => handleDownload(song, e)} onRemoveDownload={(e) => handleRemoveDownload(song.id, e)} />
                        ))}
                      </div>
                    ) : null}
@@ -2319,13 +2436,13 @@ useEffect(() => {
       </div>
 
       {/* RIGHT COLUMN - RESULTS & PLAYER */}
-      <div className="hidden md:flex w-full md:w-[50%] lg:w-[60%] relative bg-[#020202]/80 backdrop-blur-md text-[#F5F5F5] overflow-hidden flex-col min-h-[50vh] md:min-h-screen">
+      <div id="right-column" className="hidden md:flex w-full md:w-[60%] lg:w-[70%] relative bg-[#020202]/80 backdrop-blur-md text-[#F5F5F5] flex-col min-h-[50vh] md:h-screen overflow-y-auto scrollbar-hide">
         
         {/* Heavily Animated Neon Background */}
         <NeonBackground />
 
         {/* Content Area */}
-        <div 
+        <div id="right-scroll-container"
           className={`relative z-10 flex-1 p-6 md:p-12 overflow-y-auto scroll-smooth will-change-transform transition-all duration-[1000ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${isInactive ? '-translate-y-16 scale-[1.02]' : 'translate-y-0 scale-100'}`}
         >
 
@@ -2438,22 +2555,7 @@ useEffect(() => {
                 
                 <div className="flex flex-col gap-8 w-full">
                    
-                   {/* YOUR MUSIC */}
-                   <div className="flex flex-col gap-2">
-                     <h2 className="text-[10px] font-black tracking-[0.4em] text-white/30 uppercase mb-2">YOUR MUSIC</h2>
-                     
-                      {/* Downloads */}
-                      <button 
-                        onClick={() => { setShowDownloads(true); setShowPlaylist(false); setHasSearched(false); setIsRightMenuOpen(false); }}
-                        className={`w-full group flex justify-between items-center py-3 px-4 rounded-xl transition-all ${showDownloads ? 'bg-white/10 text-[#D4FF00]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <ArrowDownToLine className="w-5 h-5" />
-                          <span className="text-[18px] font-black tracking-tighter uppercase">Downloads</span>
-                        </div>
-                        <span className="text-[10px] font-bold tracking-[0.2em] text-white/30 uppercase">{downloads.length} TRACKS</span>
-                      </button>
-                   </div>
+                   {/* YOUR MUSIC REMOVED */}
 
                    {/* PLAYLISTS */}
                    <div className="flex flex-col gap-2 relative">
@@ -2519,9 +2621,9 @@ useEffect(() => {
                                    </button>
                                    <button 
                                      onClick={(e) => { e.stopPropagation(); setDeletingPlaylistId(p.id); setActiveMenuPlaylistId(null); }}
-                                     className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-500/70 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                                     className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-white/50 hover:text-red-500 hover:bg-red-500/10 transition-colors"
                                    >
-                                     <span className="text-[16px]">🗑️</span> Delete
+                                     <Trash2 className="w-4 h-4" /> Delete
                                    </button>
                                  </motion.div>
                                )}
@@ -2650,42 +2752,39 @@ useEffect(() => {
               }} 
               className="relative w-full group"
             >
-              <div className="flex flex-col border-b border-white/20 pb-2 relative group mt-4">
-                <span className="text-[10px] font-black tracking-[0.4em] text-white/30 uppercase mb-2 group-focus-within:text-[#D4FF00] transition-colors">TRACK SEARCH</span>
-                <div className="flex items-center gap-4">
-                  <Search className="w-8 h-8 text-white/20 group-focus-within:text-[#D4FF00] transition-colors shrink-0" />
-                  <input
-                    type="text"
-                    placeholder="ENTER SONG OR ARTIST..."
-                    value={songQuery}
-                    onChange={(e) => setSongQuery(e.target.value)}
-                    className="w-full bg-transparent text-[32px] md:text-[48px] text-white font-black tracking-tighter placeholder:text-white/20 focus:outline-none uppercase"
-                    autoComplete="off"
-                  />
+              <div className="relative group/search mt-4 w-full">
+                {/* Subtle Glow Effect Behind */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#D4FF00]/10 to-transparent opacity-0 group-focus-within/search:opacity-100 blur-2xl transition-all duration-700 pointer-events-none" />
+                
+                <div className="relative flex items-center gap-3 md:gap-4 bg-[#111] border border-white/10 group-focus-within/search:border-[#D4FF00]/50 rounded-2xl p-3 md:p-4 transition-all duration-500 shadow-xl overflow-hidden">
+                  {/* Animated Background Highlight */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#D4FF00]/0 via-[#D4FF00]/5 to-[#D4FF00]/0 translate-x-[-100%] group-focus-within/search:translate-x-[100%] transition-transform duration-[1.5s] ease-in-out pointer-events-none" />
+                  
+                  <div className="bg-white/5 p-3 md:p-4 rounded-xl group-focus-within/search:bg-[#D4FF00] group-focus-within/search:scale-105 transition-all duration-300 shadow-inner">
+                    <Search className="w-5 h-5 md:w-6 md:h-6 text-white/50 group-focus-within/search:text-black transition-colors shrink-0" />
+                  </div>
+                  
+                  <div className="flex flex-col w-full min-w-0 justify-center">
+                     <div className="overflow-hidden h-0 group-focus-within/search:h-4 transition-all duration-300 mb-0.5">
+                       <span className="text-[10px] font-black tracking-[0.4em] text-[#D4FF00] uppercase block opacity-0 translate-y-4 group-focus-within/search:opacity-100 group-focus-within/search:translate-y-0 transition-all duration-300 delay-100">
+                         GLOBAL DATABASE
+                       </span>
+                     </div>
+                     <input
+                       type="text"
+                       placeholder="ENTER SONG OR ARTIST..."
+                       value={songQuery}
+                       onChange={(e) => setSongQuery(e.target.value)}
+                       className="w-full bg-transparent text-[20px] md:text-[28px] lg:text-[32px] text-white font-black tracking-tighter placeholder:text-white/20 focus:outline-none uppercase relative z-10"
+                       autoComplete="off"
+                     />
+                  </div>
+                  
+                  {/* Removed Enter indicator as requested */}
                 </div>
               </div>
 
-              <AnimatePresence>
-                {songSuggestions.length > 0 && (
-                  <motion.ul 
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="md:absolute md:top-full md:left-0 w-full mt-2 bg-[#020202] border border-white/20 shadow-2xl z-50 flex flex-col divide-y divide-white/10"
-                  >
-                    {songSuggestions.map((sug, i) => (
-                      <li 
-                        key={i} 
-                        onClick={() => { setSongQuery(sug); setSongSuggestions([]); executeFullSearch(sug, "any"); }}
-                        className="px-6 py-4 cursor-pointer text-[24px] font-black tracking-tighter text-white/80 hover:bg-[#D4FF00] hover:text-black uppercase transition-all flex justify-between items-center group/item"
-                      >
-                        {sug}
-                        <ArrowRight className="w-6 h-6 opacity-0 group-hover/item:opacity-100 transition-opacity" />
-                      </li>
-                    ))}
-                  </motion.ul>
-                )}
-              </AnimatePresence>
+
             </form>
               </div>
 
@@ -2716,6 +2815,8 @@ useEffect(() => {
                         <SongBox 
                           song={d.metadata} 
                           index={index} 
+                          layout="horizontal"
+                          hideActions={true}
                           onPlay={(e) => playSong(d.metadata, true, "playlist", downloads.map(d=>d.metadata), e)} 
                           isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === d.id) ?? false} 
                           onToggleFavorite={(e) => toggleLike(d.metadata, e)} onOpenMenu={(e) => openPlaylistMenu(d.metadata, e)} 
@@ -2773,7 +2874,7 @@ useEffect(() => {
               {activePlaylist.songs.length === 0 ? (
                 <p className="text-3xl font-black uppercase tracking-tighter  opacity-50">This playlist is empty. Add songs by clicking the heart icon!</p>
               ) : (
-                <div className="flex flex-col border-y border-white/20 overflow-hidden mb-6 pt-4">
+                <div className="flex flex-col border-y border-white/20 overflow-hidden mb-6 pt-4 w-[min(100%,900px)] mx-auto">
                   <div className="flex flex-col divide-y divide-white/10 p-2">
                     {activePlaylist.songs.map((song, index) => (
                       <div 
@@ -2800,6 +2901,8 @@ useEffect(() => {
                           <SongBox 
                             song={song} 
                             index={index} 
+                            layout="horizontal"
+                            hideActions={true}
                             onPlay={() => !isEditingPlaylist && playSong(song, true, "playlist")} 
                             isFavorite={true} 
                             onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)}
@@ -2871,14 +2974,14 @@ useEffect(() => {
                       )}
 
                       {inlineSearchResults.length > 0 && !isInlineSearching && (
-                        <div className="flex flex-col border-y border-white/20 overflow-hidden mb-6 pt-4">
+                        <div className="flex flex-col border-y border-white/20 overflow-hidden mb-6 pt-4 w-[min(100%,900px)] mx-auto">
                           <div className="flex flex-col divide-y divide-white/10 p-2">
                             {inlineSearchResults.map((song, i) => {
                               const alreadyInPlaylist = activePlaylist.songs.some(s => s.id === song.id) ?? false;
                               return (
                                 <div className="flex items-center group/box transition-all duration-200" key={song.id}>
                                   <div className="flex-1 pointer-events-auto">
-                                    <SongBox 
+                                    <SongBox layout="horizontal" hideActions={true}
                                       song={song} 
                                       index={i} 
                                       onPlay={(e) => playSong(song, true, "radio", undefined, e)} 
@@ -2924,10 +3027,11 @@ useEffect(() => {
               )}
 
               {!isSearching && searchResults.length > 0 && (
-                <div className="flex flex-col border-y border-white/20 overflow-hidden mb-6 pt-4">
+                <div className="flex flex-col border-y border-white/20 overflow-hidden mb-6 pt-4 w-[min(100%,900px)] mx-auto">
                   <div className="flex flex-col divide-y divide-white/10 p-2">
                     {searchResults.map((song, index) => (
                       <SongBox 
+                        layout="horizontal"
                         key={song.id} 
                         song={song} 
                         index={index} 
@@ -2999,45 +3103,37 @@ useEffect(() => {
           {/* SEARCH TAB */}
           {mobileTab === "search" && (
             <div className="flex flex-col gap-6 animate-in fade-in duration-500">
-              <div className="relative sticky top-0 z-10 pt-2 pb-4 bg-[#050505]">
-                <Search className="absolute left-4 top-5 w-5 h-5 text-white/50" />
-                <input 
-                  type="text" 
-                  placeholder="Artists, Songs, Lyrics" 
-                  value={songQuery}
-                  onChange={(e) => {
-                    setSongQuery(e.target.value);
-                    setHasSearched(false);
-                    if (e.target.value.trim().length > 1) {
-                       getSearchSuggestions(e.target.value).then(setSongSuggestions);
-                    } else {
-                       setSongSuggestions([]);
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      setSongSuggestions([]);
-                      executeFullSearch(songQuery, "any");
-                    }
-                  }}
-                  className="w-full bg-white/10 text-white rounded-2xl py-4 pl-12 pr-4 font-medium outline-none focus:bg-white/15 transition-colors border border-white/5 placeholder:text-white/40"
-                />
+              <div className="relative sticky top-0 z-10 pt-2 pb-4 bg-[#050505] group/mobsearch">
+                <div className="absolute inset-0 bg-gradient-to-r from-[#D4FF00]/0 via-[#D4FF00]/10 to-[#D4FF00]/0 opacity-0 group-focus-within/mobsearch:opacity-100 blur-xl transition-opacity duration-500 pointer-events-none" />
+                <div className="relative bg-white/5 border border-white/10 group-focus-within/mobsearch:border-[#D4FF00]/50 group-focus-within/mobsearch:bg-white/10 rounded-2xl flex items-center transition-all duration-300 overflow-hidden shadow-lg">
+                  <div className="pl-4 pr-2 text-white/40 group-focus-within/mobsearch:text-[#D4FF00] transition-colors">
+                    <Search className="w-5 h-5" />
+                  </div>
+                  <input 
+                    type="text" 
+                    placeholder="Artists, Songs, Lyrics" 
+                    value={songQuery}
+                    onChange={(e) => {
+                      setSongQuery(e.target.value);
+                      setHasSearched(false);
+                      if (e.target.value.trim().length > 1) {
+                         getSearchSuggestions(e.target.value).then(setSongSuggestions);
+                      } else {
+                         setSongSuggestions([]);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        setSongSuggestions([]);
+                        executeFullSearch(songQuery, "any");
+                      }
+                    }}
+                    className="w-full bg-transparent text-white py-4 pr-4 font-bold tracking-wide outline-none placeholder:text-white/30 placeholder:font-medium"
+                  />
+                </div>
               </div>
 
-              {songSuggestions.length > 0 && !hasSearched && (
-                <div className="flex flex-col gap-1">
-                  {songSuggestions.map((sug, i) => (
-                    <div 
-                      key={i} 
-                      onClick={() => { setSongQuery(sug); setSongSuggestions([]); executeFullSearch(sug, "any"); }}
-                      className="py-3 text-lg font-medium text-white/80 active:text-[#D4FF00] border-b border-white/5 flex items-center gap-3"
-                    >
-                      <Search className="w-4 h-4 text-white/30" />
-                      {sug}
-                    </div>
-                  ))}
-                </div>
-              )}
+
 
               {isSearching ? (
                  <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-[#D4FF00]" /></div>
@@ -3051,21 +3147,7 @@ useEffect(() => {
                         <span className="text-base font-bold text-white truncate">{song.title}</span>
                         <span className="text-sm text-white/50 truncate">{song.artist}</span>
                       </div>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); downloads.some(d => d.id === song.id) ? handleRemoveDownload(song.id, e) : (downloadProgress[song.id] === undefined ? handleDownload(song, e) : null); }}
-                        className="w-8 h-8 flex items-center justify-center rounded-full active:bg-white/10 shrink-0"
-                      >
-                        {downloads.some(d => d.id === song.id) ? (
-                          <CheckCircle2 className="w-4 h-4 text-[#D4FF00]" />
-                        ) : downloadProgress[song.id] !== undefined ? (
-                          <div className="relative flex items-center justify-center w-4 h-4">
-                            <Loader2 className="w-4 h-4 text-white animate-spin" />
-                            {typeof downloadProgress[song.id] === 'number' && <span className="absolute text-[6px] font-bold text-white leading-none">{downloadProgress[song.id]}</span>}
-                          </div>
-                        ) : (
-                          <ArrowDownToLine className="w-4 h-4 text-white/50" />
-                        )}
-                      </button>
+
                       <button className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 shrink-0">
                         <Play className="w-4 h-4 fill-white text-white ml-0.5" />
                       </button>
@@ -3151,21 +3233,7 @@ useEffect(() => {
                           </div>
                         </div>
                       </div>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); downloads.some(d => d.id === song.id) ? handleRemoveDownload(song.id, e) : (downloadProgress[song.id] === undefined ? handleDownload(song, e) : null); }}
-                        className="w-10 h-10 flex items-center justify-center rounded-full active:bg-white/10 shrink-0"
-                      >
-                        {downloads.some(d => d.id === song.id) ? (
-                          <CheckCircle2 className="w-5 h-5 text-[#D4FF00]" />
-                        ) : downloadProgress[song.id] !== undefined ? (
-                          <div className="relative flex items-center justify-center w-5 h-5">
-                            <Loader2 className="w-5 h-5 text-white animate-spin" />
-                            {typeof downloadProgress[song.id] === 'number' && <span className="absolute text-[8px] font-bold text-white leading-none">{downloadProgress[song.id]}</span>}
-                          </div>
-                        ) : (
-                          <ArrowDownToLine className="w-5 h-5 text-white/50" />
-                        )}
-                      </button>
+
                       <button 
                         onClick={(e) => { e.stopPropagation(); openPlaylistMenu(song, e); }}
                         className="w-10 h-10 flex items-center justify-center rounded-full active:bg-white/10 shrink-0"
@@ -3352,7 +3420,7 @@ useEffect(() => {
                       key={`m-title-${currentSong.id}`}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="text-3xl font-black text-white truncate mb-1"
+                      className="text-2xl font-black text-white truncate mb-1"
                     >
                       {currentSong.title}
                     </motion.span>
@@ -3529,7 +3597,7 @@ useEffect(() => {
                           <h3 className="text-sm font-bold text-white/50 uppercase tracking-widest px-2">Previously Played</h3>
                           {playbackHistory.map((song, i) => (
                             <div key={i} className="opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all">
-                              <SongBox song={song} index={i} onPlay={() => playSong(song)} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} isDownloaded={downloads.some(d => d.id === song.id)} downloadProgress={downloadProgress[song.id]} onDownload={(e) => handleDownload(song, e)} onRemoveDownload={(e) => handleRemoveDownload(song.id, e)} />
+                              <SongBox layout="horizontal" hideActions={true} song={song} index={i} onPlay={() => playSong(song)} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} isDownloaded={downloads.some(d => d.id === song.id)} downloadProgress={downloadProgress[song.id]} onDownload={(e) => handleDownload(song, e)} onRemoveDownload={(e) => handleRemoveDownload(song.id, e)} />
                             </div>
                           ))}
                         </div>
@@ -3537,14 +3605,14 @@ useEffect(() => {
                       <div className="flex flex-col gap-2 relative">
                         <h3 className="text-sm font-bold text-[#D4FF00] uppercase tracking-widest px-2">Now Playing</h3>
                         <div className="ring-2 ring-[#D4FF00] rounded-xl overflow-hidden">
-                          <SongBox song={currentSong} index={0} onPlay={() => {}} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === currentSong.id) ?? false} onToggleFavorite={(e) => toggleLike(currentSong, e)} onOpenMenu={(e) => openPlaylistMenu(currentSong, e)} isDownloaded={downloads.some(d => d.id === currentSong.id)} downloadProgress={downloadProgress[currentSong.id]} onDownload={(e) => handleDownload(currentSong, e)} onRemoveDownload={(e) => handleRemoveDownload(currentSong.id, e)} />
+                          <SongBox layout="horizontal" hideActions={true} song={currentSong} index={0} onPlay={() => {}} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === currentSong.id) ?? false} onToggleFavorite={(e) => toggleLike(currentSong, e)} onOpenMenu={(e) => openPlaylistMenu(currentSong, e)} isDownloaded={downloads.some(d => d.id === currentSong.id)} downloadProgress={downloadProgress[currentSong.id]} onDownload={(e) => handleDownload(currentSong, e)} onRemoveDownload={(e) => handleRemoveDownload(currentSong.id, e)} />
                         </div>
                       </div>
                       {relatedSongs.filter(s => s.id !== currentSong.id).length > 0 && (
                         <div className="flex flex-col gap-2">
                           <h3 className="text-sm font-bold text-white/80 uppercase tracking-widest px-2">Up Next</h3>
                           {relatedSongs.filter(s => s.id !== currentSong.id).map((song, i) => (
-                            <SongBox key={song.id} song={song} index={i} onPlay={() => playSong(song)} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} isDownloaded={downloads.some(d => d.id === song.id)} downloadProgress={downloadProgress[song.id]} onDownload={(e) => handleDownload(song, e)} onRemoveDownload={(e) => handleRemoveDownload(song.id, e)} />
+                            <SongBox layout="horizontal" hideActions={true} key={song.id} song={song} index={i} onPlay={() => playSong(song)} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} isDownloaded={downloads.some(d => d.id === song.id)} downloadProgress={downloadProgress[song.id]} onDownload={(e) => handleDownload(song, e)} onRemoveDownload={(e) => handleRemoveDownload(song.id, e)} />
                           ))}
                         </div>
                       )}
@@ -3635,5 +3703,6 @@ useEffect(() => {
         )}
       </AnimatePresence>
     </div>
+    </>
   );
 }

@@ -78,7 +78,7 @@ export function ProfileSelector({
                         setTimeout(() => setDeletingId(null), 3000);
                       }
                     }}
-                    className={`w-12 h-12 flex items-center justify-center rounded-full transition-colors ${isDeleting ? 'bg-red-500 text-black' : 'border border-white/20 text-white/30 active:text-white'}`}
+                    className={`w-12 h-12 flex items-center justify-center rounded-full transition-colors ${isDeleting ? 'bg-red-500 text-black' : 'border border-white/20 text-white/30 hover:text-red-500 hover:border-red-500 hover:bg-red-500/10 active:text-white'}`}
                   >
                     {isDeleting ? <Check className="w-5 h-5" /> : <Trash2 className="w-5 h-5" />}
                   </button>

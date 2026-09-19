@@ -44,3 +44,16 @@ body {
     @apply flex items-center justify-center transition-all duration-300 transform active:scale-95 px-3 py-2 border-2 font-bold text-sm rounded-lg;
   }
 }
+
+@keyframes slide {
+  0%, 20% { transform: translateX(0); }
+  80%, 100% { transform: translateX(min(0px, calc(100cqw - 100%))); }
+}
+
+@keyframes custom-scroll {
+  0%, 15% { transform: translateX(0); }
+  85%, 100% { transform: translateX(var(--scroll-dist, 0px)); }
+}
+.group:hover .animate-custom-scroll {
+  animation: custom-scroll var(--scroll-duration, 4s) linear infinite alternate;
+}
