@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { NeonBackground } from "./NeonBackground";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
-import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2, Trash2, Info, Home, Library, Compass, ChevronDown, MoreHorizontal, ListMusic, Quote, Check, Plus , Shuffle, Repeat, Volume2, Volume1, VolumeX, Share, Power, ArrowDownToLine, XCircle, WifiOff , Menu, X } from "lucide-react";
+import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2, Trash2, Info, Home, Library, Compass, ChevronDown, MoreHorizontal, ListMusic, Quote, Check, Plus , Shuffle, Repeat, Volume2, Volume1, VolumeX, Share, Power, ArrowDownToLine, XCircle, WifiOff , Menu, X, Music } from "lucide-react";
 import { saveDownload, getDownload, removeDownload, getAllDownloads, type DownloadedSong } from "./offlineDb";
 import YouTube, { YouTubePlayer } from "react-youtube";
 import { searchYouTube, getArtistBackground, getSearchSuggestions, getSyncedLyrics, getTrendingWorldwide, getTrendingIndia, getRelatedSongs, getAlternativeSourceId } from "./actions";
@@ -11,7 +11,6 @@ import type { SyncedLyric } from "./actions";
 import { loadProfiles, saveProfilesServer, loadActiveProfile, saveActiveProfileServer, loadPlaylistsServer, savePlaylistsServer, deletePlaylistsServer } from "./storage";
 import { Onboarding } from "./Onboarding";
 import { ProfileSelector } from "./ProfileSelector";
-import { LiveLyrics } from "./components/LiveLyrics";
 import { Space_Grotesk } from 'next/font/google';
 
 const spaceGrotesk = Space_Grotesk({
@@ -68,12 +67,12 @@ const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite, onOpenMenu
     return (
       <div 
         onClick={(e) => onPlay(e)}
-        className="flex flex-col items-center gap-2 group cursor-pointer active:opacity-50 transition-all w-full hover:bg-white/5 p-2 rounded-xl border border-transparent hover:border-white/10"
+        className="flex flex-col items-center gap-2 group cursor-pointer active:opacity-50 transition-all duration-300 w-full hover:bg-white/5 p-2 rounded-xl border border-transparent hover:border-white/10"
       >
-        <div className="w-[120px] h-[120px] md:w-[150px] md:h-[150px] overflow-hidden shrink-0 border border-white/10 group-hover:border-[#D4FF00] transition-colors relative bg-[#111] rounded-xl shadow-lg">
+        <div className="w-[120px] h-[120px] md:w-[150px] md:h-[150px] overflow-hidden shrink-0 border border-white/10 group-hover:border-[#D4FF00] transition-colors duration-300 relative bg-[#111] rounded-xl shadow-lg">
           <img
             src={song.image}
-            className="w-full h-full object-cover transition-all duration-500 scale-105 group-hover:scale-100"
+            className="w-full h-full object-cover transition-transform duration-500 scale-105 group-hover:scale-100"
             alt={song.title}
           />
 
@@ -86,11 +85,11 @@ const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite, onOpenMenu
           )}
         </div>
 
-        <div className="flex flex-col w-full text-center items-center min-w-0 justify-center transition-colors mt-2">
-          <span className={`${spaceGrotesk.className} font-semibold text-[12px] md:text-[14px] tracking-normal [word-spacing:0.2em] uppercase text-white truncate leading-[1.1] w-full px-2 drop-shadow-md`}>
+        <div className="flex flex-col w-full text-center items-center min-w-0 justify-center mt-2">
+          <span className={`${spaceGrotesk.className} font-semibold text-[12px] md:text-[14px] tracking-normal [word-spacing:0.2em] uppercase text-white truncate leading-[1.1] w-full px-2 drop-shadow-md transition-colors duration-300 group-hover:text-white/90`}>
             {song.title}
           </span>
-          <span className="text-[8px] md:text-[9px] font-bold tracking-[0.4em] text-white/40 uppercase mt-1 truncate group-hover:text-[#D4FF00] transition-colors w-full px-2">
+          <span className="text-[8px] md:text-[9px] font-bold tracking-[0.4em] text-white/40 uppercase mt-1 truncate group-hover:text-[#D4FF00] transition-colors duration-300 w-full px-2">
             {song.artist}
           </span>
         </div>
@@ -100,7 +99,7 @@ const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite, onOpenMenu
             onClick={(e) => { e.stopPropagation(); onToggleFavorite(e); }}
             className={`w-10 h-10 flex items-center justify-center border hover:border-white/30 rounded-full transition-all duration-300 hover:scale-110 bg-black/50 ${isFavorite ? 'border-[#D4FF00]/50' : 'border-white/10'}`}
           >
-            <Heart className={`w-4 h-4 ${isFavorite ? 'fill-[#D4FF00] text-[#D4FF00]' : 'text-white/50 hover:text-white'}`} />
+            <Heart className={`w-4 h-4 transition-colors duration-300 ${isFavorite ? 'fill-[#D4FF00] text-[#D4FF00]' : 'text-white/50 group-hover:text-white/80 hover:text-white'}`} />
           </button>
         </div>
       </div>
@@ -111,21 +110,21 @@ const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite, onOpenMenu
     <div 
       onClick={(e) => onPlay(e)}
       onMouseEnter={handleMouseEnter}
-      className="flex items-center gap-3 md:gap-6 group cursor-pointer active:opacity-50 transition-opacity w-full p-2 relative z-0 before:absolute before:inset-0 before:bg-white/5 before:opacity-0 hover:before:opacity-100 before:-z-10 before:rounded-xl"
+      className="flex items-center gap-3 md:gap-6 group cursor-pointer active:opacity-50 transition-opacity duration-300 w-full p-2 relative z-0 before:absolute before:inset-0 before:bg-white/5 before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-300 before:-z-10 before:rounded-xl"
     >
-      <div className="text-[10px] md:text-[12px] font-black tracking-widest text-white/30 -rotate-90 origin-center w-4 md:w-6 shrink-0 opacity-0 md:opacity-100 hidden md:block">
+      <div className="text-[10px] md:text-[12px] font-black tracking-widest text-white/30 -rotate-90 origin-center w-4 md:w-6 shrink-0 opacity-0 md:opacity-100 hidden md:block transition-opacity duration-300">
         {String(index + 1).padStart(2, '0')}
       </div>
       
-      <div className="w-[50px] h-[50px] md:w-[60px] md:h-[60px] overflow-hidden shrink-0 border border-white/10 group-hover:border-[#D4FF00] transition-colors relative bg-[#111]">
+      <div className="w-[50px] h-[50px] md:w-[60px] md:h-[60px] overflow-hidden shrink-0 border border-white/10 group-hover:border-[#D4FF00] transition-colors duration-300 relative bg-[#111]">
         <img
           src={song.image}
-          className="w-full h-full object-cover transition-all duration-500 scale-105 group-hover:scale-100"
+          className="w-full h-full object-cover transition-transform duration-500 scale-105 group-hover:scale-100"
           alt={song.title}
         />
 
         {isPlaying && (
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-[2px]">
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-[2px] backdrop-blur-[2px]">
              <div className="w-1 h-3 bg-[#D4FF00] animate-bounce" style={{animationDelay: '0ms'}}/>
              <div className="w-1 h-5 bg-[#D4FF00] animate-bounce" style={{animationDelay: '100ms'}}/>
              <div className="w-1 h-2 bg-[#D4FF00] animate-bounce" style={{animationDelay: '200ms'}}/>
@@ -133,25 +132,25 @@ const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite, onOpenMenu
         )}
       </div>
 
-      <div className="flex flex-col flex-1 min-w-0 justify-center min-h-[50px] md:min-h-[60px] py-1 border-b border-white/10 group-hover:border-transparent transition-colors relative z-10 pr-2">
+      <div className="flex flex-col flex-1 min-w-0 justify-center min-h-[50px] md:min-h-[60px] py-1 border-b border-white/10 group-hover:border-transparent transition-colors duration-300 relative z-10 pr-2">
         <div className="flex flex-col min-w-0">
           <div className="overflow-hidden min-w-0">
-            <span className={`scrollable-text-container ${spaceGrotesk.className} font-semibold text-[14px] md:text-[16px] tracking-normal [word-spacing:0.2em] uppercase text-white leading-[1.1] drop-shadow-md block truncate group-hover:w-max group-hover:overflow-visible group-hover:text-clip animate-custom-scroll origin-left`}>
+            <span className={`scrollable-text-container ${spaceGrotesk.className} font-semibold text-[14px] md:text-[16px] tracking-normal [word-spacing:0.2em] uppercase text-white leading-[1.1] drop-shadow-md block truncate group-hover:w-max group-hover:overflow-visible group-hover:text-clip animate-custom-scroll origin-left transition-colors duration-300 group-hover:text-white/90`}>
               {song.title}
             </span>
           </div>
-          <span className="text-[9px] md:text-[10px] font-bold tracking-[0.4em] text-white/30 uppercase mt-1 truncate group-hover:text-[#D4FF00] transition-colors">
+          <span className="text-[9px] md:text-[10px] font-bold tracking-[0.4em] text-white/30 uppercase mt-1 truncate group-hover:text-[#D4FF00] transition-colors duration-300">
             {song.artist}
           </span>
         </div>
       </div>
 
-      <div className="flex items-center justify-center z-20 md:absolute md:right-4 md:top-1/2 md:-translate-y-1/2 md:pointer-events-none md:group-hover:pointer-events-auto opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0 ml-auto md:ml-0" onClick={e => e.stopPropagation()}>
+      <div className="flex items-center justify-center z-20 md:absolute md:right-4 md:top-1/2 md:-translate-y-1/2 md:pointer-events-none md:group-hover:pointer-events-auto opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 shrink-0 ml-auto md:ml-0" onClick={e => e.stopPropagation()}>
         <button 
           onClick={(e) => { e.stopPropagation(); onToggleFavorite(e); }}
           className={`w-10 h-10 md:w-10 md:h-10 flex items-center justify-center border hover:border-white/30 rounded-full transition-all duration-300 hover:scale-110 bg-black/50 md:backdrop-blur-sm md:shadow-xl ${isFavorite ? 'border-[#D4FF00]/50 opacity-100 md:pointer-events-auto' : 'border-white/10 opacity-100 md:opacity-0 md:group-hover:opacity-100'}`}
         >
-          <Heart className={`w-4 h-4 ${isFavorite ? 'fill-[#D4FF00] text-[#D4FF00]' : 'text-white/50 hover:text-white'}`} />
+          <Heart className={`w-4 h-4 transition-colors duration-300 ${isFavorite ? 'fill-[#D4FF00] text-[#D4FF00]' : 'text-white/50 group-hover:text-white/80 hover:text-white'}`} />
         </button>
       </div>
     </div>
@@ -1540,7 +1539,12 @@ export default function FransHalsMusicApp() {
     if (relatedSongs.length > 0) {
       const available = relatedSongs.filter(s => s.id !== currentSong?.id);
       if (available.length > 0) {
-        const next = available[Math.floor(Math.random() * available.length)];
+        let next;
+        if (isShuffleOn && available.length > 1) {
+          next = available[Math.floor(Math.random() * available.length)];
+        } else {
+          next = available[0];
+        }
         playSong(next, true, "radio");
       }
     }
@@ -2026,6 +2030,7 @@ export default function FransHalsMusicApp() {
             setDuration(e.currentTarget.duration);
           }
         }}
+        onEnded={playNextSong}
       />
 
       {/* LEFT COLUMN - SEARCH & UI */}
@@ -2156,10 +2161,7 @@ export default function FransHalsMusicApp() {
                    </div>
                    
                    {/* Playback Controls */}
-                   <div className="flex items-center justify-between w-full mb-8">
-                     <button aria-label="Shuffle" onClick={() => setIsShuffleOn(!isShuffleOn)} className={`transition-colors p-2 rounded-full hover:bg-white/5 ${isShuffleOn ? 'text-[#D4FF00]' : 'text-white/30 hover:text-white'}`}>
-                       <Shuffle className="w-5 h-5" />
-                     </button>
+                   <div className="flex items-center justify-center w-full mb-8">
                      
                      <div className="flex items-center gap-6 md:gap-8">
                        <button 
@@ -2174,7 +2176,7 @@ export default function FransHalsMusicApp() {
                        <button 
                          aria-label={isPlaying ? "Pause" : "Play"}
                          onClick={togglePlay}
-                         className="w-20 h-20 md:w-24 md:h-24 shrink-0 rounded-full bg-[#D4FF00] text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-[0_10px_30px_rgba(212,255,0,0.2)]"
+                         className="w-20 h-20 md:w-24 md:h-24 shrink-0 rounded-full bg-[#D4FF00] text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_10px_30px_rgba(212,255,0,0.2)] hover:shadow-[0_10px_40px_rgba(212,255,0,0.4)]"
                        >
                          {playbackState === "loading" || playbackState === "buffering" ? (
                            <Loader2 className="w-10 h-10 animate-spin" />
@@ -2195,32 +2197,14 @@ export default function FransHalsMusicApp() {
                        </button>
                      </div>
 
-                     <button aria-label="Repeat" className="text-white/30 hover:text-white hover:bg-white/5 p-2 rounded-full transition-colors">
-                       <Repeat className="w-5 h-5" />
-                     </button>
                    </div>
                    
-                   {/* LYRICS SECTION - ALWAYS VISIBLE DIRECTLY UNDER PLAYER */}
-                   <div className="w-full border-t border-white/10 pt-8 mt-4">
-                     <h3 className="text-sm font-bold text-white/50 uppercase tracking-widest mb-4">Live Lyrics</h3>
-                     <LiveLyrics 
-                       lyrics={lyrics} 
-                       isLoading={lyricsLoading} 
-                       progress={progress} 
-                       onSeek={(time) => {
-                         if (playerRef.current) {
-                           playerRef.current.seekTo(time, true);
-                           setProgress(time);
-                         }
-                       }}
-                     />
-                   </div>
 
-                   {/* Clean Navigation Section for Queue / Related */}
+                   {/* Clean Navigation Section for Queue / Related / Lyrics */}
                    <div className="flex items-center justify-between w-full border-t border-white/10 pt-6 mt-8">
                      <div className="flex items-center gap-6">
                        <button onClick={() => setPlayerTab(playerTab === 'queue' ? null : 'queue')} className={`text-xs font-bold uppercase tracking-widest transition-colors ${playerTab === 'queue' ? 'text-[#D4FF00]' : 'text-white/50 hover:text-white'}`}>Up Next</button>
-                       
+                       <button onClick={() => setPlayerTab(playerTab === 'lyrics' ? null : 'lyrics')} className={`text-xs font-bold uppercase tracking-widest transition-colors ${playerTab === 'lyrics' ? 'text-[#D4FF00]' : 'text-white/50 hover:text-white'}`}>Lyrics</button>
                        <button onClick={() => setPlayerTab(playerTab === 'related' ? null : 'related')} className={`text-xs font-bold uppercase tracking-widest transition-colors ${playerTab === 'related' ? 'text-[#D4FF00]' : 'text-white/50 hover:text-white'}`}>Related</button>
                      </div>
                      <div className="flex items-center gap-6">
@@ -2338,10 +2322,10 @@ export default function FransHalsMusicApp() {
                            {playbackHistory.map((song, i) => (
                              <motion.div 
                                key={i} 
-                               initial={i < 15 ? { opacity: 0, y: -18, x: 20, scale: 0.98 } : { opacity: 1, y: 0, x: 0, scale: 1 }}
+                               initial={i < 15 ? { opacity: 0, y: 15, x: 5, scale: 0.99 } : { opacity: 1, y: 0, x: 0, scale: 1 }}
                                animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
                                transition={{ 
-                                 delay: i < 15 ? i * 0.07 : 0, 
+                                 delay: i < 15 ? i * 0.05 : 0, 
                                  duration: 0.6, 
                                  ease: [0.22, 1, 0.36, 1] 
                                }}
@@ -2365,10 +2349,10 @@ export default function FransHalsMusicApp() {
                            {relatedSongs.filter(s => s.id !== currentSong.id).map((song, i) => (
                               <motion.div 
                                 key={song.id} 
-                                initial={i < 15 ? { opacity: 0, y: -18, x: 20, scale: 0.98 } : { opacity: 1, y: 0, x: 0, scale: 1 }}
+                                initial={i < 15 ? { opacity: 0, y: 15, x: 5, scale: 0.99 } : { opacity: 1, y: 0, x: 0, scale: 1 }}
                                 animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
                                 transition={{ 
-                                  delay: i < 15 ? i * 0.07 : 0, 
+                                  delay: i < 15 ? i * 0.05 : 0, 
                                   duration: 0.6, 
                                   ease: [0.22, 1, 0.36, 1] 
                                 }}
@@ -2466,7 +2450,20 @@ export default function FransHalsMusicApp() {
                  )}
                  </AnimatePresence>
             </motion.div>
-          ) : null}
+          ) : (
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              className="flex-1 flex flex-col items-center justify-center opacity-30 transition-opacity duration-1000 mt-32 relative"
+            >
+              <div className="absolute inset-0 bg-[#D4FF00]/5 blur-[100px] rounded-full animate-pulse pointer-events-none" style={{ animationDuration: '4s' }} />
+              <div className="w-24 h-24 rounded-full border border-white/10 flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.02)] relative z-10 backdrop-blur-sm">
+                <Music className="w-8 h-8 text-white/40" />
+              </div>
+              <span className="text-[10px] font-black tracking-[0.5em] text-white/50 uppercase mt-8 relative z-10">Awaiting Audio</span>
+            </motion.div>
+          )}
         </AnimatePresence>
 
 
@@ -2854,10 +2851,10 @@ export default function FransHalsMusicApp() {
                   downloads.map((d, index) => (
                     <motion.div 
                       key={d.id} 
-                      initial={index < 15 ? { opacity: 0, y: -18, x: 20, scale: 0.98 } : { opacity: 1, y: 0, x: 0, scale: 1 }}
+                      initial={index < 15 ? { opacity: 0, y: 15, x: 5, scale: 0.99 } : { opacity: 1, y: 0, x: 0, scale: 1 }}
                       animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
                       transition={{ 
-                        delay: index < 15 ? index * 0.07 : 0, 
+                        delay: index < 15 ? index * 0.05 : 0, 
                         duration: 0.6, 
                         ease: [0.22, 1, 0.36, 1] 
                       }}
@@ -2932,10 +2929,10 @@ export default function FransHalsMusicApp() {
                     {activePlaylist.songs.map((song, index) => (
                       <motion.div 
                         key={song.id} 
-                        initial={index < 15 ? { opacity: 0, y: -18, x: 20, scale: 0.98 } : { opacity: 1, y: 0, x: 0, scale: 1 }}
+                        initial={index < 15 ? { opacity: 0, y: 15, x: 5, scale: 0.99 } : { opacity: 1, y: 0, x: 0, scale: 1 }}
                         animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
                         transition={{ 
-                          delay: index < 15 ? index * 0.07 : 0, 
+                          delay: index < 15 ? index * 0.05 : 0, 
                           duration: 0.6, 
                           ease: [0.22, 1, 0.36, 1] 
                         }}
@@ -3204,10 +3201,10 @@ export default function FransHalsMusicApp() {
                   {searchResults.map((song, i) => (
                     <motion.div 
                       key={song.id} 
-                      initial={i < 15 ? { opacity: 0, y: -18, x: 20, scale: 0.98 } : { opacity: 1, y: 0, x: 0, scale: 1 }}
+                      initial={i < 15 ? { opacity: 0, y: 15, x: 5, scale: 0.99 } : { opacity: 1, y: 0, x: 0, scale: 1 }}
                       animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
                       transition={{ 
-                        delay: i < 15 ? i * 0.07 : 0, 
+                        delay: i < 15 ? i * 0.05 : 0, 
                         duration: 0.6, 
                         ease: [0.22, 1, 0.36, 1] 
                       }}
@@ -3298,10 +3295,10 @@ export default function FransHalsMusicApp() {
                   {activePlaylist.songs.map((song, i) => (
                     <motion.div 
                       key={song.id} 
-                      initial={i < 15 ? { opacity: 0, y: -18, x: 20, scale: 0.98 } : { opacity: 1, y: 0, x: 0, scale: 1 }}
+                      initial={i < 15 ? { opacity: 0, y: 15, x: 5, scale: 0.99 } : { opacity: 1, y: 0, x: 0, scale: 1 }}
                       animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
                       transition={{ 
-                        delay: i < 15 ? i * 0.07 : 0, 
+                        delay: i < 15 ? i * 0.05 : 0, 
                         duration: 0.6, 
                         ease: [0.22, 1, 0.36, 1] 
                       }}
@@ -3575,17 +3572,14 @@ export default function FransHalsMusicApp() {
                 </div>
 
                 {/* Main Controls */}
-                <div className="flex items-center justify-between w-full">
-                  <button onClick={() => setIsShuffleOn(!isShuffleOn)} className={`p-3 rounded-full bg-white/5 active:bg-white/10 transition-colors ${isShuffleOn ? 'text-[#D4FF00]' : 'text-white/40'}`} aria-label="Shuffle">
-                    <Shuffle className="w-5 h-5" />
-                  </button>
+                <div className="flex items-center justify-center w-full">
                   <div className="flex items-center gap-6">
                     <button onClick={playPreviousSong} className="text-white active:text-white/70 active:scale-90 transition-transform" aria-label="Previous song">
                       <SkipBack className="w-10 h-10 fill-current" />
                     </button>
                     <button 
                       onClick={togglePlay}
-                      className="w-20 h-20 bg-[#D4FF00] text-black rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(212,255,0,0.2)] active:scale-95 transition-transform"
+                      className="w-20 h-20 bg-[#D4FF00] text-black rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(212,255,0,0.2)] active:scale-95 transition-all duration-300 active:shadow-[0_0_40px_rgba(212,255,0,0.4)]"
                       aria-label={isPlaying ? "Pause" : "Play"}
                     >
                       {playbackState === "loading" || playbackState === "buffering" ? (
@@ -3600,9 +3594,6 @@ export default function FransHalsMusicApp() {
                       <SkipForward className="w-10 h-10 fill-current" />
                     </button>
                   </div>
-                  <button className="p-3 rounded-full bg-white/5 active:bg-white/10 transition-colors text-white/40" aria-label="Repeat">
-                    <Repeat className="w-5 h-5" />
-                  </button>
                 </div>
 
                 {/* Secondary Controls */}
@@ -3724,17 +3715,72 @@ export default function FransHalsMusicApp() {
                       </button>
                     </div>
                     <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 pb-32">
-                      <LiveLyrics 
-                        lyrics={lyrics} 
-                        isLoading={lyricsLoading} 
-                        progress={progress} 
-                        onSeek={(time) => {
-                          if (useNativeAudio && audioRef.current) audioRef.current.currentTime = time;
-                          if (playerRef.current) playerRef.current.seekTo(time, true);
-                          setProgress(time);
-                        }}
-                        isExpanded={true}
-                      />
+                     {lyricsLoading ? (
+                        <div className="w-full h-full flex flex-col items-center justify-center opacity-50">
+                          <Loader2 className="w-8 h-8 animate-spin text-white mb-2" />
+                          <span className="text-xs font-bold  tracking-widest text-gray-400">Loading Lyrics</span>
+                        </div>
+                     ) : lyrics.length === 0 ? (
+                        <div className="w-full h-full flex flex-col items-center justify-center opacity-30">
+                          <span className="text-xs font-bold  tracking-widest text-gray-400">No Lyrics Found</span>
+                        </div>
+                     ) : (
+                        <div 
+                          className="flex flex-col gap-3 w-full px-4 py-[75px]"
+                        >
+                          {lyrics.map((line, i) => {
+                             const activeIndex = lyrics.reduce((acc, l, idx) => (progress >= l.time ? idx : acc), 0);
+                             const isActive = i === activeIndex;
+                             const isPast = i < activeIndex;
+                             return (
+                               <motion.div 
+                                 key={i} 
+                                 onClick={() => {
+                                   if (useNativeAudio && audioRef.current) audioRef.current.currentTime = line.time;
+                                   if (playerRef.current) playerRef.current.seekTo(line.time, true);
+                                   setProgress(line.time);
+                                 }}
+                                 animate={{ 
+                                   opacity: isActive ? 1 : isPast ? (isLyricsExpanded ? 0.8 : 0.5) : (isLyricsExpanded ? 0.9 : 0.7), 
+                                   scale: isActive ? 1.05 : 0.95,
+                                   x: isActive ? 20 : 0,
+                                   letterSpacing: isActive ? '0.05em' : '-0.05em'
+                                 }}
+                                 transition={{ type: "spring", stiffness: 400, damping: 25, mass: 0.8 }}
+                                 className="cursor-pointer font-medium tracking-wide  origin-left transition-colors hover:opacity-100 flex flex-wrap text-xl md:text-3xl mb-4"
+                               >
+                                 {line.words ? line.words.map((w, wIdx) => {
+                                   const isWordActive = isActive && progress >= w.time;
+                                   return (
+                                     <span 
+                                       key={wIdx} 
+                                       className="inline-block mr-2 md:mr-3 transition-all duration-150"
+                                       style={{
+                                         color: isWordActive ? '#D4FF00' : (isActive ? '#fff' : (isLyricsExpanded ? '#ccc' : '#999')),
+                                         textShadow: isLyricsExpanded 
+                                           ? (isWordActive ? '2px 2px 0px #000, 0 0 10px rgba(0,0,0,0.8)' : '1px 1px 3px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.8)') 
+                                           : (isWordActive ? '2px 2px 0px #000' : '0px 0px 0px transparent'),
+                                         transform: isWordActive ? 'scale(1.05) translateY(-2px)' : 'scale(1) translateY(0px)'
+                                       }}
+                                     >
+                                       {w.text}
+                                     </span>
+                                   )
+                                 }) : (
+                                   <span 
+                                     style={{ 
+                                       color: isActive ? '#D4FF00' : (isLyricsExpanded ? '#ccc' : '#999'),
+                                       textShadow: isLyricsExpanded ? '1px 1px 3px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.8)' : 'none'
+                                     }}
+                                   >
+                                     {line.text}
+                                   </span>
+                                 )}
+                               </motion.div>
+                             )
+                          })}
+                        </div>
+                     )}
                     </div>
                   </motion.div>
                 )}
