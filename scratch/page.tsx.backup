@@ -111,7 +111,7 @@ const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite, onOpenMenu
     <div 
       onClick={(e) => onPlay(e)}
       onMouseEnter={handleMouseEnter}
-      className="flex items-center gap-3 md:gap-6 group cursor-pointer active:opacity-50 transition-opacity w-full p-2 relative z-0 before:absolute before:inset-0 before:bg-white/5 before:opacity-0 hover:before:opacity-100 before:-z-10 before:rounded-xl"
+      className="flex items-center gap-4 md:gap-6 group cursor-pointer active:opacity-50 transition-opacity w-full p-2 -ml-2 relative z-0 before:absolute before:inset-0 before:bg-white/5 before:opacity-0 hover:before:opacity-100 before:-z-10 before:rounded-xl"
     >
       <div className="text-[10px] md:text-[12px] font-black tracking-widest text-white/30 -rotate-90 origin-center w-4 md:w-6 shrink-0 opacity-0 md:opacity-100 hidden md:block">
         {String(index + 1).padStart(2, '0')}
@@ -133,7 +133,7 @@ const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite, onOpenMenu
         )}
       </div>
 
-      <div className="flex flex-col flex-1 min-w-0 justify-center min-h-[50px] md:min-h-[60px] py-1 border-b border-white/10 group-hover:border-transparent transition-colors relative z-10 pr-2">
+      <div className="flex flex-col flex-1 min-w-0 justify-center min-h-[50px] md:min-h-[60px] py-1 border-b border-white/10 group-hover:border-transparent transition-colors relative z-10">
         <div className="flex flex-col min-w-0">
           <div className="overflow-hidden min-w-0">
             <span className={`scrollable-text-container ${spaceGrotesk.className} font-semibold text-[14px] md:text-[16px] tracking-normal [word-spacing:0.2em] uppercase text-white leading-[1.1] drop-shadow-md block truncate group-hover:w-max group-hover:overflow-visible group-hover:text-clip animate-custom-scroll origin-left`}>
@@ -146,10 +146,10 @@ const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite, onOpenMenu
         </div>
       </div>
 
-      <div className="flex items-center justify-center z-20 md:absolute md:right-4 md:top-1/2 md:-translate-y-1/2 md:pointer-events-none md:group-hover:pointer-events-auto opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0 ml-auto md:ml-0" onClick={e => e.stopPropagation()}>
+      <div className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 flex items-center justify-center z-20 pointer-events-none group-hover:pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
         <button 
           onClick={(e) => { e.stopPropagation(); onToggleFavorite(e); }}
-          className={`w-10 h-10 md:w-10 md:h-10 flex items-center justify-center border hover:border-white/30 rounded-full transition-all duration-300 hover:scale-110 bg-black/50 md:backdrop-blur-sm md:shadow-xl ${isFavorite ? 'border-[#D4FF00]/50 opacity-100 md:pointer-events-auto' : 'border-white/10 opacity-100 md:opacity-0 md:group-hover:opacity-100'}`}
+          className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center border hover:border-white/30 rounded-full transition-all duration-300 hover:scale-110 bg-black/50 backdrop-blur-sm shadow-xl ${isFavorite ? 'border-[#D4FF00]/50 opacity-100 pointer-events-auto' : 'border-white/10 opacity-0 group-hover:opacity-100'}`}
         >
           <Heart className={`w-4 h-4 ${isFavorite ? 'fill-[#D4FF00] text-[#D4FF00]' : 'text-white/50 hover:text-white'}`} />
         </button>
@@ -3445,17 +3445,15 @@ export default function FransHalsMusicApp() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed inset-0 z-[100] bg-[#050505] flex flex-col overflow-y-auto overflow-x-hidden pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]"
+              className="fixed inset-0 z-[100] bg-[#050505] flex flex-col pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]"
             >
-              {/* Ambient Background - Optimized for mobile performance */}
+              {/* Ambient Background */}
               <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none bg-[#020005]">
-                {/* Replaced heavy blur and mix-blend-screen with simple CSS radial gradients for performance */}
-                <div className="absolute -top-[10%] -right-[10%] w-[120%] h-[120%] opacity-40" style={{ background: 'radial-gradient(circle, rgba(29,78,216,0.2) 0%, transparent 60%)' }} />
-                <div className="absolute top-[20%] right-[5%] w-[80%] h-[80%] opacity-40" style={{ background: 'radial-gradient(circle, rgba(192,38,211,0.2) 0%, transparent 60%)' }} />
-                <div className="absolute bottom-[10%] -left-[10%] w-[60%] h-[60%] opacity-30" style={{ background: 'radial-gradient(circle, rgba(212,255,0,0.1) 0%, transparent 60%)' }} />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/90 to-black/40" />
-                {/* Fallback to simple opacity instead of heavy blur for artwork background */}
-                <img src={currentSong.image} className="absolute inset-0 w-full h-full object-cover opacity-10 scale-110" />
+                <div className="absolute -top-[10%] -right-[10%] w-[120%] h-[120%] bg-blue-700/30 rounded-full blur-[100px] mix-blend-screen opacity-60" />
+                <div className="absolute top-[20%] right-[5%] w-[80%] h-[80%] bg-fuchsia-600/30 rounded-full blur-[120px] mix-blend-screen opacity-70" />
+                <div className="absolute bottom-[10%] -left-[10%] w-[60%] h-[60%] bg-[#D4FF00]/10 rounded-full blur-[100px] mix-blend-screen opacity-50" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
+                <img src={currentSong.image} className="absolute inset-0 w-full h-full object-cover blur-[150px] opacity-30 scale-150 mix-blend-screen" />
               </div>
 
               {/* Header */}
@@ -3489,9 +3487,9 @@ export default function FransHalsMusicApp() {
               </div>
 
               {/* Artwork */}
-              <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-8 min-h-[30vh]">
+              <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-8 max-h-[50vh]">
                 <motion.div 
-                  className="w-full max-w-[320px] aspect-square rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-white/10"
+                  className="w-full aspect-square rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-white/10"
                   layoutId="mobile-album-art"
                 >
                   <img src={currentSong.image} className="w-full h-full object-cover" />

@@ -160,12 +160,12 @@ export function Onboarding({ onComplete, existingProfiles = [], onSelectExisting
                  initial={{ opacity: 0, y: -10, scale: 0.97 }}
                  animate={{ opacity: 1, y: 0, scale: 1 }}
                  transition={{ delay: 0.5, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                 className="absolute -top-4 right-0 z-50 flex items-center gap-2 px-4 py-2 bg-black border border-[#D4FF00]/30 rounded-xl text-white/90 hover:text-[#D4FF00] hover:border-[#D4FF00]/80 hover:bg-[#111] hover:-translate-y-0.5 hover:scale-105 shadow-[0_0_15px_rgba(212,255,0,0.1)] hover:shadow-[0_0_20px_rgba(212,255,0,0.3)] transition-all duration-300 cursor-pointer"
+                 className="absolute top-0 right-0 md:-top-4 md:right-0 z-50 flex items-center gap-2 px-5 py-3 md:px-4 md:py-2 bg-black border border-[#D4FF00]/30 rounded-xl text-white/90 hover:text-[#D4FF00] hover:border-[#D4FF00]/80 hover:bg-[#111] hover:-translate-y-0.5 hover:scale-105 shadow-[0_0_15px_rgba(212,255,0,0.1)] hover:shadow-[0_0_20px_rgba(212,255,0,0.3)] transition-all duration-300 cursor-pointer active:scale-95"
                >
-                 <Users className="w-3.5 h-3.5" />
-                 <span className="text-[10px] font-black tracking-[0.2em] uppercase mt-0.5">EXISTING PROFILES</span>
+                 <Users className="w-4 h-4 md:w-3.5 md:h-3.5" />
+                 <span className="text-[11px] md:text-[10px] font-black tracking-[0.2em] uppercase mt-0.5">EXISTING PROFILES</span>
                </motion.button>
-               <h2 className="text-[64px] font-black tracking-tighter text-white leading-[0.8] uppercase w-3/4">CREATE<br/>PROFILE</h2>
+               <h2 className="text-[48px] md:text-[64px] font-black tracking-tighter text-white leading-[0.8] uppercase w-3/4 mt-16 md:mt-0">CREATE<br/>PROFILE</h2>
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-8 w-full max-w-xl mx-auto" autoComplete="off">
@@ -226,11 +226,11 @@ export function Onboarding({ onComplete, existingProfiles = [], onSelectExisting
                <button 
                  type="button"
                  onClick={() => setStep("create_profile")}
-                 className="text-[10px] font-black tracking-[0.4em] text-white/50 hover:text-white absolute -top-4 right-0 transition-colors uppercase cursor-pointer z-50"
+                 className="text-[11px] md:text-[10px] font-black tracking-[0.4em] text-white/50 hover:text-white absolute top-0 right-0 md:-top-4 md:right-0 py-3 md:py-0 px-2 md:px-0 transition-colors uppercase cursor-pointer z-50 active:scale-95"
                >
                  BACK TO CREATE
                </button>
-               <h2 className="text-[64px] font-black tracking-tighter text-white leading-[0.8] uppercase w-3/4 mb-12">SELECT<br/>PROFILE</h2>
+               <h2 className="text-[48px] md:text-[64px] font-black tracking-tighter text-white leading-[0.8] uppercase w-3/4 mb-8 md:mb-12 mt-16 md:mt-0">SELECT<br/>PROFILE</h2>
             </div>
             
             <div className="flex-1 flex flex-col items-center justify-center w-full mt-[-10%]">
