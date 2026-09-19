@@ -1762,6 +1762,7 @@ export default function FransHalsMusicApp() {
   if (!activeProfile || showProfileCreator) {
     return (
       <Onboarding 
+        mode={showProfileCreator ? "create_new" : "default"}
         existingProfiles={profiles}
         onSelectExisting={(profile) => {
           setActiveProfile(profile);

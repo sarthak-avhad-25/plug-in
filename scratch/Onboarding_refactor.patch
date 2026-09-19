@@ -1,0 +1,60 @@
+--- src/app/Onboarding.tsx
++++ src/app/Onboarding.tsx
+@@ -9,43 +9,40 @@
+ }));
+ 
+-export function Onboarding({ onComplete, existingProfiles = [], onSelectExisting }: { onComplete: (profile: any) => void; existingProfiles?: any[]; onSelectExisting?: (profile: any) => void; }) {
+-  const [step, setStep] = useState<"welcome" | "transition_to_profile" | "create_profile" | "transition_to_app" | "select_profile">("welcome");
++export function Onboarding({ onComplete, existingProfiles = [], onSelectExisting, mode = 'default' }: { onComplete: (profile: any) => void; existingProfiles?: any[]; onSelectExisting?: (profile: any) => void; mode?: 'default' | 'create_new'; }) {
++  const [step, setStep] = useState<"welcome" | "profile_choice" | "new_profile_transition" | "create_profile" | "transition_to_app" | "select_profile">(mode === 'create_new' ? "new_profile_transition" : "welcome");
+   const [username, setUsername] = useState("");
+   const [selectedAvatarId, setSelectedAvatarId] = useState(AVATARS[0].id);
+-  const [fastForward, setFastForward] = useState(false);
+   
+   const timer1 = useRef<NodeJS.Timeout | null>(null);
+-  const timer2 = useRef<NodeJS.Timeout | null>(null);
+ 
+   useEffect(() => {
+-    if (fastForward) {
+-      if (timer1.current) clearTimeout(timer1.current);
+-      if (timer2.current) clearTimeout(timer2.current);
+-      setStep("create_profile");
++    if (step === "welcome") {
++      timer1.current = setTimeout(() => {
++        if (existingProfiles.length > 0) {
++          setStep("select_profile");
++        } else {
++          setStep("profile_choice");
++        }
++      }, 4000);
++    } else if (step === "new_profile_transition") {
++      timer1.current = setTimeout(() => {
++        setStep("create_profile");
++      }, 1500);
++    }
++
++    return () => {
++      if (timer1.current) clearTimeout(timer1.current);
++    };
++  }, [step, existingProfiles.length]);
+-      return;
+-    }
+-
+-    timer1.current = setTimeout(() => {
+-      setStep("transition_to_profile");
+-      timer2.current = setTimeout(() => {
+-        setStep("create_profile");
+-      }, 2500);
+-    }, 4000);
+-    
+-    return () => {
+-      if (timer1.current) clearTimeout(timer1.current);
+-      if (timer2.current) clearTimeout(timer2.current);
+-    };
+-  }, [fastForward]);
+-
+-  const handleScreenClick = () => {
+-    if (step === "welcome" || step === "transition_to_profile") {
+-      setFastForward(true);
+-    }
+-  };

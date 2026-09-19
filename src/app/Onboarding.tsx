@@ -1,48 +1,39 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users } from "lucide-react";
+import { Users, Plus } from "lucide-react";
 
 const AVATARS = Array.from({ length: 10 }).map((_, i) => ({
   id: `pic-${i + 1}`,
   image: `/avatars/avatar-${i + 1}.png`
 }));
 
-export function Onboarding({ onComplete, existingProfiles = [], onSelectExisting }: { onComplete: (profile: any) => void; existingProfiles?: any[]; onSelectExisting?: (profile: any) => void; }) {
-  const [step, setStep] = useState<"welcome" | "transition_to_profile" | "create_profile" | "transition_to_app" | "select_profile">("welcome");
+export function Onboarding({ onComplete, existingProfiles = [], onSelectExisting, mode = 'default' }: { onComplete: (profile: any) => void; existingProfiles?: any[]; onSelectExisting?: (profile: any) => void; mode?: 'default' | 'create_new'; }) {
+  const [step, setStep] = useState<"welcome" | "profile_choice" | "new_profile_transition" | "create_profile" | "transition_to_app" | "select_profile">(mode === 'create_new' ? "new_profile_transition" : "welcome");
   const [username, setUsername] = useState("");
   const [selectedAvatarId, setSelectedAvatarId] = useState(AVATARS[0].id);
-  const [fastForward, setFastForward] = useState(false);
   
   const timer1 = useRef<NodeJS.Timeout | null>(null);
-  const timer2 = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (fastForward) {
-      if (timer1.current) clearTimeout(timer1.current);
-      if (timer2.current) clearTimeout(timer2.current);
-      setStep("create_profile");
-      return;
+    if (step === "welcome") {
+      timer1.current = setTimeout(() => {
+        if (existingProfiles.length > 0) {
+          setStep("select_profile");
+        } else {
+          setStep("profile_choice");
+        }
+      }, 4000);
+    } else if (step === "new_profile_transition") {
+      timer1.current = setTimeout(() => {
+        setStep("create_profile");
+      }, 1500);
     }
 
-    timer1.current = setTimeout(() => {
-      setStep("transition_to_profile");
-      timer2.current = setTimeout(() => {
-        setStep("create_profile");
-      }, 2500);
-    }, 4000);
-    
     return () => {
       if (timer1.current) clearTimeout(timer1.current);
-      if (timer2.current) clearTimeout(timer2.current);
     };
-  }, [fastForward]);
-
-  const handleScreenClick = () => {
-    if (step === "welcome" || step === "transition_to_profile") {
-      setFastForward(true);
-    }
-  };
+  }, [step, existingProfiles.length]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,8 +67,7 @@ export function Onboarding({ onComplete, existingProfiles = [], onSelectExisting
 
   return (
     <div 
-      onClick={handleScreenClick}
-      className={`fixed inset-0 bg-[#020202] z-[9999] flex flex-col items-center justify-center overflow-hidden ${(step === "welcome" || step === "transition_to_profile") ? 'cursor-pointer' : ''}`}
+      className={`fixed inset-0 bg-[#020202] z-[9999] flex flex-col items-center justify-center overflow-hidden`}
     >
       <div className="absolute inset-0 bg-noise opacity-5 pointer-events-none mix-blend-overlay" />
 
@@ -116,14 +106,14 @@ export function Onboarding({ onComplete, existingProfiles = [], onSelectExisting
               <motion.h1 
                 className="text-[120px] md:text-[200px] font-black text-white tracking-tighter leading-[0.8] mix-blend-difference"
                 animate={{ letterSpacing: ["-5px", "0px", "-5px"] }}
-                transition={{ duration: fastForward ? 0.4 : 6, ease: "easeInOut" }}
+                transition={{ duration: 6, ease: "easeInOut" }}
               >
                 PLUGIN
               </motion.h1>
               <motion.p
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: fastForward ? 0.2 : 1.5, duration: 1 }}
+                transition={{ delay: 1.5, duration: 1 }}
                 className="text-sm md:text-lg font-bold tracking-[0.3em] text-[#D4FF00] uppercase mt-6"
               >
                 Tune In. Zone Out.
@@ -134,12 +124,90 @@ export function Onboarding({ onComplete, existingProfiles = [], onSelectExisting
               <motion.span 
                  initial={{ opacity: 0, x: 20 }}
                  animate={{ opacity: 1, x: 0 }}
-                 transition={{ delay: fastForward ? 0.1 : 2 }}
+                 transition={{ delay: 2 }}
                  className="text-[12px] font-black tracking-[0.4em] text-white/50 uppercase border-b border-white/20 pb-1"
                >
                  A NEW SOUND
                </motion.span>
             </div>
+          </motion.div>
+        )}
+
+        {/* PROFILE CHOICE (NEW USER) */}
+        {step === "profile_choice" && (
+          <motion.div
+            key="profile_choice"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, filter: "blur(20px)" }}
+            transition={{ duration: 1, ease: "easeInOut" }}
+            className="relative z-10 w-full h-full flex flex-col items-center justify-center gap-12 p-12"
+          >
+            <div className="flex flex-col gap-4 text-center">
+              <h2 className="text-[32px] md:text-[48px] font-black tracking-tighter text-white uppercase leading-[1]">
+                WELCOME TO <span className="text-[#D4FF00]">PLUGIN</span>
+              </h2>
+              <p className="text-xs md:text-sm font-bold tracking-[0.2em] text-white/50 uppercase">
+                Let's get you set up.
+              </p>
+            </div>
+            
+            <div className="flex flex-col gap-6 w-full max-w-sm">
+              <button
+                onClick={() => setStep("new_profile_transition")}
+                className="w-full py-6 bg-[#D4FF00] text-black font-black tracking-tighter text-2xl uppercase hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(212,255,0,0.2)] hover:shadow-[0_0_30px_rgba(212,255,0,0.4)]"
+              >
+                CREATE PROFILE
+              </button>
+              
+              <button
+                onClick={() => setStep("select_profile")}
+                className="w-full py-6 bg-transparent border border-white/20 text-white font-black tracking-tighter text-xl uppercase hover:bg-white/5 hover:border-white/50 active:scale-95 transition-all"
+              >
+                EXISTING PROFILES
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* NEW PROFILE TRANSITION */}
+        {step === "new_profile_transition" && (
+          <motion.div
+            key="new_profile_transition"
+            className="relative z-10 w-full h-full flex items-center justify-center"
+          >
+            <motion.div
+              initial={{ scaleX: 0, opacity: 0 }}
+              animate={{ scaleX: 1, opacity: 1 }}
+              exit={{ opacity: 0, scale: 1.1, filter: "blur(10px)" }}
+              transition={{ duration: 0.8, ease: "easeInOut" }}
+              className="absolute h-1 bg-[#D4FF00] rounded-full shadow-[0_0_20px_#D4FF00]"
+              style={{ width: '200px' }}
+            />
+            
+            <motion.div
+              initial={{ opacity: 0, filter: "blur(20px)", scale: 0.8 }}
+              animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
+              transition={{ delay: 0.3, duration: 0.8 }}
+              className="absolute flex flex-col items-center justify-center text-center mix-blend-difference"
+            >
+              <motion.h2
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
+                className="text-[48px] md:text-[64px] font-black text-white tracking-tighter uppercase leading-none"
+              >
+                CREATE YOUR SPACE.
+              </motion.h2>
+              <motion.h2
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7, duration: 0.5 }}
+                className="text-[48px] md:text-[64px] font-black text-[#D4FF00] tracking-tighter uppercase leading-none mt-2"
+              >
+                MAKE IT YOURS.
+              </motion.h2>
+            </motion.div>
           </motion.div>
         )}
 
@@ -225,10 +293,10 @@ export function Onboarding({ onComplete, existingProfiles = [], onSelectExisting
             <div className="flex flex-col gap-2 relative">
                <button 
                  type="button"
-                 onClick={() => setStep("create_profile")}
-                 className="text-[11px] md:text-[10px] font-black tracking-[0.4em] text-white/50 hover:text-white absolute top-0 right-0 md:-top-4 md:right-0 py-3 md:py-0 px-2 md:px-0 transition-colors uppercase cursor-pointer z-50 active:scale-95"
+                 onClick={() => setStep("new_profile_transition")}
+                 className="text-[11px] md:text-[10px] font-black tracking-[0.4em] text-white/50 hover:text-white absolute top-0 right-0 md:-top-4 md:right-0 py-3 md:py-0 px-2 md:px-0 transition-colors uppercase cursor-pointer z-50 active:scale-95 flex items-center gap-2"
                >
-                 BACK TO CREATE
+                 <Plus className="w-3 h-3" /> CREATE NEW
                </button>
                <h2 className="text-[48px] md:text-[64px] font-black tracking-tighter text-white leading-[0.8] uppercase w-3/4 mb-8 md:mb-12 mt-16 md:mt-0">SELECT<br/>PROFILE</h2>
             </div>
@@ -239,10 +307,10 @@ export function Onboarding({ onComplete, existingProfiles = [], onSelectExisting
                  <div className="text-center flex flex-col items-center gap-6">
                    <div className="text-white/40 text-xl font-bold tracking-widest uppercase">No saved profiles found.</div>
                    <button 
-                     onClick={() => setStep("create_profile")}
-                     className="px-8 py-4 bg-white/10 hover:bg-white/20 text-white font-bold tracking-widest uppercase rounded-full transition-colors"
+                     onClick={() => setStep("new_profile_transition")}
+                     className="px-8 py-4 bg-[#D4FF00] hover:bg-[#D4FF00]/80 text-black font-black tracking-widest uppercase rounded-full transition-colors"
                    >
-                     Return
+                     CREATE PROFILE
                    </button>
                  </div>
                ) : (
