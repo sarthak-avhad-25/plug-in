@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { NeonBackground } from "./NeonBackground";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { Play, Pause, Search, Loader2, ArrowRight, SkipBack, SkipForward, Heart, GripVertical, Headphones, Maximize2, Minimize2, Trash2, Info, Home, Library, Compass, ChevronDown, MoreHorizontal, ListMusic, Quote, Check, Plus , Shuffle, Repeat, Volume2, Volume1, VolumeX, Share, Power, ArrowDownToLine, XCircle, WifiOff , Menu, X, Music } from "lucide-react";
@@ -438,6 +438,26 @@ export default function FransHalsMusicApp() {
   const [showMobilePlayer, setShowMobilePlayer] = useState(false);
   const [useNativeAudio, setUseNativeAudio] = useState(false);
 
+  useEffect(() => {
+    const activeVolume = isMuted ? 0 : volume;
+    if (audioRef.current) {
+      audioRef.current.volume = activeVolume;
+      audioRef.current.muted = isMuted;
+    }
+    if (playerRef.current && typeof playerRef.current.setVolume === 'function') {
+      if (useNativeAudio) {
+        playerRef.current.setVolume(0);
+      } else {
+        if (isMuted) {
+          playerRef.current.mute?.();
+        } else {
+          playerRef.current.unMute?.();
+          playerRef.current.setVolume(activeVolume * 100);
+        }
+      }
+    }
+  }, [volume, isMuted, useNativeAudio]);
+
   const savePlaylists = (newPlaylists: Playlist[]) => {
     setPlaylists(newPlaylists);
     if (activeProfile) {
@@ -722,7 +742,9 @@ export default function FransHalsMusicApp() {
     if (useNativeAudio) {
       playerRef.current.setVolume(0);
     } else {
-      playerRef.current.setVolume(50);
+      const activeVolume = isMuted ? 0 : volume * 100;
+      playerRef.current.setVolume(activeVolume);
+      if (isMuted) playerRef.current.mute?.();
     }
     // Stop the dummy video if no song is selected yet
     if (!currentSong) {
@@ -1202,6 +1224,7 @@ export default function FransHalsMusicApp() {
   const [relatedSongs, setRelatedSongs] = useState<Song[]>([]);
   const [artistBg, setArtistBg] = useState<string | null>(null);
 
+
   useEffect(() => {
     if (!currentSong) return;
     setArtistBg(null); // Reset while fetching
@@ -1304,6 +1327,31 @@ export default function FransHalsMusicApp() {
   }, []);
   const [playbackContext, setPlaybackContext] = useState<{ type: "radio" | "playlist", playlistId?: string, playlistSongs?: Song[] }>({ type: "radio" });
 
+  const upNextQueue = useMemo(() => {
+    if (!currentSong) return [];
+    
+    if (playbackContext.type === "playlist") {
+      let actualSongs = playbackContext.playlistSongs || [];
+      if (playbackContext.playlistId) {
+        const p = playlists.find(pl => pl.id === playbackContext.playlistId);
+        if (p) actualSongs = p.songs;
+      }
+      
+      const idx = actualSongs.findIndex(s => s.id === currentSong.id);
+      if (idx !== -1) {
+        return actualSongs.slice(idx + 1);
+      }
+      return actualSongs;
+    }
+    
+    // For radio context
+    const idx = relatedSongs.findIndex(s => s.id === currentSong.id);
+    if (idx !== -1) {
+      return relatedSongs.slice(idx + 1);
+    }
+    return relatedSongs.filter(s => s.id !== currentSong.id);
+  }, [playbackContext, playlists, currentSong, relatedSongs]);
+
   const [clickOrigin, setClickOrigin] = useState<{x: number, y: number} | null>(null);
 
   const playRequestIdRef = useRef(0);
@@ -1334,8 +1382,8 @@ export default function FransHalsMusicApp() {
       setPlaybackContext({ type: "radio" });
     }
 
-    if (addToHistory && currentSong?.id !== song.id) {
-      setPlaybackHistory((prev) => [...prev, song]);
+    if (addToHistory && currentSong && currentSong.id !== song.id) {
+      setPlaybackHistory((prev) => [...prev, currentSong]);
     }
     
     shouldPlayRef.current = true;
@@ -1498,10 +1546,21 @@ export default function FransHalsMusicApp() {
     
     setLyrics([]);
     setLyricsLoading(true);
+    setPlayerTab('lyrics');
+    setIsLyricsExpanded(true);
     lastScrolledIndex.current = -1;
     
-    // Fetch related songs in the background
-    getRelatedSongs(song.id).then(setRelatedSongs);
+    // Fetch related songs in the background and append to queue if advancing
+    getRelatedSongs(song.id).then(fetched => {
+      setRelatedSongs(prev => {
+        const isSongInQueue = prev.some(s => s.id === song.id);
+        if (isSongInQueue) {
+          const newUnique = fetched.filter(f => !prev.some(p => p.id === f.id));
+          return [...prev, ...newUnique];
+        }
+        return fetched;
+      });
+    });
     
     getSyncedLyrics(song.title, song.artist).then(fetchedLyrics => {
       setLyrics(fetchedLyrics);
@@ -1536,17 +1595,14 @@ export default function FransHalsMusicApp() {
       }
     }
 
-    if (relatedSongs.length > 0) {
-      const available = relatedSongs.filter(s => s.id !== currentSong?.id);
-      if (available.length > 0) {
-        let next;
-        if (isShuffleOn && available.length > 1) {
-          next = available[Math.floor(Math.random() * available.length)];
-        } else {
-          next = available[0];
-        }
-        playSong(next, true, "radio");
+    if (upNextQueue.length > 0) {
+      let next;
+      if (isShuffleOn && upNextQueue.length > 1) {
+        next = upNextQueue[Math.floor(Math.random() * upNextQueue.length)];
+      } else {
+        next = upNextQueue[0];
       }
+      playSong(next, true, "radio");
     }
   };
 
@@ -2204,24 +2260,11 @@ export default function FransHalsMusicApp() {
                    <div className="flex items-center justify-between w-full border-t border-white/10 pt-6 mt-8">
                      <div className="flex items-center gap-6">
                        <button onClick={() => setPlayerTab(playerTab === 'queue' ? null : 'queue')} className={`text-xs font-bold uppercase tracking-widest transition-colors ${playerTab === 'queue' ? 'text-[#D4FF00]' : 'text-white/50 hover:text-white'}`}>Up Next</button>
-                       <button onClick={() => setPlayerTab(playerTab === 'lyrics' ? null : 'lyrics')} className={`text-xs font-bold uppercase tracking-widest transition-colors ${playerTab === 'lyrics' ? 'text-[#D4FF00]' : 'text-white/50 hover:text-white'}`}>Lyrics</button>
-                       <button onClick={() => setPlayerTab(playerTab === 'related' ? null : 'related')} className={`text-xs font-bold uppercase tracking-widest transition-colors ${playerTab === 'related' ? 'text-[#D4FF00]' : 'text-white/50 hover:text-white'}`}>Related</button>
+                      <button onClick={() => setPlayerTab(playerTab === 'lyrics' ? null : 'lyrics')} className={`text-xs font-bold uppercase tracking-widest transition-colors ${playerTab === 'lyrics' || playerTab === null ? 'text-[#D4FF00]' : 'text-white/50 hover:text-white'}`}>Lyrics</button>
+                      <button onClick={() => setPlayerTab(playerTab === 'related' ? null : 'related')} className={`text-xs font-bold uppercase tracking-widest transition-colors ${playerTab === 'related' ? 'text-[#D4FF00]' : 'text-white/50 hover:text-white'}`}>Related</button>
                      </div>
                      <div className="flex items-center gap-6">
-                       <div className="relative" onMouseLeave={() => setShowVolumeSlider(false)}>
-                         <button onMouseEnter={() => setShowVolumeSlider(true)} onClick={() => setIsMuted(!isMuted)} className="text-white/40 hover:text-white transition-colors" title="Volume" aria-label="Volume">
-                           {isMuted || volume === 0 ? <VolumeX className="w-5 h-5" /> : volume < 0.5 ? <Volume1 className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                         </button>
-                         <AnimatePresence>
-                           {showVolumeSlider && (
-                             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 bg-[#1a1a1a] border border-white/10 rounded-xl p-4 shadow-xl z-50 flex items-center justify-center h-32 w-10">
-                               <div className="relative w-full h-full flex items-center justify-center">
-                                 <input type="range" min="0" max="1" step="0.01" value={isMuted ? 0 : volume} onChange={(e) => { setIsMuted(false); setVolume(parseFloat(e.target.value)); }} className="appearance-none bg-white/20 h-1 w-24 rounded-full outline-none transform -rotate-90 origin-center cursor-pointer absolute" style={{ WebkitAppearance: 'none', background: `linear-gradient(to right, #D4FF00 0%, #D4FF00 ${(isMuted ? 0 : volume)*100}%, rgba(255,255,255,0.2) ${(isMuted ? 0 : volume)*100}%, rgba(255,255,255,0.2) 100%)` }} />
-                               </div>
-                             </motion.div>
-                           )}
-                         </AnimatePresence>
-                       </div>
+
                        <div className="relative">
                          <button onClick={(e) => handleShare(currentSong, e)} className="text-white/40 hover:text-white transition-colors" aria-label="Share">
                            <Share className="w-5 h-5" />
@@ -2236,37 +2279,7 @@ export default function FransHalsMusicApp() {
                    </div>
                    {/* Hidden Old Secondary Controls Wrapper to avoid regex breakage */}
                    <div className="hidden flex items-center justify-between w-full px-8 py-5 rounded-2xl bg-white/5 border border-white/5">
-                     <div className="relative" onMouseLeave={() => setShowVolumeSlider(false)}>
-                       <button 
-                         onMouseEnter={() => setShowVolumeSlider(true)}
-                         onClick={() => setIsMuted(!isMuted)} 
-                         className="text-white/40 hover:text-white transition-colors"
-                         title="Volume"
-                         aria-label="Volume"
-                       >
-                         {isMuted || volume === 0 ? <VolumeX className="w-6 h-6" /> : volume < 0.5 ? <Volume1 className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
-                       </button>
-                       <AnimatePresence>
-                         {showVolumeSlider && (
-                           <motion.div 
-                             initial={{ opacity: 0, y: 10 }}
-                             animate={{ opacity: 1, y: 0 }}
-                             exit={{ opacity: 0, y: 10 }}
-                             className="absolute bottom-full left-0 mb-4 bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 shadow-xl z-50 flex items-center justify-center h-32 w-12"
-                           >
-                             <div className="relative w-full h-full flex items-center justify-center">
-                               <input 
-                                 type="range" min="0" max="1" step="0.01" 
-                                 value={isMuted ? 0 : volume} 
-                                 onChange={(e) => { setIsMuted(false); setVolume(parseFloat(e.target.value)); }} 
-                                 className="appearance-none bg-white/20 h-1 w-24 rounded-full outline-none transform -rotate-90 origin-center cursor-pointer absolute"
-                                 style={{ WebkitAppearance: 'none', background: `linear-gradient(to right, #D4FF00 0%, #D4FF00 ${(isMuted ? 0 : volume)*100}%, rgba(255,255,255,0.2) ${(isMuted ? 0 : volume)*100}%, rgba(255,255,255,0.2) 100%)` }}
-                               />
-                             </div>
-                           </motion.div>
-                         )}
-                       </AnimatePresence>
-                     </div>
+
                      <div className="flex items-center gap-8 relative">
                        <button 
                          onClick={(e) => toggleLike(currentSong, e)}
@@ -2337,16 +2350,11 @@ export default function FransHalsMusicApp() {
                            ))}
                          </div>
                        )}
-                       <div className="flex flex-col gap-2 relative">
-                         <h3 className="text-sm font-bold text-[#D4FF00] uppercase tracking-widest">Now Playing</h3>
-                         <div className="ring-2 ring-[#D4FF00] rounded-xl">
-                           <SongBox layout="horizontal" hideActions={true} song={currentSong} index={0} onPlay={() => {}} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === currentSong.id) ?? false} onToggleFavorite={(e) => toggleLike(currentSong, e)} onOpenMenu={(e) => openPlaylistMenu(currentSong, e)} isDownloaded={downloads.some(d => d.id === currentSong.id)} downloadProgress={downloadProgress[currentSong.id]} onDownload={(e) => handleDownload(currentSong, e)} onRemoveDownload={(e) => handleRemoveDownload(currentSong.id, e)} />
-                         </div>
-                       </div>
-                       {relatedSongs.filter(s => s.id !== currentSong.id).length > 0 && (
+
+                       {upNextQueue.length > 0 && (
                          <div className="flex flex-col gap-2">
                            <h3 className="text-sm font-bold text-white/80 uppercase tracking-widest">Up Next</h3>
-                           {relatedSongs.filter(s => s.id !== currentSong.id).map((song, i) => (
+                           {upNextQueue.map((song, i) => (
                               <motion.div 
                                 key={song.id} 
                                 initial={i < 15 ? { opacity: 0, y: 15, x: 5, scale: 0.99 } : { opacity: 1, y: 0, x: 0, scale: 1 }}
@@ -2365,7 +2373,7 @@ export default function FransHalsMusicApp() {
                          </div>
                        )}
                      </div>
-                   ) : playerTab === 'lyrics' ? (
+                   ) : (playerTab === 'lyrics' || playerTab === null) ? (
                      <>
                     {lyricsLoading ? (
                        <div className="w-full h-full flex flex-col items-center justify-center opacity-50">
@@ -2378,7 +2386,7 @@ export default function FransHalsMusicApp() {
                        </div>
                     ) : (
                        <div 
-                         className="flex flex-col gap-3 w-full px-4 py-[75px]"
+                         className="flex flex-col gap-3 w-full px-4 py-[75px] h-[400px] overflow-y-auto scrollbar-hide relative"
                        >
                          {lyrics.map((line, i) => {
                             const activeIndex = lyrics.reduce((acc, l, idx) => (progress >= l.time ? idx : acc), 0);
@@ -3608,35 +3616,7 @@ export default function FransHalsMusicApp() {
                       </div>
                     )}
                   </div>
-                  <div className="relative">
-                    <button 
-                      onClick={() => setShowVolumeSlider(!showVolumeSlider)} 
-                      className="p-2 text-white/40 hover:text-white transition-transform active:scale-90"
-                      aria-label="Volume"
-                    >
-                      {isMuted || volume === 0 ? <VolumeX className="w-6 h-6" /> : volume < 0.5 ? <Volume1 className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
-                    </button>
-                    <AnimatePresence>
-                      {showVolumeSlider && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 10 }}
-                          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 shadow-xl z-[60] flex items-center justify-center h-32 w-12"
-                        >
-                          <div className="relative w-full h-full flex items-center justify-center">
-                            <input 
-                              type="range" min="0" max="1" step="0.01" 
-                              value={isMuted ? 0 : volume} 
-                              onChange={(e) => { setIsMuted(false); setVolume(parseFloat(e.target.value)); }} 
-                              className="appearance-none bg-white/20 h-1 w-24 rounded-full outline-none transform -rotate-90 origin-center cursor-pointer absolute"
-                              style={{ WebkitAppearance: 'none', background: `linear-gradient(to right, #D4FF00 0%, #D4FF00 ${(isMuted ? 0 : volume)*100}%, rgba(255,255,255,0.2) ${(isMuted ? 0 : volume)*100}%, rgba(255,255,255,0.2) 100%)` }}
-                            />
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
+
                   <button onClick={() => { setIsQueueExpanded(!isQueueExpanded); setIsLyricsExpanded(false); }} className={`p-2 transition-transform active:scale-90 ${isQueueExpanded ? 'text-white' : 'text-white/40 hover:text-white'}`} aria-label="Queue">
                     <ListMusic className="w-6 h-6" />
                   </button>
@@ -3679,16 +3659,11 @@ export default function FransHalsMusicApp() {
                           ))}
                         </div>
                       )}
-                      <div className="flex flex-col gap-2 relative">
-                        <h3 className="text-sm font-bold text-[#D4FF00] uppercase tracking-widest px-2">Now Playing</h3>
-                        <div className="ring-2 ring-[#D4FF00] rounded-xl overflow-hidden">
-                          <SongBox layout="horizontal" hideActions={true} song={currentSong} index={0} onPlay={() => {}} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === currentSong.id) ?? false} onToggleFavorite={(e) => toggleLike(currentSong, e)} onOpenMenu={(e) => openPlaylistMenu(currentSong, e)} isDownloaded={downloads.some(d => d.id === currentSong.id)} downloadProgress={downloadProgress[currentSong.id]} onDownload={(e) => handleDownload(currentSong, e)} onRemoveDownload={(e) => handleRemoveDownload(currentSong.id, e)} />
-                        </div>
-                      </div>
-                      {relatedSongs.filter(s => s.id !== currentSong.id).length > 0 && (
+
+                      {upNextQueue.length > 0 && (
                         <div className="flex flex-col gap-2">
                           <h3 className="text-sm font-bold text-white/80 uppercase tracking-widest px-2">Up Next</h3>
-                          {relatedSongs.filter(s => s.id !== currentSong.id).map((song, i) => (
+                          {upNextQueue.map((song, i) => (
                             <SongBox layout="horizontal" hideActions={true} key={song.id} song={song} index={i} onPlay={() => playSong(song)} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} isDownloaded={downloads.some(d => d.id === song.id)} downloadProgress={downloadProgress[song.id]} onDownload={(e) => handleDownload(song, e)} onRemoveDownload={(e) => handleRemoveDownload(song.id, e)} />
                           ))}
                         </div>
