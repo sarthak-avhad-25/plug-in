@@ -1709,15 +1709,26 @@ export default function FransHalsMusicApp() {
 
   if (!activeProfile || showProfileCreator) {
     return (
-      <Onboarding onComplete={(profile) => {
-        const updated = [...profiles, profile];
-        saveProfiles(updated);
-        setActiveProfile(profile);
-        localStorage.setItem("music_active_profile", JSON.stringify(profile));
-        setShowGreeting(true);
-        setTimeout(() => setShowGreeting(false), 4000);
-        setShowProfileCreator(false);
-      }} />
+      <Onboarding 
+        existingProfiles={profiles}
+        onSelectExisting={(profile) => {
+          setActiveProfile(profile);
+          localStorage.setItem("music_active_profile", JSON.stringify(profile));
+          saveActiveProfileServer(profile);
+          setShowGreeting(true);
+          setTimeout(() => setShowGreeting(false), 4000);
+          setShowProfileCreator(false);
+        }}
+        onComplete={(profile) => {
+          const updated = [...profiles, profile];
+          saveProfiles(updated);
+          setActiveProfile(profile);
+          localStorage.setItem("music_active_profile", JSON.stringify(profile));
+          setShowGreeting(true);
+          setTimeout(() => setShowGreeting(false), 4000);
+          setShowProfileCreator(false);
+        }} 
+      />
     );
   }
 
@@ -2325,9 +2336,20 @@ export default function FransHalsMusicApp() {
                          <div className="flex flex-col gap-2">
                            <h3 className="text-sm font-bold text-white/50 uppercase tracking-widest">Previously Played</h3>
                            {playbackHistory.map((song, i) => (
-                             <div key={i} className="opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all">
+                             <motion.div 
+                               key={i} 
+                               initial={i < 15 ? { opacity: 0, y: -18, x: 20, scale: 0.98 } : { opacity: 1, y: 0, x: 0, scale: 1 }}
+                               animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
+                               transition={{ 
+                                 delay: i < 15 ? i * 0.07 : 0, 
+                                 duration: 0.6, 
+                                 ease: [0.22, 1, 0.36, 1] 
+                               }}
+                               style={{ zIndex: 100 - i }}
+                               className="opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all relative"
+                             >
                                <SongBox layout="horizontal" hideActions={true} song={song} index={i} onPlay={() => playSong(song)} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} isDownloaded={downloads.some(d => d.id === song.id)} downloadProgress={downloadProgress[song.id]} onDownload={(e) => handleDownload(song, e)} onRemoveDownload={(e) => handleRemoveDownload(song.id, e)} />
-                             </div>
+                             </motion.div>
                            ))}
                          </div>
                        )}
@@ -2341,7 +2363,20 @@ export default function FransHalsMusicApp() {
                          <div className="flex flex-col gap-2">
                            <h3 className="text-sm font-bold text-white/80 uppercase tracking-widest">Up Next</h3>
                            {relatedSongs.filter(s => s.id !== currentSong.id).map((song, i) => (
-                              <SongBox layout="horizontal" hideActions={true} key={song.id} song={song} index={i} onPlay={() => playSong(song)} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} isDownloaded={downloads.some(d => d.id === song.id)} downloadProgress={downloadProgress[song.id]} onDownload={(e) => handleDownload(song, e)} onRemoveDownload={(e) => handleRemoveDownload(song.id, e)} />
+                              <motion.div 
+                                key={song.id} 
+                                initial={i < 15 ? { opacity: 0, y: -18, x: 20, scale: 0.98 } : { opacity: 1, y: 0, x: 0, scale: 1 }}
+                                animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
+                                transition={{ 
+                                  delay: i < 15 ? i * 0.07 : 0, 
+                                  duration: 0.6, 
+                                  ease: [0.22, 1, 0.36, 1] 
+                                }}
+                                style={{ zIndex: 100 - i }}
+                                className="relative"
+                              >
+                                <SongBox layout="horizontal" hideActions={true} song={song} index={i} onPlay={() => playSong(song)} isFavorite={playlists.find(p => p.id === 'liked-songs')?.songs.some(s => s.id === song.id) ?? false} onToggleFavorite={(e) => toggleLike(song, e)} onOpenMenu={(e) => openPlaylistMenu(song, e)} isDownloaded={downloads.some(d => d.id === song.id)} downloadProgress={downloadProgress[song.id]} onDownload={(e) => handleDownload(song, e)} onRemoveDownload={(e) => handleRemoveDownload(song.id, e)} />
+                              </motion.div>
                            ))}
                          </div>
                        )}
@@ -2812,12 +2847,23 @@ export default function FransHalsMusicApp() {
                   {downloads.length} songs • {(downloads.reduce((acc, d) => acc + d.size, 0) / (1024 * 1024)).toFixed(1)} MB
                 </div>
               </div>
-              <div className="flex flex-col gap-2 relative">
+              <div className="flex flex-col gap-2 relative overflow-x-hidden">
                 {downloads.length === 0 ? (
                   <div className="py-20 text-center text-white/40">No downloaded songs yet.</div>
                 ) : (
                   downloads.map((d, index) => (
-                    <div className="flex items-center group/box transition-all duration-200" key={d.id}>
+                    <motion.div 
+                      key={d.id} 
+                      initial={index < 15 ? { opacity: 0, y: -18, x: 20, scale: 0.98 } : { opacity: 1, y: 0, x: 0, scale: 1 }}
+                      animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
+                      transition={{ 
+                        delay: index < 15 ? index * 0.07 : 0, 
+                        duration: 0.6, 
+                        ease: [0.22, 1, 0.36, 1] 
+                      }}
+                      style={{ zIndex: 100 - index }}
+                      className="flex items-center group/box transition-all duration-200 relative"
+                    >
                       <div className="flex-1 pointer-events-auto">
                         <SongBox 
                           song={d.metadata} 
@@ -2831,7 +2877,7 @@ export default function FransHalsMusicApp() {
                           onRemoveDownload={(e) => handleRemoveDownload(d.id, e)}
                         />
                       </div>
-                    </div>
+                    </motion.div>
                   ))
                 )}
               </div>
@@ -2884,8 +2930,16 @@ export default function FransHalsMusicApp() {
                 <div className="flex flex-col border-y border-white/20 overflow-hidden mb-6 pt-4 w-[min(100%,900px)] mx-auto">
                   <div className="flex flex-col divide-y divide-white/10 p-2">
                     {activePlaylist.songs.map((song, index) => (
-                      <div 
+                      <motion.div 
                         key={song.id} 
+                        initial={index < 15 ? { opacity: 0, y: -18, x: 20, scale: 0.98 } : { opacity: 1, y: 0, x: 0, scale: 1 }}
+                        animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
+                        transition={{ 
+                          delay: index < 15 ? index * 0.07 : 0, 
+                          duration: 0.6, 
+                          ease: [0.22, 1, 0.36, 1] 
+                        }}
+                        style={{ zIndex: 100 - index }}
                         className={`relative group/box flex transition-all duration-200 ${draggedIndex === index ? 'opacity-30 scale-[0.98]' : 'opacity-100'}`}
                         draggable={isEditingPlaylist}
                         onDragStart={() => setDraggedIndex(index)}
@@ -2924,7 +2978,7 @@ export default function FransHalsMusicApp() {
                             <GripVertical className="w-8 h-8" />
                           </div>
                         )}
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
                 </div>
@@ -3145,10 +3199,22 @@ export default function FransHalsMusicApp() {
               {isSearching ? (
                  <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-[#D4FF00]" /></div>
               ) : hasSearched && searchResults.length > 0 && (
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3 overflow-x-hidden">
                   <h2 className="text-sm font-bold uppercase tracking-widest text-white/40 mb-2">Results</h2>
                   {searchResults.map((song, i) => (
-                    <div key={song.id} className="flex items-center gap-4 p-2 rounded-xl active:bg-white/5" onClick={() => playSong(song)}>
+                    <motion.div 
+                      key={song.id} 
+                      initial={i < 15 ? { opacity: 0, y: -18, x: 20, scale: 0.98 } : { opacity: 1, y: 0, x: 0, scale: 1 }}
+                      animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
+                      transition={{ 
+                        delay: i < 15 ? i * 0.07 : 0, 
+                        duration: 0.6, 
+                        ease: [0.22, 1, 0.36, 1] 
+                      }}
+                      style={{ zIndex: 100 - i }}
+                      className="flex items-center gap-4 p-2 rounded-xl active:bg-white/5 relative" 
+                      onClick={() => playSong(song)}
+                    >
                       <img src={song.image} className="w-12 h-12 rounded-lg object-cover" />
                       <div className="flex flex-col flex-1 min-w-0">
                         <span className={`text-base font-semibold ${spaceGrotesk.className} text-white truncate`}>{song.title}</span>
@@ -3164,7 +3230,7 @@ export default function FransHalsMusicApp() {
                       >
                         <MoreHorizontal className="w-5 h-5 text-white/50" />
                       </button>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               )}
@@ -3228,9 +3294,20 @@ export default function FransHalsMusicApp() {
                   </button>
                 </div>
 
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2 overflow-x-hidden">
                   {activePlaylist.songs.map((song, i) => (
-                    <div key={song.id} className="flex items-center gap-4 p-2 rounded-xl active:bg-white/5">
+                    <motion.div 
+                      key={song.id} 
+                      initial={i < 15 ? { opacity: 0, y: -18, x: 20, scale: 0.98 } : { opacity: 1, y: 0, x: 0, scale: 1 }}
+                      animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
+                      transition={{ 
+                        delay: i < 15 ? i * 0.07 : 0, 
+                        duration: 0.6, 
+                        ease: [0.22, 1, 0.36, 1] 
+                      }}
+                      style={{ zIndex: 100 - i }}
+                      className="flex items-center gap-4 p-2 rounded-xl active:bg-white/5 relative"
+                    >
                       <div className="flex-1 min-w-0" onClick={() => playSong(song, true, "playlist", activePlaylist.songs)}>
                         <div className="flex items-center gap-4">
                           <img src={song.image} className="w-12 h-12 rounded-lg object-cover" />
@@ -3247,7 +3324,7 @@ export default function FransHalsMusicApp() {
                       >
                         <MoreHorizontal className="w-5 h-5 text-white/50" />
                       </button>
-                    </div>
+                    </motion.div>
                   ))}
                   {activePlaylist.songs.length === 0 && (
                      <div className="py-20 text-center flex flex-col items-center opacity-50">

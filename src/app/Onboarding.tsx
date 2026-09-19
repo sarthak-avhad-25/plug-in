@@ -1,14 +1,15 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Users } from "lucide-react";
 
 const AVATARS = Array.from({ length: 10 }).map((_, i) => ({
   id: `pic-${i + 1}`,
   image: `/avatars/avatar-${i + 1}.png`
 }));
 
-export function Onboarding({ onComplete }: { onComplete: (profile: any) => void }) {
-  const [step, setStep] = useState<"welcome" | "transition_to_profile" | "create_profile" | "transition_to_app">("welcome");
+export function Onboarding({ onComplete, existingProfiles = [], onSelectExisting }: { onComplete: (profile: any) => void; existingProfiles?: any[]; onSelectExisting?: (profile: any) => void; }) {
+  const [step, setStep] = useState<"welcome" | "transition_to_profile" | "create_profile" | "transition_to_app" | "select_profile">("welcome");
   const [username, setUsername] = useState("");
   const [selectedAvatarId, setSelectedAvatarId] = useState(AVATARS[0].id);
   const [fastForward, setFastForward] = useState(false);
@@ -57,6 +58,19 @@ export function Onboarding({ onComplete }: { onComplete: (profile: any) => void 
         avatar: avatar.image
       };
       onComplete(profile);
+    }, 3000);
+  };
+
+  const handleSelectExistingProfile = (profile: any) => {
+    setSelectedAvatarId(AVATARS.find(a => a.image === profile.avatar)?.id || AVATARS[0].id);
+    setUsername(profile.name);
+    setStep("transition_to_app");
+    setTimeout(() => {
+      if (onSelectExisting) {
+        onSelectExisting(profile);
+      } else {
+        onComplete(profile);
+      }
     }, 3000);
   };
 
@@ -140,7 +154,17 @@ export function Onboarding({ onComplete }: { onComplete: (profile: any) => void 
             className="relative z-10 w-full h-full flex flex-col justify-between p-6 md:p-12"
           >
             <div className="flex flex-col gap-2 relative">
-               <span className="text-[10px] font-black tracking-[0.4em] text-white/30 absolute -top-4 right-0">IDENTITY</span>
+               <motion.button 
+                 type="button"
+                 onClick={() => setStep("select_profile")}
+                 initial={{ opacity: 0, y: -10, scale: 0.97 }}
+                 animate={{ opacity: 1, y: 0, scale: 1 }}
+                 transition={{ delay: 0.5, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                 className="absolute -top-4 right-0 z-50 flex items-center gap-2 px-4 py-2 bg-black border border-[#D4FF00]/30 rounded-xl text-white/90 hover:text-[#D4FF00] hover:border-[#D4FF00]/80 hover:bg-[#111] hover:-translate-y-0.5 hover:scale-105 shadow-[0_0_15px_rgba(212,255,0,0.1)] hover:shadow-[0_0_20px_rgba(212,255,0,0.3)] transition-all duration-300 cursor-pointer"
+               >
+                 <Users className="w-3.5 h-3.5" />
+                 <span className="text-[10px] font-black tracking-[0.2em] uppercase mt-0.5">EXISTING PROFILES</span>
+               </motion.button>
                <h2 className="text-[64px] font-black tracking-tighter text-white leading-[0.8] uppercase w-3/4">CREATE<br/>PROFILE</h2>
             </div>
 
@@ -184,6 +208,59 @@ export function Onboarding({ onComplete }: { onComplete: (profile: any) => void 
             
             <div className="text-center text-[10px] font-black tracking-[0.4em] text-white/30 uppercase mt-4">
                SECURE LOCAL STORAGE
+            </div>
+          </motion.div>
+        )}
+
+        {/* PROFILE SELECTION */}
+        {step === "select_profile" && (
+          <motion.div
+            key="select_profile"
+            initial={{ opacity: 0, filter: "blur(10px)" }}
+            animate={{ opacity: 1, filter: "blur(0px)" }}
+            exit={{ opacity: 0, scale: 1.1, filter: "blur(20px)" }}
+            transition={{ duration: 0.8, ease: "backOut" }}
+            className="relative z-10 w-full h-full flex flex-col p-6 md:p-12"
+          >
+            <div className="flex flex-col gap-2 relative">
+               <button 
+                 type="button"
+                 onClick={() => setStep("create_profile")}
+                 className="text-[10px] font-black tracking-[0.4em] text-white/50 hover:text-white absolute -top-4 right-0 transition-colors uppercase cursor-pointer z-50"
+               >
+                 BACK TO CREATE
+               </button>
+               <h2 className="text-[64px] font-black tracking-tighter text-white leading-[0.8] uppercase w-3/4 mb-12">SELECT<br/>PROFILE</h2>
+            </div>
+            
+            <div className="flex-1 flex flex-col items-center justify-center w-full mt-[-10%]">
+               
+               {existingProfiles.length === 0 ? (
+                 <div className="text-center flex flex-col items-center gap-6">
+                   <div className="text-white/40 text-xl font-bold tracking-widest uppercase">No saved profiles found.</div>
+                   <button 
+                     onClick={() => setStep("create_profile")}
+                     className="px-8 py-4 bg-white/10 hover:bg-white/20 text-white font-bold tracking-widest uppercase rounded-full transition-colors"
+                   >
+                     Return
+                   </button>
+                 </div>
+               ) : (
+                 <div className="flex flex-wrap justify-center gap-8 md:gap-12 w-full max-w-5xl mx-auto">
+                   {existingProfiles.map(profile => (
+                     <button
+                       key={profile.id}
+                       onClick={() => handleSelectExistingProfile(profile)}
+                       className="flex flex-col items-center gap-6 group hover:scale-105 active:scale-95 transition-all"
+                     >
+                       <div className="w-32 h-32 md:w-48 md:h-48 rounded-full overflow-hidden border-2 border-white/20 group-hover:border-[#D4FF00] transition-colors bg-[#111] grayscale group-hover:grayscale-0 shadow-2xl">
+                         <img src={profile.avatar || AVATARS[0].image} alt={profile.name} className="w-full h-full object-cover" />
+                       </div>
+                       <span className="text-2xl md:text-3xl font-black text-white tracking-tighter uppercase group-hover:text-[#D4FF00] transition-colors">{profile.name}</span>
+                     </button>
+                   ))}
+                 </div>
+               )}
             </div>
           </motion.div>
         )}
