@@ -12,6 +12,13 @@ import { loadProfiles, saveProfilesServer, loadActiveProfile, saveActiveProfileS
 import { Onboarding } from "./Onboarding";
 import { ProfileSelector } from "./ProfileSelector";
 import { LiveLyrics } from "./components/LiveLyrics";
+import { Space_Grotesk } from 'next/font/google';
+
+const spaceGrotesk = Space_Grotesk({
+  weight: ['600'],
+  subsets: ['latin'],
+  display: 'swap',
+});
 
 type Profile = {
   id: string;
@@ -80,7 +87,7 @@ const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite, onOpenMenu
         </div>
 
         <div className="flex flex-col w-full text-center items-center min-w-0 justify-center transition-colors mt-2">
-          <span className="text-[12px] md:text-[14px] font-black tracking-tighter uppercase text-white truncate leading-[1.1] w-full px-2 drop-shadow-md">
+          <span className={`${spaceGrotesk.className} font-semibold text-[12px] md:text-[14px] tracking-normal [word-spacing:0.2em] uppercase text-white truncate leading-[1.1] w-full px-2 drop-shadow-md`}>
             {song.title}
           </span>
           <span className="text-[8px] md:text-[9px] font-bold tracking-[0.4em] text-white/40 uppercase mt-1 truncate group-hover:text-[#D4FF00] transition-colors w-full px-2">
@@ -104,7 +111,7 @@ const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite, onOpenMenu
     <div 
       onClick={(e) => onPlay(e)}
       onMouseEnter={handleMouseEnter}
-      className="flex items-center gap-4 md:gap-6 group cursor-pointer active:opacity-50 transition-opacity w-full hover:bg-white/5 p-2 -ml-2 relative z-0"
+      className="flex items-center gap-4 md:gap-6 group cursor-pointer active:opacity-50 transition-opacity w-full p-2 -ml-2 relative z-0 before:absolute before:inset-0 before:bg-white/5 before:opacity-0 hover:before:opacity-100 before:-z-10 before:rounded-xl"
     >
       <div className="text-[10px] md:text-[12px] font-black tracking-widest text-white/30 -rotate-90 origin-center w-4 md:w-6 shrink-0 opacity-0 md:opacity-100 hidden md:block">
         {String(index + 1).padStart(2, '0')}
@@ -126,10 +133,10 @@ const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite, onOpenMenu
         )}
       </div>
 
-      <div className="flex flex-col flex-1 min-w-0 justify-center min-h-[50px] md:min-h-[60px] py-1 border-b border-white/10 group-hover:border-transparent transition-colors pr-12 md:pr-16">
+      <div className="flex flex-col flex-1 min-w-0 justify-center min-h-[50px] md:min-h-[60px] py-1 border-b border-white/10 group-hover:border-transparent transition-colors relative z-10">
         <div className="flex flex-col min-w-0">
           <div className="overflow-hidden min-w-0">
-            <span className="scrollable-text-container text-[14px] md:text-[16px] font-black tracking-tighter uppercase text-white leading-[1.1] drop-shadow-md block truncate group-hover:w-max group-hover:overflow-visible group-hover:text-clip animate-custom-scroll origin-left">
+            <span className={`scrollable-text-container ${spaceGrotesk.className} font-semibold text-[14px] md:text-[16px] tracking-normal [word-spacing:0.2em] uppercase text-white leading-[1.1] drop-shadow-md block truncate group-hover:w-max group-hover:overflow-visible group-hover:text-clip animate-custom-scroll origin-left`}>
               {song.title}
             </span>
           </div>
@@ -139,7 +146,7 @@ const SongBox = ({ song, index, onPlay, isFavorite, onToggleFavorite, onOpenMenu
         </div>
       </div>
 
-      <div className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 flex items-center justify-center z-10 pointer-events-none group-hover:pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+      <div className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 flex items-center justify-center z-20 pointer-events-none group-hover:pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
         <button 
           onClick={(e) => { e.stopPropagation(); onToggleFavorite(e); }}
           className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center border hover:border-white/30 rounded-full transition-all duration-300 hover:scale-110 bg-black/50 backdrop-blur-sm shadow-xl ${isFavorite ? 'border-[#D4FF00]/50 opacity-100 pointer-events-auto' : 'border-white/10 opacity-0 group-hover:opacity-100'}`}
@@ -994,7 +1001,7 @@ export default function FransHalsMusicApp() {
                             </div>
                          </div>
                          <div className="flex flex-col border-b border-white/20 pb-3 group-hover:border-[#D4FF00] transition-colors">
-                           <span className="text-[20px] font-black text-white truncate tracking-tighter uppercase leading-[0.9]">{song.title}</span>
+                           <span className={`text-[20px] font-semibold ${spaceGrotesk.className} text-white truncate tracking-tighter uppercase leading-[0.9]`}>{song.title}</span>
                            <span className="text-[10px] font-bold tracking-[0.4em] text-white/30 group-hover:text-white truncate mt-1 uppercase transition-colors">{song.artist}</span>
                          </div>
                        </div>
@@ -1023,7 +1030,7 @@ export default function FransHalsMusicApp() {
 
                          </div>
                          <div className="flex flex-col border-b border-white/20 pb-4 group-hover:border-[#D4FF00] transition-colors">
-                           <span className="text-[20px] font-black text-white truncate tracking-tighter uppercase leading-[0.9]">{song.title}</span>
+                           <span className={`text-[20px] font-semibold ${spaceGrotesk.className} text-white truncate tracking-tighter uppercase leading-[0.9]`}>{song.title}</span>
                            <span className="text-[10px] font-bold tracking-[0.4em] text-white/30 group-hover:text-white truncate mt-2 uppercase transition-colors">{song.artist}</span>
                          </div>
                        </div>
@@ -1058,7 +1065,7 @@ export default function FransHalsMusicApp() {
 
                          </div>
                          <div className="flex flex-col border-b border-white/20 pb-4 group-hover:border-[#D4FF00] transition-colors">
-                           <span className="text-[20px] font-black text-white truncate tracking-tighter uppercase leading-[0.9]">{song.title}</span>
+                           <span className={`text-[20px] font-semibold ${spaceGrotesk.className} text-white truncate tracking-tighter uppercase leading-[0.9]`}>{song.title}</span>
                            <span className="text-[10px] font-bold tracking-[0.4em] text-white/30 group-hover:text-white truncate mt-2 uppercase transition-colors">{song.artist}</span>
                          </div>
                        </div>
@@ -2655,7 +2662,7 @@ export default function FransHalsMusicApp() {
                                         <Play className="w-4 h-4 text-white absolute inset-0 m-auto opacity-0 group-hover:opacity-100 transition-opacity" />
                                      </div>
                                      <div className="flex flex-col overflow-hidden">
-                                        <span className="text-[14px] font-bold text-white truncate">{song.title}</span>
+                                        <span className={`text-[14px] font-semibold ${spaceGrotesk.className} text-white truncate`}>{song.title}</span>
                                         <span className="text-[10px] text-white/50 truncate uppercase font-bold tracking-widest mt-1">{song.artist}</span>
                                      </div>
                                    </motion.button>
@@ -3144,7 +3151,7 @@ export default function FransHalsMusicApp() {
                     <div key={song.id} className="flex items-center gap-4 p-2 rounded-xl active:bg-white/5" onClick={() => playSong(song)}>
                       <img src={song.image} className="w-12 h-12 rounded-lg object-cover" />
                       <div className="flex flex-col flex-1 min-w-0">
-                        <span className="text-base font-bold text-white truncate">{song.title}</span>
+                        <span className={`text-base font-semibold ${spaceGrotesk.className} text-white truncate`}>{song.title}</span>
                         <span className="text-sm text-white/50 truncate">{song.artist}</span>
                       </div>
 
@@ -3228,7 +3235,7 @@ export default function FransHalsMusicApp() {
                         <div className="flex items-center gap-4">
                           <img src={song.image} className="w-12 h-12 rounded-lg object-cover" />
                           <div className="flex flex-col flex-1 min-w-0">
-                            <span className="text-base font-bold text-white truncate">{song.title}</span>
+                            <span className={`text-base font-semibold ${spaceGrotesk.className} text-white truncate`}>{song.title}</span>
                             <span className="text-sm text-white/50 truncate">{song.artist}</span>
                           </div>
                         </div>
